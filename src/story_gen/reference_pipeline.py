@@ -1,4 +1,4 @@
-"""Reference-story ingestion pipeline for syosetu web novels.
+﻿"""Reference-story ingestion pipeline for syosetu web novels.
 
 This module supports:
 - crawling episode metadata from an index page
@@ -14,10 +14,10 @@ import json
 import re
 import statistics
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Literal, Mapping, NotRequired, TypedDict
 from urllib.parse import urljoin
 
 import httpx
@@ -55,6 +55,182 @@ class EpisodeRecord:
     revised_at: str | None
     total_episodes_hint: int | None
     text_jp: str
+
+
+@dataclass(frozen=True)
+class PipelineArgs:
+    """Typed configuration used by the reference pipeline."""
+
+    base_url: str
+    work_dir: str
+    project_id: str
+    start_page: int
+    end_page: int | None
+    episode_start: int
+    episode_end: int | None
+    max_episodes: int | None
+    crawl_delay_seconds: float
+    force_fetch: bool
+    translate_provider: Literal["none", "libretranslate"]
+    source_language: str
+    target_language: str
+    libretranslate_url: str
+    libretranslate_api_key: str | None
+    translate_delay_seconds: float
+    translate_chunk_size: int
+    force_translate: bool
+    sample_count: int
+    excerpt_chars: int
+    analysis_names: str
+
+
+class EpisodeMetaPayload(TypedDict):
+    episode_number: int
+    title_jp: str
+    arc_title_jp: str | None
+    url: str
+    published_at: str | None
+    revised_at: str | None
+
+
+class EpisodeRecordPayload(TypedDict):
+    episode_number: int
+    title_jp: str
+    arc_title_jp: str | None
+    url: str
+    published_at: str | None
+    revised_at: str | None
+    total_episodes_hint: int | None
+    text_jp: str
+
+
+class IndexPayload(TypedDict):
+    base_url: str
+    fetched_at_utc: str
+    total_discovered: int
+    selected_count: int
+    episodes: list[EpisodeMetaPayload]
+
+
+class TranslationPayload(TypedDict):
+    episode_number: int
+    source_language: str
+    target_language: str
+    text_translated: str
+
+
+class LongestEpisodePayload(TypedDict):
+    episode_number: int
+    title_jp: str
+    chars: int
+
+
+class AnalysisPayload(TypedDict):
+    episode_count: int
+    message: str | None
+    total_characters_jp: int
+    avg_characters_per_episode_jp: float
+    median_characters_per_episode_jp: float
+    avg_dialogue_density: float
+    max_dialogue_density: float
+    episodes_by_arc: dict[str, int]
+    focus_name_mentions: dict[str, int]
+    top_longest_episodes: list[LongestEpisodePayload]
+
+
+class LibreTranslateRequest(TypedDict):
+    q: str
+    source: str
+    target: str
+    format: str
+    api_key: NotRequired[str]
+
+
+def _episode_meta_payload(meta: EpisodeMeta) -> EpisodeMetaPayload:
+    return {
+        "episode_number": meta.episode_number,
+        "title_jp": meta.title_jp,
+        "arc_title_jp": meta.arc_title_jp,
+        "url": meta.url,
+        "published_at": meta.published_at,
+        "revised_at": meta.revised_at,
+    }
+
+
+def _episode_record_payload(record: EpisodeRecord) -> EpisodeRecordPayload:
+    return {
+        "episode_number": record.episode_number,
+        "title_jp": record.title_jp,
+        "arc_title_jp": record.arc_title_jp,
+        "url": record.url,
+        "published_at": record.published_at,
+        "revised_at": record.revised_at,
+        "total_episodes_hint": record.total_episodes_hint,
+        "text_jp": record.text_jp,
+    }
+
+
+def _required_str(mapping: Mapping[str, object], key: str) -> str:
+    value = mapping.get(key)
+    if isinstance(value, str):
+        return value
+    raise RuntimeError(f"Invalid or missing string field: {key}")
+
+
+def _required_int(mapping: Mapping[str, object], key: str) -> int:
+    value = mapping.get(key)
+    if isinstance(value, bool):
+        raise RuntimeError(f"Invalid integer field (bool): {key}")
+    if isinstance(value, int):
+        return value
+    raise RuntimeError(f"Invalid or missing integer field: {key}")
+
+
+def _optional_str(mapping: Mapping[str, object], key: str) -> str | None:
+    value = mapping.get(key)
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    raise RuntimeError(f"Invalid optional string field: {key}")
+
+
+def _optional_int(mapping: Mapping[str, object], key: str) -> int | None:
+    value = mapping.get(key)
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise RuntimeError(f"Invalid optional integer field (bool): {key}")
+    if isinstance(value, int):
+        return value
+    raise RuntimeError(f"Invalid optional integer field: {key}")
+
+
+def _episode_record_from_loaded(raw: object) -> EpisodeRecord:
+    if not isinstance(raw, dict):
+        raise RuntimeError("Cached chapter payload is not an object.")
+    data: Mapping[str, object] = raw
+    payload: EpisodeRecordPayload = {
+        "episode_number": _required_int(data, "episode_number"),
+        "title_jp": _required_str(data, "title_jp"),
+        "arc_title_jp": _optional_str(data, "arc_title_jp"),
+        "url": _required_str(data, "url"),
+        "published_at": _optional_str(data, "published_at"),
+        "revised_at": _optional_str(data, "revised_at"),
+        "total_episodes_hint": _optional_int(data, "total_episodes_hint"),
+        "text_jp": _required_str(data, "text_jp"),
+    }
+    return EpisodeRecord(**payload)
+
+
+def _translated_text_from_loaded(raw: object) -> str | None:
+    if not isinstance(raw, dict):
+        return None
+    data: Mapping[str, object] = raw
+    value = data.get("text_translated")
+    if isinstance(value, str):
+        return value
+    return None
 
 
 def _slug_from_base_url(base_url: str) -> str:
@@ -213,7 +389,6 @@ def _chunk_text(text: str, max_chars: int) -> list[str]:
         chunks.append("\n\n".join(current))
     return chunks
 
-
 class LibreTranslateTranslator:
     """Translation adapter for LibreTranslate-compatible APIs."""
 
@@ -244,7 +419,7 @@ class LibreTranslateTranslator:
         translated_chunks: list[str] = []
 
         for index, chunk in enumerate(chunks):
-            payload: dict[str, Any] = {
+            payload: LibreTranslateRequest = {
                 "q": chunk,
                 "source": self._source_language,
                 "target": self._target_language,
@@ -255,7 +430,10 @@ class LibreTranslateTranslator:
 
             response = self._client.post(self._endpoint, json=payload)
             response.raise_for_status()
-            data = response.json()
+            raw_data = response.json()
+            if not isinstance(raw_data, dict):
+                raise RuntimeError("LibreTranslate response was not a JSON object.")
+            data: Mapping[str, object] = raw_data
             translated = data.get("translatedText")
             if not isinstance(translated, str):
                 raise RuntimeError("LibreTranslate response missing translatedText.")
@@ -282,18 +460,27 @@ def _dialogue_density(text: str) -> float:
     if not lines:
         return 0.0
     dialogue_count = 0
+    dialogue_openers = ("\u300c", "\u300e", "\u201c", '"', "'")
     for line in lines:
-        if line.startswith(("「", "『", "“", '"', "'")):
+        if line.startswith(dialogue_openers):
             dialogue_count += 1
     return dialogue_count / len(lines)
 
 
-def build_analysis(episodes: list[EpisodeRecord], focus_names: list[str]) -> dict[str, Any]:
+def build_analysis(episodes: list[EpisodeRecord], focus_names: list[str]) -> AnalysisPayload:
     """Build high-level literary metrics for reference learning."""
     if not episodes:
         return {
             "episode_count": 0,
             "message": "No episodes available for analysis.",
+            "total_characters_jp": 0,
+            "avg_characters_per_episode_jp": 0.0,
+            "median_characters_per_episode_jp": 0.0,
+            "avg_dialogue_density": 0.0,
+            "max_dialogue_density": 0.0,
+            "episodes_by_arc": {},
+            "focus_name_mentions": {},
+            "top_longest_episodes": [],
         }
 
     chapter_lengths = [len(episode.text_jp) for episode in episodes]
@@ -314,7 +501,7 @@ def build_analysis(episodes: list[EpisodeRecord], focus_names: list[str]) -> dic
         key=lambda episode: len(episode.text_jp),
         reverse=True,
     )
-    top_longest = [
+    top_longest: list[LongestEpisodePayload] = [
         {
             "episode_number": episode.episode_number,
             "title_jp": episode.title_jp,
@@ -325,6 +512,7 @@ def build_analysis(episodes: list[EpisodeRecord], focus_names: list[str]) -> dic
 
     return {
         "episode_count": len(episodes),
+        "message": None,
         "total_characters_jp": sum(chapter_lengths),
         "avg_characters_per_episode_jp": round(statistics.mean(chapter_lengths), 2),
         "median_characters_per_episode_jp": round(statistics.median(chapter_lengths), 2),
@@ -336,35 +524,33 @@ def build_analysis(episodes: list[EpisodeRecord], focus_names: list[str]) -> dic
     }
 
 
-def _analysis_report_markdown(analysis: dict[str, Any]) -> str:
+def _analysis_report_markdown(analysis: AnalysisPayload) -> str:
     lines: list[str] = []
     lines.append("# Literary Analysis Report")
     lines.append("")
     lines.append("Generated by `story_gen.reference_pipeline`.")
     lines.append("")
-    lines.append(f"- Episode count: {analysis.get('episode_count', 0)}")
-    lines.append(f"- Total JP chars: {analysis.get('total_characters_jp', 0)}")
-    lines.append(
-        f"- Average JP chars/episode: {analysis.get('avg_characters_per_episode_jp', 0)}"
-    )
-    lines.append(
-        f"- Median JP chars/episode: {analysis.get('median_characters_per_episode_jp', 0)}"
-    )
-    lines.append(f"- Avg dialogue density: {analysis.get('avg_dialogue_density', 0)}")
+    lines.append(f"- Episode count: {analysis['episode_count']}")
+    lines.append(f"- Total JP chars: {analysis['total_characters_jp']}")
+    lines.append(f"- Average JP chars/episode: {analysis['avg_characters_per_episode_jp']}")
+    lines.append(f"- Median JP chars/episode: {analysis['median_characters_per_episode_jp']}")
+    lines.append(f"- Avg dialogue density: {analysis['avg_dialogue_density']}")
+    if analysis["message"]:
+        lines.append(f"- Note: {analysis['message']}")
     lines.append("")
     lines.append("## Arc Distribution")
     lines.append("")
-    for arc, count in sorted(analysis.get("episodes_by_arc", {}).items()):
+    for arc, count in sorted(analysis["episodes_by_arc"].items()):
         lines.append(f"- {arc}: {count}")
     lines.append("")
     lines.append("## Focus Name Mentions")
     lines.append("")
-    for name, count in sorted(analysis.get("focus_name_mentions", {}).items()):
+    for name, count in sorted(analysis["focus_name_mentions"].items()):
         lines.append(f"- {name}: {count}")
     lines.append("")
     lines.append("## Longest Episodes")
     lines.append("")
-    for row in analysis.get("top_longest_episodes", []):
+    for row in analysis["top_longest_episodes"]:
         lines.append(f"- #{row['episode_number']}: {row['title_jp']} ({row['chars']} chars)")
     lines.append("")
     lines.append("## Reflection Prompts")
@@ -416,15 +602,14 @@ def _sample_markdown(
     return "\n".join(lines).strip() + "\n"
 
 
-def _write_json(path: Path, payload: Any) -> None:
+def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
 
-
-def run_pipeline(args: argparse.Namespace) -> None:
+def run_pipeline(args: PipelineArgs) -> None:
     """Execute crawling, optional translation, and analysis export."""
     work_dir = Path(args.work_dir)
     project_slug = args.project_id or _slug_from_base_url(args.base_url)
@@ -448,7 +633,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
         )
         first_html = client.get(first_url).text
         first_page_episodes, last_page = parse_index_page(first_html, args.base_url)
-        target_last_page = min(args.end_page, last_page) if args.end_page else last_page
+        target_last_page = min(args.end_page, last_page) if args.end_page is not None else last_page
 
         all_episode_meta: list[EpisodeMeta] = []
         if start_page <= target_last_page:
@@ -474,29 +659,27 @@ def run_pipeline(args: argparse.Namespace) -> None:
         for meta in ordered_meta:
             if meta.episode_number < args.episode_start:
                 continue
-            if args.episode_end and meta.episode_number > args.episode_end:
+            if args.episode_end is not None and meta.episode_number > args.episode_end:
                 continue
             filtered_meta.append(meta)
-        if args.max_episodes:
+        if args.max_episodes is not None:
             filtered_meta = filtered_meta[: args.max_episodes]
 
-        _write_json(
-            meta_dir / "index.json",
-            {
-                "base_url": args.base_url,
-                "fetched_at_utc": datetime.now(UTC).isoformat(),
-                "total_discovered": len(ordered_meta),
-                "selected_count": len(filtered_meta),
-                "episodes": [asdict(item) for item in filtered_meta],
-            },
-        )
+        index_payload: IndexPayload = {
+            "base_url": args.base_url,
+            "fetched_at_utc": datetime.now(UTC).isoformat(),
+            "total_discovered": len(ordered_meta),
+            "selected_count": len(filtered_meta),
+            "episodes": [_episode_meta_payload(item) for item in filtered_meta],
+        }
+        _write_json(meta_dir / "index.json", index_payload)
 
         episode_records: list[EpisodeRecord] = []
         for idx, meta in enumerate(filtered_meta, start=1):
             output_file = raw_dir / f"{meta.episode_number:04d}.json"
             if output_file.exists() and not args.force_fetch:
-                cached = json.loads(output_file.read_text(encoding="utf-8"))
-                episode_records.append(EpisodeRecord(**cached))
+                raw_cached = json.loads(output_file.read_text(encoding="utf-8"))
+                episode_records.append(_episode_record_from_loaded(raw_cached))
                 print(
                     f"[raw] {idx}/{len(filtered_meta)} episode {meta.episode_number}: "
                     "cached"
@@ -517,7 +700,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
                 total_episodes_hint=total_hint,
                 text_jp=text_jp,
             )
-            _write_json(output_file, asdict(record))
+            _write_json(output_file, _episode_record_payload(record))
             episode_records.append(record)
             print(
                 f"[raw] {idx}/{len(filtered_meta)} episode {meta.episode_number}: "
@@ -542,9 +725,9 @@ def run_pipeline(args: argparse.Namespace) -> None:
             for idx, episode in enumerate(episode_records, start=1):
                 output_file = translated_dir / f"{episode.episode_number:04d}.json"
                 if output_file.exists() and not args.force_translate:
-                    cached_translation = json.loads(output_file.read_text(encoding="utf-8"))
-                    translated_text = cached_translation.get("text_translated")
-                    if isinstance(translated_text, str):
+                    raw_cached = json.loads(output_file.read_text(encoding="utf-8"))
+                    translated_text = _translated_text_from_loaded(raw_cached)
+                    if translated_text is not None:
                         translated_map[episode.episode_number] = translated_text
                         print(
                             "[translate] "
@@ -554,15 +737,13 @@ def run_pipeline(args: argparse.Namespace) -> None:
 
                 translated_text = translator.translate(episode.text_jp)
                 translated_map[episode.episode_number] = translated_text
-                _write_json(
-                    output_file,
-                    {
-                        "episode_number": episode.episode_number,
-                        "source_language": args.source_language,
-                        "target_language": args.target_language,
-                        "text_translated": translated_text,
-                    },
-                )
+                translated_payload: TranslationPayload = {
+                    "episode_number": episode.episode_number,
+                    "source_language": args.source_language,
+                    "target_language": args.target_language,
+                    "text_translated": translated_text,
+                }
+                _write_json(output_file, translated_payload)
                 print(
                     "[translate] "
                     f"{idx}/{len(episode_records)} episode {episode.episode_number}: "
@@ -631,22 +812,45 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _pipeline_args_from_namespace(namespace: argparse.Namespace) -> PipelineArgs:
+    translate_provider: Literal["none", "libretranslate"]
+    if namespace.translate_provider == "libretranslate":
+        translate_provider = "libretranslate"
+    else:
+        translate_provider = "none"
+
+    return PipelineArgs(
+        base_url=str(namespace.base_url),
+        work_dir=str(namespace.work_dir),
+        project_id=str(namespace.project_id),
+        start_page=max(1, int(namespace.start_page)),
+        end_page=int(namespace.end_page) if int(namespace.end_page) > 0 else None,
+        episode_start=max(1, int(namespace.episode_start)),
+        episode_end=int(namespace.episode_end) if int(namespace.episode_end) > 0 else None,
+        max_episodes=int(namespace.max_episodes) if int(namespace.max_episodes) > 0 else None,
+        crawl_delay_seconds=float(namespace.crawl_delay_seconds),
+        force_fetch=bool(namespace.force_fetch),
+        translate_provider=translate_provider,
+        source_language=str(namespace.source_language),
+        target_language=str(namespace.target_language),
+        libretranslate_url=str(namespace.libretranslate_url),
+        libretranslate_api_key=str(namespace.libretranslate_api_key)
+        if str(namespace.libretranslate_api_key)
+        else None,
+        translate_delay_seconds=float(namespace.translate_delay_seconds),
+        translate_chunk_size=int(namespace.translate_chunk_size),
+        force_translate=bool(namespace.force_translate),
+        sample_count=max(1, int(namespace.sample_count)),
+        excerpt_chars=max(1, int(namespace.excerpt_chars)),
+        analysis_names=str(namespace.analysis_names),
+    )
+
+
 def cli_main(argv: list[str] | None = None) -> None:
     """Command-line entrypoint."""
     parser = build_arg_parser()
-    args = parser.parse_args(argv)
-
-    # Normalize optional integer flags where 0 means unset.
-    if args.end_page <= 0:
-        args.end_page = None
-    if args.episode_end <= 0:
-        args.episode_end = None
-    if args.max_episodes <= 0:
-        args.max_episodes = None
-    if not args.libretranslate_api_key:
-        args.libretranslate_api_key = None
-
-    run_pipeline(args)
+    parsed = parser.parse_args(argv)
+    run_pipeline(_pipeline_args_from_namespace(parsed))
 
 
 if __name__ == "__main__":

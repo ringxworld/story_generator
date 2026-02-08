@@ -1,12 +1,13 @@
-import argparse
 import json
 from pathlib import Path
+from typing import Literal
 
 import pytest
 
 from story_gen import reference_pipeline
 from story_gen.reference_pipeline import (
     EpisodeRecord,
+    PipelineArgs,
     _chunk_text,
     build_analysis,
     cli_main,
@@ -101,14 +102,14 @@ def test_build_analysis_counts_focus_names() -> None:
 
 
 class _FakeResponse:
-    def __init__(self, *, text: str = "", json_payload: dict[str, str] | None = None) -> None:
+    def __init__(self, *, text: str = "", json_payload: object = None) -> None:
         self.text = text
-        self._json_payload = json_payload or {}
+        self._json_payload = {} if json_payload is None else json_payload
 
     def raise_for_status(self) -> None:
         return None
 
-    def json(self) -> dict[str, str]:
+    def json(self) -> object:
         return self._json_payload
 
 
@@ -127,7 +128,7 @@ class _FakeClient:
     def __enter__(self) -> "_FakeClient":
         return self
 
-    def __exit__(self, exc_type: object, exc: object, tb: object) -> bool:
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> Literal[False]:
         return False
 
     def get(self, url: str) -> _FakeResponse:
@@ -144,38 +145,42 @@ class _FakeClient:
         return _FakeResponse(json_payload=self.post_map[url])
 
 
-def _base_args(tmp_path: Path, **overrides: object) -> argparse.Namespace:
-    data: dict[str, object] = {
-        "base_url": "https://example.com/n1234aa/",
-        "work_dir": str(tmp_path / "work"),
-        "project_id": "fixture",
-        "start_page": 1,
-        "end_page": None,
-        "episode_start": 1,
-        "episode_end": None,
-        "max_episodes": None,
-        "crawl_delay_seconds": 0.0,
-        "force_fetch": False,
-        "translate_provider": "none",
-        "source_language": "ja",
-        "target_language": "en",
-        "libretranslate_url": "http://localhost:5000",
-        "libretranslate_api_key": None,
-        "translate_delay_seconds": 0.0,
-        "translate_chunk_size": 1000,
-        "force_translate": False,
-        "sample_count": 1,
-        "excerpt_chars": 80,
-        "analysis_names": "",
-    }
-    data.update(overrides)
-    return argparse.Namespace(**data)
+def _base_args(tmp_path: Path, **overrides: object) -> PipelineArgs:
+    base_url_override = overrides.get("base_url")
+    base_url = (
+        str(base_url_override)
+        if base_url_override is not None
+        else "https://example.com/n1234aa/"
+    )
+    return PipelineArgs(
+        base_url=base_url,
+        work_dir=str(tmp_path / "work"),
+        project_id="fixture",
+        start_page=1,
+        end_page=None,
+        episode_start=1,
+        episode_end=None,
+        max_episodes=None,
+        crawl_delay_seconds=0.0,
+        force_fetch=False,
+        translate_provider="none",
+        source_language="ja",
+        target_language="en",
+        libretranslate_url="http://localhost:5000",
+        libretranslate_api_key=None,
+        translate_delay_seconds=0.0,
+        translate_chunk_size=1000,
+        force_translate=False,
+        sample_count=1,
+        excerpt_chars=80,
+        analysis_names="",
+    )
 
 
 def test_cli_main_normalizes_optional_args(monkeypatch: pytest.MonkeyPatch) -> None:
-    captured: dict[str, argparse.Namespace] = {}
+    captured: dict[str, PipelineArgs] = {}
 
-    def fake_run_pipeline(args: argparse.Namespace) -> None:
+    def fake_run_pipeline(args: PipelineArgs) -> None:
         captured["args"] = args
 
     monkeypatch.setattr(reference_pipeline, "run_pipeline", fake_run_pipeline)
@@ -229,7 +234,7 @@ def test_run_pipeline_creates_expected_output_files(
     </body></html>
     """
     fake_client = _FakeClient(get_map={base_url: index_html, episode_url: episode_html})
-    monkeypatch.setattr(reference_pipeline.httpx, "Client", lambda **kwargs: fake_client)
+    monkeypatch.setattr("story_gen.reference_pipeline.httpx.Client", lambda **kwargs: fake_client)
 
     args = _base_args(tmp_path, base_url=base_url)
     run_pipeline(args)
@@ -262,7 +267,7 @@ def test_run_pipeline_prefers_cached_raw_data(
     </body></html>
     """
     fake_client = _FakeClient(get_map={base_url: index_html})
-    monkeypatch.setattr(reference_pipeline.httpx, "Client", lambda **kwargs: fake_client)
+    monkeypatch.setattr("story_gen.reference_pipeline.httpx.Client", lambda **kwargs: fake_client)
 
     args = _base_args(tmp_path, base_url=base_url)
     output_root = tmp_path / "work" / "reference_data" / "fixture"
