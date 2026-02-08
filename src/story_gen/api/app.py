@@ -177,9 +177,9 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     @app.post("/api/v1/auth/register", response_model=UserResponse, tags=["auth"], status_code=201)
     def register(payload: AuthRegisterRequest) -> UserResponse:
         created = store.create_user(
-            email=payload.email.strip().lower(),
+            email=payload.email,
             display_name=payload.display_name.strip(),
-            password_hash=_hash_password(payload.password),
+            password_hash=_hash_password(payload.password.get_secret_value()),
         )
         if created is None:
             raise HTTPException(status_code=409, detail="Email already registered")
@@ -187,8 +187,10 @@ def create_app(db_path: Path | None = None) -> FastAPI:
 
     @app.post("/api/v1/auth/login", response_model=AuthTokenResponse, tags=["auth"])
     def login(payload: AuthLoginRequest) -> AuthTokenResponse:
-        user = store.get_user_by_email(email=payload.email.strip().lower())
-        if user is None or not _verify_password(payload.password, user.password_hash):
+        user = store.get_user_by_email(email=payload.email)
+        if user is None or not _verify_password(
+            payload.password.get_secret_value(), user.password_hash
+        ):
             raise HTTPException(status_code=401, detail="Invalid credentials")
         expires_at = _utc_now() + timedelta(hours=TOKEN_TTL_HOURS)
         token_value = secrets.token_urlsafe(32)

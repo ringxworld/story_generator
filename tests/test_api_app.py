@@ -157,3 +157,51 @@ def test_register_and_login_failure_paths(tmp_path: Path) -> None:
     assert first.status_code == 201
     assert duplicate.status_code == 409
     assert bad_login.status_code == 401
+
+
+def test_register_rejects_invalid_email_and_weak_password(tmp_path: Path) -> None:
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    bad_email = client.post(
+        "/api/v1/auth/register",
+        json={"email": "not-an-email", "password": "password123", "display_name": "Alice"},
+    )
+    weak_password = client.post(
+        "/api/v1/auth/register",
+        json={"email": "alice@example.com", "password": "allletters", "display_name": "Alice"},
+    )
+    assert bad_email.status_code == 422
+    assert weak_password.status_code == 422
+
+
+def test_story_create_rejects_invalid_blueprint_invariants(tmp_path: Path) -> None:
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    headers = _auth_headers(client, "alice@example.com")
+
+    invalid_blueprint = _sample_blueprint()
+    invalid_blueprint["chapters"] = [
+        {
+            "key": "ch01",
+            "title": "Chapter 1",
+            "objective": "x",
+            "required_themes": ["missing-theme"],
+            "participating_characters": ["rhea"],
+            "prerequisites": ["ch02"],
+            "draft_text": None,
+        },
+        {
+            "key": "ch02",
+            "title": "Chapter 2",
+            "objective": "y",
+            "required_themes": ["memory"],
+            "participating_characters": ["rhea"],
+            "prerequisites": ["ch01"],
+            "draft_text": None,
+        },
+    ]
+
+    response = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Broken Blueprint", "blueprint": invalid_blueprint},
+    )
+    assert response.status_code == 422
