@@ -1,14 +1,20 @@
 import json
+from argparse import Namespace
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Mapping, cast
 
+import httpx
 import pytest
 
 from story_gen import reference_pipeline
 from story_gen.reference_pipeline import (
     EpisodeRecord,
+    LibreTranslateTranslator,
     PipelineArgs,
     _chunk_text,
+    _episode_record_from_loaded,
+    _pipeline_args_from_namespace,
+    _translated_text_from_loaded,
     build_analysis,
     cli_main,
     parse_episode_page,
@@ -118,12 +124,13 @@ class _FakeClient:
         self,
         *,
         get_map: dict[str, str],
-        post_map: dict[str, dict[str, str]] | None = None,
+        post_map: dict[str, object] | None = None,
     ) -> None:
         self.get_map = get_map
         self.post_map = post_map or {}
         self.get_calls: list[str] = []
         self.post_calls: list[str] = []
+        self.post_payloads: list[Mapping[str, object]] = []
 
     def __enter__(self) -> "_FakeClient":
         return self
@@ -137,9 +144,9 @@ class _FakeClient:
             raise AssertionError(f"Unexpected GET url: {url}")
         return _FakeResponse(text=self.get_map[url])
 
-    def post(self, url: str, json: dict[str, str]) -> _FakeResponse:
-        del json
+    def post(self, url: str, json: Mapping[str, object]) -> _FakeResponse:
         self.post_calls.append(url)
+        self.post_payloads.append(json)
         if url not in self.post_map:
             raise AssertionError(f"Unexpected POST url: {url}")
         return _FakeResponse(json_payload=self.post_map[url])
@@ -201,6 +208,42 @@ def test_cli_main_normalizes_optional_args(monkeypatch: pytest.MonkeyPatch) -> N
     assert args.episode_end is None
     assert args.max_episodes is None
     assert args.libretranslate_api_key is None
+
+
+def test_pipeline_args_from_namespace_normalizes_values() -> None:
+    namespace = Namespace(
+        base_url="https://example.com/n1234aa/",
+        work_dir="work",
+        project_id="",
+        start_page=0,
+        end_page=0,
+        episode_start=0,
+        episode_end=0,
+        max_episodes=0,
+        crawl_delay_seconds=1.1,
+        force_fetch=False,
+        translate_provider="libretranslate",
+        source_language="ja",
+        target_language="en",
+        libretranslate_url="http://localhost:5000",
+        libretranslate_api_key="",
+        translate_delay_seconds=0.2,
+        translate_chunk_size=1200,
+        force_translate=False,
+        sample_count=0,
+        excerpt_chars=0,
+        analysis_names="",
+    )
+    args = _pipeline_args_from_namespace(namespace)
+    assert args.start_page == 1
+    assert args.episode_start == 1
+    assert args.end_page is None
+    assert args.episode_end is None
+    assert args.max_episodes is None
+    assert args.sample_count == 1
+    assert args.excerpt_chars == 1
+    assert args.libretranslate_api_key is None
+    assert args.translate_provider == "libretranslate"
 
 
 def test_run_pipeline_creates_expected_output_files(
@@ -293,3 +336,93 @@ def test_run_pipeline_prefers_cached_raw_data(
     assert fake_client.get_calls == [base_url]
     sample_text = (output_root / "samples" / "story_sample.md").read_text(encoding="utf-8")
     assert "Cached Episode" in sample_text
+
+
+def test_run_pipeline_with_libretranslate_writes_translation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "https://example.com/n1234aa/"
+    episode_url = f"{base_url}1/"
+    index_html = """
+    <html><body>
+      <div class="p-eplist">
+        <div class="p-eplist__chapter-title">Arc 1</div>
+        <div class="p-eplist__sublist">
+          <a href="/n1234aa/1/" class="p-eplist__subtitle">Episode One</a>
+          <div class="p-eplist__update">2024/01/01 00:00</div>
+        </div>
+      </div>
+    </body></html>
+    """
+    episode_html = """
+    <html><body>
+      <div class="p-novel__number">1/10</div>
+      <h1 class="p-novel__title">Episode One</h1>
+      <div class="js-novel-text p-novel__text">
+        <p>Line one.</p>
+      </div>
+    </body></html>
+    """
+    post_url = "http://localhost:5000/translate"
+    fake_client = _FakeClient(
+        get_map={base_url: index_html, episode_url: episode_html},
+        post_map={post_url: {"translatedText": "Translated line one."}},
+    )
+    monkeypatch.setattr("story_gen.reference_pipeline.httpx.Client", lambda **kwargs: fake_client)
+    monkeypatch.setattr("story_gen.reference_pipeline.time.sleep", lambda _x: None)
+
+    args = PipelineArgs(
+        **{
+            **_base_args(tmp_path, base_url=base_url).__dict__,
+            "translate_provider": "libretranslate",
+        }
+    )
+    run_pipeline(args)
+
+    output_root = tmp_path / "work" / "reference_data" / "fixture"
+    translation_payload = json.loads(
+        (output_root / "translated_en" / "0001.json").read_text(encoding="utf-8")
+    )
+    assert translation_payload["text_translated"] == "Translated line one."
+    sample_text = (output_root / "samples" / "story_sample.md").read_text(encoding="utf-8")
+    assert "English excerpt (machine translation)" in sample_text
+
+
+def test_libretranslate_translator_raises_for_invalid_payload() -> None:
+    fake_client = _FakeClient(
+        get_map={},
+        post_map={"http://localhost:5000/translate": {"unexpected": "shape"}},
+    )
+    translator = LibreTranslateTranslator(
+        client=cast(httpx.Client, fake_client),
+        base_url="http://localhost:5000",
+    )
+    with pytest.raises(RuntimeError, match="translatedText"):
+        translator.translate("hello")
+
+
+def test_episode_record_from_loaded_rejects_bad_types() -> None:
+    with pytest.raises(RuntimeError, match="episode_number"):
+        _episode_record_from_loaded(
+            {
+                "episode_number": True,
+                "title_jp": "t",
+                "arc_title_jp": None,
+                "url": "u",
+                "published_at": None,
+                "revised_at": None,
+                "total_episodes_hint": None,
+                "text_jp": "x",
+            }
+        )
+
+
+def test_translated_text_from_loaded_handles_non_dict() -> None:
+    assert _translated_text_from_loaded("not-a-dict") is None
+
+
+def test_build_analysis_for_empty_input_has_message() -> None:
+    analysis = build_analysis([], [])
+    assert analysis["episode_count"] == 0
+    assert analysis["message"] == "No episodes available for analysis."
