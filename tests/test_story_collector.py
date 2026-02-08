@@ -6,9 +6,9 @@ from typing import Literal
 
 import pytest
 
+from story_gen.cli.collect import _args_from_namespace
 from story_gen.story_collector import (
     StoryCollectorArgs,
-    _args_from_namespace,
     _index_page_url,
     run_story_collection,
 )

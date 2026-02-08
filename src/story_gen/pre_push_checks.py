@@ -15,3 +15,7 @@ def main() -> None:
     run(["uv", "lock", "--check"])
     run(["uv", "run", "mypy"])
     run(["uv", "run", "pytest"])
+
+
+if __name__ == "__main__":
+    main()

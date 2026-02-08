@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
+from story_gen.cli.video import _args_from_namespace
 from story_gen.youtube_downloader import (
     VideoStoryArgs,
-    _args_from_namespace,
     build_whisper_command,
     build_ytdlp_command,
     ensure_binary,

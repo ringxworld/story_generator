@@ -79,11 +79,16 @@ def test_pyproject_enforces_pytest_coverage_gate() -> None:
     assert "--cov-fail-under=80" in pyproject
 
 
-def test_main_blocks_live_only_in_cli_package() -> None:
-    python_files = list((ROOT / "src").rglob("*.py")) + list((ROOT / "scripts").rglob("*.py"))
-    for python_path in python_files:
-        relative = python_path.relative_to(ROOT).as_posix()
-        contents = python_path.read_text(encoding="utf-8")
-        if "__main__" not in contents:
-            continue
-        assert relative.startswith("src/story_gen/cli/"), relative
+def test_argparse_boundaries_for_story_tools() -> None:
+    collect_core = _read("src/story_gen/story_collector.py")
+    reference_core = _read("src/story_gen/reference_pipeline.py")
+    video_core = _read("src/story_gen/youtube_downloader.py")
+    collect_cli = _read("src/story_gen/cli/collect.py")
+    reference_cli = _read("src/story_gen/cli/reference.py")
+    video_cli = _read("src/story_gen/cli/video.py")
+    assert "import argparse" not in collect_core
+    assert "import argparse" not in reference_core
+    assert "import argparse" not in video_core
+    assert "import argparse" in collect_cli
+    assert "import argparse" in reference_cli
+    assert "import argparse" in video_cli

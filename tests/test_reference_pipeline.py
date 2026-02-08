@@ -6,17 +6,16 @@ from typing import Literal, Mapping, cast
 import httpx
 import pytest
 
-from story_gen import reference_pipeline
+from story_gen.cli.reference import _pipeline_args_from_namespace
+from story_gen.cli.reference import main as reference_cli_main
 from story_gen.reference_pipeline import (
     EpisodeRecord,
     LibreTranslateTranslator,
     PipelineArgs,
     _chunk_text,
     _episode_record_from_loaded,
-    _pipeline_args_from_namespace,
     _translated_text_from_loaded,
     build_analysis,
-    cli_main,
     parse_episode_page,
     parse_index_page,
     run_pipeline,
@@ -188,9 +187,9 @@ def test_cli_main_normalizes_optional_args(monkeypatch: pytest.MonkeyPatch) -> N
     def fake_run_pipeline(args: PipelineArgs) -> None:
         captured["args"] = args
 
-    monkeypatch.setattr(reference_pipeline, "run_pipeline", fake_run_pipeline)
+    monkeypatch.setattr("story_gen.cli.reference.run_pipeline", fake_run_pipeline)
 
-    cli_main(
+    reference_cli_main(
         [
             "--end-page",
             "0",
