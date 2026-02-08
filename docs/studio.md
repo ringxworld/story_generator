@@ -3,6 +3,15 @@
 The `web/` app is a React + TypeScript studio for creating and editing story
 blueprints against the API contract.
 
+## Offline demo on GitHub Pages
+
+GitHub Pages now publishes a static offline demo build of the studio at:
+
+- `https://ringxworld.github.io/story_generator/studio/`
+
+This mode does not call the backend. It renders representative story analysis
+dashboard data so visitors can explore the UX end-to-end.
+
 ## Run locally
 
 1. Start API:
@@ -29,6 +38,13 @@ Example:
 ```bash
 $env:VITE_API_BASE_URL="http://127.0.0.1:8001"
 npm run --prefix web dev
+```
+
+To force offline mode locally for a static preview:
+
+```bash
+npm run --prefix web dev -- --host 127.0.0.1 --port 5173
+# then open: http://127.0.0.1:5173/?demo=1
 ```
 
 ## Building blocks supported

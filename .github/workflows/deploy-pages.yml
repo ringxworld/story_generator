@@ -34,6 +34,13 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
       - name: Install Python
         run: uv python install 3.11
 
@@ -42,6 +49,16 @@ jobs:
 
       - name: Build docs site
         run: uv run mkdocs build --strict
+
+      - name: Build offline studio demo
+        env:
+          VITE_OFFLINE_DEMO: "true"
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/studio/
+        run: |
+          npm ci --prefix web
+          npm run --prefix web build
+          mkdir -p site/studio
+          cp -R web/dist/. site/studio/
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

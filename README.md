@@ -9,6 +9,7 @@ We are treating storytelling like a software system: define canon, model depende
 
 Live project pages:
 - https://ringxworld.github.io/story_generator/
+- https://ringxworld.github.io/story_generator/studio/ (offline interactive demo)
 
 ## Quick Start (Local Stack)
 

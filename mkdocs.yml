@@ -45,6 +45,7 @@ nav:
       - 0009 Story Intelligence Pipeline: adr/0009-story-intelligence-pipeline-and-dashboard-read-models.md
       - 0010 Docker Local Stack and CI Validation: adr/0010-docker-local-stack-and-ci-validation.md
       - 0011 Brand Icon System: adr/0011-brand-icon-system-for-web-and-docs.md
+      - 0012 Offline Studio Demo on Pages: adr/0012-offline-studio-demo-on-github-pages.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

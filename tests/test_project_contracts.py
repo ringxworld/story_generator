@@ -76,6 +76,10 @@ def test_deploy_workflow_requires_ci_success() -> None:
     assert "conclusion == 'success'" in workflow
     assert "head_branch == 'main'" in workflow
     assert "uv run mkdocs build --strict" in workflow
+    assert "Setup Node" in workflow
+    assert "Build offline studio demo" in workflow
+    assert "npm run --prefix web build" in workflow
+    assert "site/studio" in workflow
 
 
 def test_native_cmake_scaffold_present() -> None:
@@ -141,6 +145,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "ADR:" in config
     assert "logo: assets/brand/story-gen-mark.svg" in config
     assert "favicon: assets/brand/story-gen-favicon.svg" in config
+    assert "0012 Offline Studio Demo on Pages:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -223,6 +228,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     ).exists()
     assert (ROOT / "docs" / "adr" / "0010-docker-local-stack-and-ci-validation.md").exists()
     assert (ROOT / "docs" / "adr" / "0011-brand-icon-system-for-web-and-docs.md").exists()
+    assert (ROOT / "docs" / "adr" / "0012-offline-studio-demo-on-github-pages.md").exists()
     assert (ROOT / "docs" / "studio.md").exists()
     assert (ROOT / "docs" / "developer_setup.md").exists()
     assert (ROOT / "docs" / "essay_mode.md").exists()
