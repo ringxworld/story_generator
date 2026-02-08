@@ -8,16 +8,21 @@ version = "0.1.0"
 description = "Story generation toolkit with software engineering guardrails."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "beautifulsoup4>=4.12.3",
+  "httpx>=0.28.1",
+]
 
 [project.scripts]
 story-gen = "story_gen.cli:main"
+story-reference = "story_gen.reference_pipeline:cli_main"
 
 [dependency-groups]
 dev = [
   "mypy>=1.14.0",
   "pytest>=8.3.4",
   "ruff>=0.9.6",
+  "types-beautifulsoup4>=4.12.0.20250516",
 ]
 
 [tool.uv]
@@ -35,3 +40,7 @@ target-version = "py311"
 python_version = "3.11"
 strict = true
 packages = ["story_gen"]
+
+[[tool.mypy.overrides]]
+module = ["bs4.*"]
+ignore_missing_imports = true
