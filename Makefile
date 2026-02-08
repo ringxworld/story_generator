@@ -10,7 +10,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features web-install web-dev web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack stack-up web-install web-dev web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -42,6 +42,8 @@ help:
 	@echo "  make api                  - run local API stub server"
 	@echo "  make blueprint            - validate/normalize a blueprint JSON file"
 	@echo "  make features             - extract persisted chapter features for one story"
+	@echo "  make dev-stack            - run API + web dev servers together"
+	@echo "  make stack-up             - bootstrap deps, build web bundle, then run dev stack"
 	@echo "  make web-install          - install frontend dependencies"
 	@echo "  make web-dev              - run React+TS frontend dev server"
 	@echo "  make web-typecheck        - run frontend TypeScript checks"
@@ -137,6 +139,12 @@ blueprint:
 
 features:
 	$(RUN) story-features --story-id $$STORY_ID --owner-id $$OWNER_ID
+
+dev-stack:
+	$(RUN) python tools/dev_stack.py
+
+stack-up: sync web-install web-build
+	$(RUN) python tools/dev_stack.py
 
 web-install:
 	npm install --prefix web

@@ -39,6 +39,20 @@ This installs both `pre-commit` and `pre-push` checks.
 
 ## 4. Run the local stack
 
+One-command path (bootstrap + build + launch):
+
+```bash
+make stack-up
+```
+
+Fast path after first setup:
+
+```bash
+make dev-stack
+```
+
+Or run services separately:
+
 Terminal 1 (API):
 
 ```bash

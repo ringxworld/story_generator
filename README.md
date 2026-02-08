@@ -10,6 +10,33 @@ We are treating storytelling like a software system: define canon, model depende
 Live project pages:
 - https://ringxworld.github.io/story_generator/
 
+## Quick Start (Local Stack)
+
+From the repository root, run:
+
+```bash
+make stack-up
+```
+
+This one command will:
+
+- sync Python dependencies (`uv sync --all-groups`)
+- install frontend dependencies (`npm install --prefix web`)
+- build the web bundle (`npm run --prefix web build`)
+- launch API + web dev servers together
+
+Default local endpoints:
+
+- API: `http://127.0.0.1:8000`
+- Web studio: `http://127.0.0.1:5173`
+- API docs: `http://127.0.0.1:8000/docs`
+
+For faster repeat runs (skip bootstrap/build), use:
+
+```bash
+make dev-stack
+```
+
 ## Current Stage
 
 - Build the core story engine around themes, chapters, characters, and canon.
