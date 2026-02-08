@@ -1,0 +1,22 @@
+target-version = "py311"
+line-length = 100
+src = ["src", "tests", "scripts"]
+exclude = [
+  ".venv",
+  ".pytest_cache",
+  ".mypy_cache",
+  ".ruff_cache",
+  "site",
+  "work/reference_data",
+]
+
+[lint]
+extend-select = ["I"]
+
+[lint.isort]
+known-first-party = ["story_gen"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
