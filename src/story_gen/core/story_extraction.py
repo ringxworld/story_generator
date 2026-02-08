@@ -24,6 +24,7 @@ def extract_events_and_entities(
     segments: list[RawSegment],
 ) -> tuple[list[ExtractedEvent], list[EntityMention]]:
     """Extract event and entity artifacts from normalized story segments."""
+    # TODO(#1005): Replace regex extractor with model-backed event/entity extraction.
     validate_extraction_input(segments)
     events: list[ExtractedEvent] = []
     entities_by_name: dict[str, list[str]] = defaultdict(list)
