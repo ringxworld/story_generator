@@ -53,6 +53,25 @@ To run API + hot-edit web together:
 make dev-stack-hot
 ```
 
+## Visual System
+
+The project uses one shared visual system across the React studio and GitHub Pages docs.
+
+Core palette:
+
+- `Ink`: `#1F1B17`
+- `Paper`: `#F7F2E6`
+- `Parchment`: `#EFE3CC`
+- `Evergreen`: `#2E473D`
+- `Copper`: `#A45B2A`
+- `Border`: `#CCB99A`
+
+Typography:
+
+- UI body: `Source Sans 3`
+- Section headings: `Alegreya`
+- Code: `JetBrains Mono`
+
 ## Current Stage
 
 - Build the core story engine around themes, chapters, characters, and canon.

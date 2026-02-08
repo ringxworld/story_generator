@@ -1,0 +1,73 @@
+@import url("https://fonts.googleapis.com/css2?family=Alegreya:wght@600;700&family=JetBrains+Mono:wght@400;600&family=Source+Sans+3:wght@400;600;700&display=swap");
+
+:root {
+  --story-paper: #f7f2e6;
+  --story-parchment: #efe3cc;
+  --story-ink: #1f1b17;
+  --story-border: #ccb99a;
+  --story-primary: #2e473d;
+  --story-primary-strong: #21352d;
+  --story-accent: #a45b2a;
+  --story-accent-strong: #7e441d;
+  --story-focus: #d47e3a;
+}
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: var(--story-primary);
+  --md-primary-fg-color--light: #47695b;
+  --md-primary-fg-color--dark: var(--story-primary-strong);
+  --md-accent-fg-color: var(--story-accent);
+  --md-default-bg-color: #faf6ef;
+  --md-default-fg-color: var(--story-ink);
+}
+
+body {
+  font-family: "Source Sans 3", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top right, rgba(164, 91, 42, 0.12), transparent 45%),
+    linear-gradient(180deg, #f2e9d8 0%, #faf6ef 100%);
+}
+
+.md-header {
+  background: linear-gradient(135deg, var(--story-primary-strong), var(--story-primary));
+}
+
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  font-family: "Alegreya", Georgia, serif;
+  letter-spacing: 0.01em;
+}
+
+.md-typeset a {
+  color: var(--story-accent-strong);
+}
+
+.md-typeset a:hover {
+  color: var(--story-accent);
+}
+
+.md-typeset code,
+.md-typeset pre code {
+  font-family: "JetBrains Mono", "Courier New", monospace;
+}
+
+.md-typeset table:not([class]) {
+  border: 1px solid var(--story-border);
+  background: var(--story-paper);
+}
+
+.md-typeset table:not([class]) th {
+  background: var(--story-parchment);
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-color: var(--story-border);
+  background: var(--story-paper);
+}
+
+:focus-visible {
+  outline: 3px solid var(--story-focus);
+  outline-offset: 2px;
+}

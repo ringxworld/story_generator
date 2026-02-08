@@ -1,9 +1,16 @@
 :root {
   color-scheme: light;
-  --paper: #f8f4ea;
-  --ink: #22201a;
-  --frame: #d6c8ad;
-  --accent: #9e5d24;
+  --color-paper: #f7f2e6;
+  --color-parchment: #efe3cc;
+  --color-ink: #1f1b17;
+  --color-border: #ccb99a;
+  --color-primary: #2e473d;
+  --color-primary-strong: #21352d;
+  --color-accent: #a45b2a;
+  --color-accent-strong: #7e441d;
+  --color-muted: #6a5a47;
+  --color-focus: #d47e3a;
+  --shadow-soft: 0 14px 30px rgba(33, 28, 20, 0.08);
 }
 
 * {
@@ -13,8 +20,10 @@
 body {
   margin: 0;
   font-family: "Source Sans 3", "Segoe UI", sans-serif;
-  color: var(--ink);
-  background: linear-gradient(180deg, #efe5d4 0%, #f9f6ef 100%);
+  color: var(--color-ink);
+  background:
+    radial-gradient(circle at top right, rgba(164, 91, 42, 0.13), transparent 45%),
+    linear-gradient(180deg, #f2e9d8 0%, #faf6ef 100%);
 }
 
 .shell {
@@ -24,11 +33,12 @@ body {
 }
 
 .hero {
-  background: #2f241a;
+  background: linear-gradient(135deg, var(--color-primary-strong), var(--color-primary));
   color: #fef7e7;
   border-radius: 12px;
   padding: 1.2rem 1.3rem;
   margin-bottom: 1rem;
+  box-shadow: var(--shadow-soft);
 }
 
 .hero h1 {
@@ -41,11 +51,12 @@ body {
 }
 
 .card {
-  border: 1px solid var(--frame);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: var(--paper);
+  background: var(--color-paper);
   padding: 1rem;
   margin-bottom: 1rem;
+  box-shadow: var(--shadow-soft);
 }
 
 .grid {
@@ -86,7 +97,7 @@ textarea {
 button {
   border: none;
   border-radius: 8px;
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
   color: #fdf7ea;
   font-weight: 700;
   padding: 0.55rem 0.8rem;
@@ -94,12 +105,12 @@ button {
 }
 
 button.muted {
-  background: #68553f;
+  background: linear-gradient(135deg, #6f604c, var(--color-muted));
 }
 
 .link-button {
   background: transparent;
-  color: #4d3420;
+  color: #2d4037;
   border: 1px solid #ccbba0;
   width: 100%;
   text-align: left;
@@ -114,10 +125,18 @@ ul {
 }
 
 .status {
-  color: #4c3a29;
-  background: #efe4d0;
+  color: #3a2f22;
+  background: var(--color-parchment);
+  border: 1px solid #d8c4a4;
   border-radius: 8px;
   padding: 0.5rem 0.6rem;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
 
 .inline-actions {
