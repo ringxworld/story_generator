@@ -4,6 +4,9 @@
 .ruff_cache/
 __pycache__/
 *.pyc
+.coverage
+.coverage.*
+htmlcov/
 site/
 work_tmp_*.html
 build/
