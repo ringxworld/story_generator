@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "story_gen"
+version = "0.1.0"
+description = "Story generation toolkit with software engineering guardrails."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+story-gen = "story_gen.cli:main"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.14.0",
+  "pytest>=8.3.4",
+  "ruff>=0.9.6",
+]
+
+[tool.uv]
+package = true
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["story_gen"]
