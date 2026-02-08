@@ -1,0 +1,27 @@
+{
+  "stage": "A",
+  "name": "Corpus hygiene and segmentation",
+  "version": "0.1.0",
+  "artifacts": [
+    {
+      "id": "segment_index",
+      "path_template": "work/reference_data/{project}/segments/segments.jsonl",
+      "format": "jsonl",
+      "required_fields": [
+        "segment_id",
+        "chapter_id",
+        "scene_id",
+        "segment_type",
+        "text",
+        "language",
+        "pov",
+        "tense"
+      ]
+    }
+  ],
+  "invariants": [
+    "segment_id values are stable across reruns when source text is unchanged",
+    "segment_type is one of narration|dialogue|exposition|other",
+    "all labels are attributable back to source chapter ids"
+  ]
+}

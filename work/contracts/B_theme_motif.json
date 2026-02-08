@@ -1,0 +1,22 @@
+{
+  "stage": "B",
+  "name": "Theme and motif extraction",
+  "version": "0.1.0",
+  "artifacts": [
+    {
+      "id": "theme_bible",
+      "path_template": "work/reference_data/{project}/analysis/theme_bible.json",
+      "format": "json",
+      "required_fields": [
+        "themes",
+        "motifs",
+        "claims"
+      ]
+    }
+  ],
+  "invariants": [
+    "every theme claim references supporting segment ids",
+    "motifs are represented as reusable descriptors, not only topic labels",
+    "theme statements are phrased as testable narrative claims"
+  ]
+}

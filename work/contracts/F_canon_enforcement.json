@@ -1,0 +1,32 @@
+{
+  "stage": "F",
+  "name": "World rules and canon enforcement",
+  "version": "0.1.0",
+  "artifacts": [
+    {
+      "id": "canon_store",
+      "path_template": "work/reference_data/{project}/analysis/canon_store.json",
+      "format": "json",
+      "required_fields": [
+        "entities",
+        "canonical_attributes",
+        "rules",
+        "allowed_variation"
+      ]
+    },
+    {
+      "id": "contradiction_report",
+      "path_template": "work/reference_data/{project}/analysis/contradictions.json",
+      "format": "json",
+      "required_fields": [
+        "hard_contradictions",
+        "soft_contradictions"
+      ]
+    }
+  ],
+  "invariants": [
+    "hard contradictions fail validation by default",
+    "every contradiction references source and candidate segment ids",
+    "canon rules are machine-readable and human-readable"
+  ]
+}

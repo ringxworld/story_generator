@@ -1,0 +1,23 @@
+{
+  "stage": "G",
+  "name": "AI drift and robustness evaluation",
+  "version": "0.1.0",
+  "artifacts": [
+    {
+      "id": "drift_report",
+      "path_template": "work/reference_data/{project}/analysis/drift_report.json",
+      "format": "json",
+      "required_fields": [
+        "style_distance",
+        "consistency_failures",
+        "seed_variance",
+        "negative_constraint_violations"
+      ]
+    }
+  ],
+  "invariants": [
+    "drift checks compare against an explicit baseline fingerprint",
+    "violations identify the failed invariant and sample id",
+    "reports are deterministic for a fixed seed set and prompts"
+  ]
+}

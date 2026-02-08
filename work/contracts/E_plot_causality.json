@@ -1,0 +1,23 @@
+{
+  "stage": "E",
+  "name": "Plot and causality structure",
+  "version": "0.1.0",
+  "artifacts": [
+    {
+      "id": "event_graph",
+      "path_template": "work/reference_data/{project}/analysis/event_graph.json",
+      "format": "json",
+      "required_fields": [
+        "events",
+        "causal_edges",
+        "timeline",
+        "scene_purpose_labels"
+      ]
+    }
+  ],
+  "invariants": [
+    "events use stable ids and explicit actor/action/object fields",
+    "causal edges store direction and confidence",
+    "timeline supports absolute and relative ordering"
+  ]
+}

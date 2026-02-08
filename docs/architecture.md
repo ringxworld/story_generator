@@ -20,6 +20,8 @@ This file defines the stable shape of the repository and import boundaries.
   - Public C++ headers for native consumers.
 - `docs/adr/`
   - Architecture decision records.
+- `work/contracts/`
+  - Versioned analysis artifact contracts (A-H) for corpus and drift workflows.
 
 ## Allowed Import Graph
 

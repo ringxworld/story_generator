@@ -1,0 +1,32 @@
+{
+  "stage": "H",
+  "name": "Future-facing enrichment data",
+  "version": "0.1.0",
+  "artifacts": [
+    {
+      "id": "segment_embeddings",
+      "path_template": "work/reference_data/{project}/analysis/segment_embeddings.jsonl",
+      "format": "jsonl",
+      "required_fields": [
+        "segment_id",
+        "embedding_model",
+        "embedding"
+      ]
+    },
+    {
+      "id": "labeled_calibration_set",
+      "path_template": "work/reference_data/{project}/analysis/calibration_labels.json",
+      "format": "json",
+      "required_fields": [
+        "items",
+        "label_schema",
+        "annotator_notes"
+      ]
+    }
+  ],
+  "invariants": [
+    "all enrichment rows preserve attribution back to segment ids",
+    "hand-labeled data stores schema version and labeling guidance",
+    "embedding metadata includes model/version used to generate vectors"
+  ]
+}

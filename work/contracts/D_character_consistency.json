@@ -1,0 +1,24 @@
+{
+  "stage": "D",
+  "name": "Character voice and consistency",
+  "version": "0.1.0",
+  "artifacts": [
+    {
+      "id": "character_voice_profiles",
+      "path_template": "work/reference_data/{project}/analysis/character_voice.json",
+      "format": "json",
+      "required_fields": [
+        "characters",
+        "lexicon_markers",
+        "syntactic_habits",
+        "pragmatic_markers",
+        "knowledge_state"
+      ]
+    }
+  ],
+  "invariants": [
+    "speaker-attributed evidence must include segment ids",
+    "character profiles distinguish stable traits from scene-local variance",
+    "relationship state changes are timestamped by chapter/scene id"
+  ]
+}

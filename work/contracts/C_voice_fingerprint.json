@@ -1,0 +1,25 @@
+{
+  "stage": "C",
+  "name": "Voice and style fingerprinting",
+  "version": "0.1.0",
+  "artifacts": [
+    {
+      "id": "voice_card",
+      "path_template": "work/reference_data/{project}/analysis/voice_card.json",
+      "format": "json",
+      "required_fields": [
+        "sentence_length_distribution",
+        "paragraph_length_distribution",
+        "dialogue_narration_ratio",
+        "punctuation_signature",
+        "function_word_profile",
+        "readability"
+      ]
+    }
+  ],
+  "invariants": [
+    "metrics are computed from canonical segmented text",
+    "voice card includes corpus metadata and timestamp",
+    "soft style metrics are separated from deterministic lexical metrics"
+  ]
+}

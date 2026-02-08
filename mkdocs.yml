@@ -19,6 +19,7 @@ nav:
       - Index: adr/README.md
       - Template: adr/0000-template.md
       - 0001 Repository Guardrails: adr/0001-repository-guardrails.md
+      - 0002 NLP Stack and Contracts: adr/0002-nlp-stack-and-analysis-contract-scaffold.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

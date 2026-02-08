@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -109,6 +110,20 @@ def test_pyproject_enforces_pytest_coverage_gate() -> None:
     assert "--cov-fail-under=80" in pyproject
 
 
+def test_pyproject_has_phased_nlp_dependency_groups() -> None:
+    pyproject = _read("pyproject.toml")
+    assert "nlp = [" in pyproject
+    assert '"spacy>=' in pyproject
+    assert '"sentence-transformers>=' in pyproject
+    assert '"networkx>=' in pyproject
+    assert "topic = [" in pyproject
+    assert '"bertopic>=' in pyproject
+    assert '"umap-learn>=' in pyproject
+    assert '"hdbscan>=' in pyproject
+    assert "advanced = [" in pyproject
+    assert '"stanza>=' in pyproject
+
+
 def test_argparse_boundaries_for_story_tools() -> None:
     collect_cli = _read("src/story_gen/cli/story_collector.py")
     reference_cli = _read("src/story_gen/cli/reference_pipeline.py")
@@ -133,6 +148,28 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr").is_dir()
     assert (ROOT / "docs" / "adr" / "README.md").exists()
     assert (ROOT / "docs" / "adr" / "0000-template.md").exists()
+    assert (ROOT / "docs" / "adr" / "0002-nlp-stack-and-analysis-contract-scaffold.md").exists()
+
+
+def test_analysis_contract_scaffold_exists_and_is_valid_json() -> None:
+    contracts_dir = ROOT / "work" / "contracts"
+    expected_names = [
+        "A_corpus_hygiene.json",
+        "B_theme_motif.json",
+        "C_voice_fingerprint.json",
+        "D_character_consistency.json",
+        "E_plot_causality.json",
+        "F_canon_enforcement.json",
+        "G_drift_robustness.json",
+        "H_enrichment_data.json",
+    ]
+    assert (contracts_dir / "README.md").exists()
+    for name in expected_names:
+        path = contracts_dir / name
+        assert path.exists()
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        assert payload["version"] == "0.1.0"
+        assert payload["artifacts"]
 
 
 def test_policy_docs_require_failure_path_testing_rules() -> None:
