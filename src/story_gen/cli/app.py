@@ -1,4 +1,4 @@
-"""CLI entry point for story_gen."""
+"""Primary command-line experience for story_gen."""
 
 from __future__ import annotations
 
@@ -60,7 +60,3 @@ def main() -> None:
     print("concept dependencies:")
     for source, targets in sorted(concept_map.items()):
         print(f"  {source} -> {sorted(targets)}")
-
-
-if __name__ == "__main__":
-    main()

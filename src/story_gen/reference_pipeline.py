@@ -850,7 +850,3 @@ def cli_main(argv: list[str] | None = None) -> None:
     parser = build_arg_parser()
     parsed = parser.parse_args(argv)
     run_pipeline(_pipeline_args_from_namespace(parsed))
-
-
-if __name__ == "__main__":
-    cli_main()

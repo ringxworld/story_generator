@@ -15,9 +15,9 @@ dependencies = [
 
 [project.scripts]
 story-gen = "story_gen.cli:main"
-story-reference = "story_gen.reference_pipeline:cli_main"
-story-collect = "story_gen.story_collector:cli_main"
-story-video = "story_gen.youtube_downloader:cli_main"
+story-reference = "story_gen.cli.reference:main"
+story-collect = "story_gen.cli.collect:main"
+story-video = "story_gen.cli.video:main"
 
 [dependency-groups]
 dev = [
@@ -47,7 +47,7 @@ fail_under = 80
 [tool.mypy]
 python_version = "3.11"
 strict = true
-files = ["src", "tests", "scripts"]
+files = ["src", "tests"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]

@@ -27,7 +27,7 @@ repos:
         files: ^cpp/.*\.(cpp|hpp|h)$
       - id: py-quality-pre-push
         name: python quality checks (pre-push)
-        entry: uv run python -m story_gen.pre_push_checks
+        entry: uv run python -m story_gen.cli.pre_push
         language: system
         pass_filenames: false
         stages: [pre-push]

@@ -84,7 +84,7 @@ story:
 	$(RUN) story-gen
 
 build-site:
-	$(RUN) python scripts/build_story_site.py
+	$(RUN) python -m story_gen.cli.site
 
 reference:
 	$(RUN) story-reference $(REFERENCE_ARGS)

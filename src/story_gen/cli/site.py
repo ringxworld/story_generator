@@ -1,4 +1,4 @@
-"""Builds a static story page for GitHub Pages deployment."""
+"""CLI runner for static site generation."""
 
 from __future__ import annotations
 

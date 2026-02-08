@@ -14,6 +14,7 @@ Build `story_gen` as a disciplined story-engineering project:
 - Keep changes small, typed, and testable.
 - Prefer strict typing over loose dictionaries.
 - Do not weaken CI quality gates.
+- Keep Python `__main__` entrypoints inside `src/story_gen/cli/` only.
 - Do not commit generated artifacts under `work/reference_data/` or `site/`.
 - After each completed user prompt:
   1. commit

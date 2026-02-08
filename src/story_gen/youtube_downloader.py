@@ -157,7 +157,3 @@ def cli_main(argv: list[str] | None = None) -> None:
     parsed = parser.parse_args(argv)
     args = _args_from_namespace(parsed)
     run_video_story_pipeline(args)
-
-
-if __name__ == "__main__":
-    cli_main()

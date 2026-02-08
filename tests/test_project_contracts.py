@@ -68,11 +68,22 @@ def test_native_quality_config_files_exist() -> None:
 
 def test_pyproject_exposes_story_collection_entrypoints() -> None:
     pyproject = _read("pyproject.toml")
-    assert 'story-collect = "story_gen.story_collector:cli_main"' in pyproject
-    assert 'story-video = "story_gen.youtube_downloader:cli_main"' in pyproject
+    assert 'story-reference = "story_gen.cli.reference:main"' in pyproject
+    assert 'story-collect = "story_gen.cli.collect:main"' in pyproject
+    assert 'story-video = "story_gen.cli.video:main"' in pyproject
 
 
 def test_pyproject_enforces_pytest_coverage_gate() -> None:
     pyproject = _read("pyproject.toml")
     assert "--cov=story_gen" in pyproject
     assert "--cov-fail-under=80" in pyproject
+
+
+def test_main_blocks_live_only_in_cli_package() -> None:
+    python_files = list((ROOT / "src").rglob("*.py")) + list((ROOT / "scripts").rglob("*.py"))
+    for python_path in python_files:
+        relative = python_path.relative_to(ROOT).as_posix()
+        contents = python_path.read_text(encoding="utf-8")
+        if "__main__" not in contents:
+            continue
+        assert relative.startswith("src/story_gen/cli/"), relative
