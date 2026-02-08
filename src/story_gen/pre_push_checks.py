@@ -7,12 +7,14 @@ from pathlib import Path
 
 
 def run(command: list[str]) -> None:
+    """Run one command and propagate its exit code on failure."""
     completed = subprocess.run(command, check=False)
     if completed.returncode != 0:
         raise SystemExit(completed.returncode)
 
 
 def main() -> None:
+    """Mirror CI checks locally before code leaves the machine."""
     run(["uv", "lock", "--check"])
     run(["uv", "run", "python", "tools/check_imports.py"])
     run(["uv", "run", "ruff", "check", "."])

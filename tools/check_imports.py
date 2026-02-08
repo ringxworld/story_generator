@@ -23,6 +23,7 @@ RULES: dict[str, set[str]] = {
 
 
 def _layer_for_path(path: Path, source_root: Path) -> str | None:
+    """Return top-level package layer name for a source file path."""
     try:
         relative = path.relative_to(source_root)
     except ValueError:
@@ -33,6 +34,7 @@ def _layer_for_path(path: Path, source_root: Path) -> str | None:
 
 
 def _layer_from_absolute_module(module_name: str) -> str | None:
+    """Map an absolute import path to a known story_gen layer."""
     if not module_name:
         return None
     if module_name == "story_gen":
@@ -47,6 +49,7 @@ def _layer_from_absolute_module(module_name: str) -> str | None:
 
 
 def _resolve_relative_base(path: Path, source_root: Path, level: int) -> list[str]:
+    """Resolve relative import level into absolute package parts."""
     relative = path.relative_to(source_root)
     module_parts = ["story_gen", *relative.with_suffix("").parts]
     package_parts = module_parts[:-1]
@@ -62,6 +65,7 @@ def _imported_layers_from_node(
     path: Path,
     source_root: Path,
 ) -> set[str]:
+    """Extract all story_gen layers referenced by one import node."""
     imported_layers: set[str] = set()
 
     if isinstance(node, ast.Import):
@@ -106,6 +110,7 @@ def _imported_layers_from_node(
 
 
 def check_file(path: Path, source_root: Path = DEFAULT_SOURCE_ROOT) -> list[str]:
+    """Collect boundary violations for a single Python file."""
     layer = _layer_for_path(path, source_root)
     if layer is None:
         return []
@@ -126,6 +131,7 @@ def check_file(path: Path, source_root: Path = DEFAULT_SOURCE_ROOT) -> list[str]
 
 
 def check_import_boundaries(source_root: Path = DEFAULT_SOURCE_ROOT) -> list[str]:
+    """Scan all package files and return any boundary violations."""
     violations: list[str] = []
     for path in sorted(source_root.rglob("*.py")):
         violations.extend(check_file(path, source_root))
@@ -133,6 +139,7 @@ def check_import_boundaries(source_root: Path = DEFAULT_SOURCE_ROOT) -> list[str
 
 
 def main() -> None:
+    """CLI entrypoint for architecture boundary checks."""
     violations = check_import_boundaries()
     if violations:
         raise SystemExit("\n".join(violations))

@@ -12,11 +12,17 @@ DEFAULT_OUTPUT_PATH = DEFAULT_OUTPUT_DIR / "index.html"
 
 
 def markdown_to_html(markdown: str) -> str:
+    """Convert a narrow markdown subset into escaped HTML blocks.
+
+    The renderer is intentionally small because we only need predictable output
+    for project publishing pages.
+    """
     lines = markdown.splitlines()
     html_lines: list[str] = []
     paragraph_buffer: list[str] = []
 
     def flush_paragraph() -> None:
+        """Emit the current paragraph buffer as a single `<p>` block."""
         if paragraph_buffer:
             text = " ".join(part.strip() for part in paragraph_buffer if part.strip())
             if text:
@@ -51,6 +57,7 @@ def markdown_to_html(markdown: str) -> str:
     normalized: list[str] = []
     in_list = False
     for line in html_lines:
+        # Turn a stream of `<li>` tags into a proper `<ul>` section.
         if line.startswith("<li>"):
             if not in_list:
                 normalized.append("<ul>")
@@ -68,6 +75,7 @@ def markdown_to_html(markdown: str) -> str:
 
 
 def build_page(body_html: str) -> str:
+    """Wrap chapter HTML in a single self-contained page template."""
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -160,6 +168,7 @@ def build_site(
     input_path: Path = DEFAULT_INPUT_PATH,
     output_path: Path = DEFAULT_OUTPUT_PATH,
 ) -> Path:
+    """Build `site/index.html` from the source markdown file."""
     markdown = input_path.read_text(encoding="utf-8")
     html_content = markdown_to_html(markdown)
     page = build_page(html_content)

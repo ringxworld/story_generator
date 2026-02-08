@@ -7,6 +7,7 @@ from story_gen.domain.models import Chapter, Character, StoryBible, Theme
 
 
 def main() -> None:
+    """Run a tiny planning demo that exercises core domain concepts."""
     bible = StoryBible(
         premise="A city learns its history was rewritten by a hidden council.",
         themes=(
@@ -53,6 +54,7 @@ def main() -> None:
     issues = planner.validate_chapter_dependencies(chapters)
     concept_map = planner.concept_dependency_map(bible, chapters)
 
+    # Keep output readable so this command doubles as a quick sanity check.
     print("story_gen scaffold")
     print(f"premise: {bible.premise}")
     print(f"chapters: {len(chapters)}")

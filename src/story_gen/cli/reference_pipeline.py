@@ -147,6 +147,7 @@ class LibreTranslateRequest(TypedDict):
 
 
 def _episode_meta_payload(meta: EpisodeMeta) -> EpisodeMetaPayload:
+    """Convert dataclass metadata to JSON-serializable payload."""
     return {
         "episode_number": meta.episode_number,
         "title_jp": meta.title_jp,
@@ -158,6 +159,7 @@ def _episode_meta_payload(meta: EpisodeMeta) -> EpisodeMetaPayload:
 
 
 def _episode_record_payload(record: EpisodeRecord) -> EpisodeRecordPayload:
+    """Convert a downloaded episode record to JSON payload form."""
     return {
         "episode_number": record.episode_number,
         "title_jp": record.title_jp,
@@ -171,6 +173,7 @@ def _episode_record_payload(record: EpisodeRecord) -> EpisodeRecordPayload:
 
 
 def _required_str(mapping: Mapping[str, object], key: str) -> str:
+    """Read a required string field from untyped JSON data."""
     value = mapping.get(key)
     if isinstance(value, str):
         return value
@@ -178,6 +181,7 @@ def _required_str(mapping: Mapping[str, object], key: str) -> str:
 
 
 def _required_int(mapping: Mapping[str, object], key: str) -> int:
+    """Read a required integer field from untyped JSON data."""
     value = mapping.get(key)
     if isinstance(value, bool):
         raise RuntimeError(f"Invalid integer field (bool): {key}")
@@ -187,6 +191,7 @@ def _required_int(mapping: Mapping[str, object], key: str) -> int:
 
 
 def _optional_str(mapping: Mapping[str, object], key: str) -> str | None:
+    """Read an optional string field from untyped JSON data."""
     value = mapping.get(key)
     if value is None:
         return None
@@ -196,6 +201,7 @@ def _optional_str(mapping: Mapping[str, object], key: str) -> str | None:
 
 
 def _optional_int(mapping: Mapping[str, object], key: str) -> int | None:
+    """Read an optional integer field from untyped JSON data."""
     value = mapping.get(key)
     if value is None:
         return None
@@ -207,6 +213,7 @@ def _optional_int(mapping: Mapping[str, object], key: str) -> int | None:
 
 
 def _episode_record_from_loaded(raw: object) -> EpisodeRecord:
+    """Validate and hydrate cached chapter JSON into a typed record."""
     if not isinstance(raw, dict):
         raise RuntimeError("Cached chapter payload is not an object.")
     data: Mapping[str, object] = raw
@@ -224,6 +231,7 @@ def _episode_record_from_loaded(raw: object) -> EpisodeRecord:
 
 
 def _translated_text_from_loaded(raw: object) -> str | None:
+    """Extract cached translated text when present and correctly typed."""
     if not isinstance(raw, dict):
         return None
     data: Mapping[str, object] = raw
@@ -234,6 +242,7 @@ def _translated_text_from_loaded(raw: object) -> str | None:
 
 
 def _slug_from_base_url(base_url: str) -> str:
+    """Infer a stable project slug from a Syosetu-like URL."""
     match = re.search(r"/(n[0-9]+[a-z]+)/?$", base_url)
     if match:
         return match.group(1)
@@ -241,6 +250,7 @@ def _slug_from_base_url(base_url: str) -> str:
 
 
 def _parse_revised_timestamp(raw_title: str | None) -> str | None:
+    """Parse revised timestamp text from Syosetu title attributes."""
     if raw_title is None:
         return None
     match = re.search(r"(\d{4}/\d{2}/\d{2} \d{2}:\d{2})", raw_title)
@@ -333,6 +343,7 @@ def parse_episode_page(html: str) -> tuple[str, str, int | None]:
     body = soup.select_one("div.js-novel-text.p-novel__text, div.js-novel-text")
     lines: list[str] = []
     if isinstance(body, Tag):
+        # Preserve paragraph spacing while removing pure whitespace artifacts.
         for paragraph in body.find_all("p"):
             if not isinstance(paragraph, Tag):
                 continue
@@ -357,6 +368,7 @@ def parse_episode_page(html: str) -> tuple[str, str, int | None]:
 
 
 def _chunk_text(text: str, max_chars: int) -> list[str]:
+    """Split text into translation-safe chunks without losing paragraph shape."""
     paragraphs = [part.strip() for part in text.split("\n\n") if part.strip()]
     if not paragraphs:
         return [text]
@@ -413,6 +425,7 @@ class LibreTranslateTranslator:
         self._chunk_size = chunk_size
 
     def translate(self, text: str) -> str:
+        """Translate text in chunks to avoid request size limits."""
         if not text.strip():
             return ""
 
@@ -447,6 +460,7 @@ class LibreTranslateTranslator:
 
 
 def _load_focus_names(names_argument: str, work_dir: Path) -> list[str]:
+    """Load analysis names from CLI input or the default resource file."""
     if names_argument.strip():
         return [part.strip() for part in names_argument.split(",") if part.strip()]
     names_file = work_dir / "resources" / "focus_names.txt"
@@ -457,6 +471,7 @@ def _load_focus_names(names_argument: str, work_dir: Path) -> list[str]:
 
 
 def _dialogue_density(text: str) -> float:
+    """Estimate dialogue ratio by counting lines that start with quote markers."""
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     if not lines:
         return 0.0
@@ -526,6 +541,7 @@ def build_analysis(episodes: list[EpisodeRecord], focus_names: list[str]) -> Ana
 
 
 def _analysis_report_markdown(analysis: AnalysisPayload) -> str:
+    """Render analysis metrics to a readable markdown report."""
     lines: list[str] = []
     lines.append("# Literary Analysis Report")
     lines.append("")
@@ -570,6 +586,7 @@ def _sample_markdown(
     excerpt_chars: int,
     base_url: str,
 ) -> str:
+    """Build a short JP/EN excerpt set for quick manual review."""
     lines: list[str] = []
     lines.append("# Story Sample (Reference Only)")
     lines.append("")
@@ -604,6 +621,7 @@ def _sample_markdown(
 
 
 def _write_json(path: Path, payload: object) -> None:
+    """Write indented UTF-8 JSON and ensure parent directories exist."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
@@ -651,6 +669,7 @@ def run_pipeline(args: PipelineArgs) -> None:
             print(f"[index] page {page}: {len(page_episodes)} episodes")
 
         unique_meta: dict[int, EpisodeMeta] = {}
+        # Later pages can repeat episodes, so keep the latest seen metadata per id.
         for item in all_episode_meta:
             unique_meta[item.episode_number] = item
 
@@ -812,6 +831,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def _pipeline_args_from_namespace(namespace: argparse.Namespace) -> PipelineArgs:
+    """Convert CLI namespace into fully-normalized pipeline arguments."""
     translate_provider: Literal["none", "libretranslate"]
     if namespace.translate_provider == "libretranslate":
         translate_provider = "libretranslate"
@@ -846,6 +866,7 @@ def _pipeline_args_from_namespace(namespace: argparse.Namespace) -> PipelineArgs
 
 
 def main(argv: list[str] | None = None) -> None:
+    """CLI entrypoint for the reference pipeline."""
     parser = build_arg_parser()
     parsed = parser.parse_args(argv)
     run_pipeline(_pipeline_args_from_namespace(parsed))

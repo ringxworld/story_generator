@@ -31,6 +31,7 @@ def create_app() -> FastAPI:
         description="Stub API for story ingestion and planning workflows.",
     )
 
+    # Keep handlers nested so this module stays the single API assembly point.
     @app.get("/healthz", response_model=HealthResponse, tags=["system"])
     def healthz() -> HealthResponse:
         return HealthResponse()

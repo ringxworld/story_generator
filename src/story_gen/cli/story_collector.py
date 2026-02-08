@@ -64,10 +64,12 @@ class CollectionPayload(TypedDict):
 
 
 def _series_root(base_url: str, series_code: str) -> str:
+    """Build the canonical series root URL from user inputs."""
     return f"{base_url.rstrip('/')}/{series_code.strip('/').lower()}/"
 
 
 def _index_page_url(base_url: str, series_code: str, page: int) -> str:
+    """Return the paginated TOC URL for a given series page."""
     root = _series_root(base_url, series_code)
     if page <= 1:
         return root
@@ -75,10 +77,12 @@ def _index_page_url(base_url: str, series_code: str, page: int) -> str:
 
 
 def _fetch_text(client: httpx.Client, url: str) -> str:
+    """Fetch raw HTML text for one URL."""
     return client.get(url).text
 
 
 def collect_chapter_links(args: StoryCollectorArgs) -> list[ChapterLink]:
+    """Discover chapter links from the series index pages."""
     headers = {"User-Agent": args.user_agent}
     with httpx.Client(
         headers=headers, timeout=args.timeout_seconds, follow_redirects=True
@@ -95,6 +99,7 @@ def collect_chapter_links(args: StoryCollectorArgs) -> list[ChapterLink]:
                 url=episode.url,
             )
 
+        # Walk all remaining pages when the index advertises pagination.
         for page in range(2, last_page + 1):
             time.sleep(args.crawl_delay_seconds)
             page_url = _index_page_url(args.base_url, args.series_code, page)
@@ -121,6 +126,7 @@ def collect_chapter_links(args: StoryCollectorArgs) -> list[ChapterLink]:
 
 
 def _fetch_chapter_once(link: ChapterLink, args: StoryCollectorArgs) -> CollectedChapter:
+    """Download and parse a single chapter page in one isolated client session."""
     headers = {"User-Agent": args.user_agent}
     with httpx.Client(
         headers=headers, timeout=args.timeout_seconds, follow_redirects=True
@@ -130,12 +136,19 @@ def _fetch_chapter_once(link: ChapterLink, args: StoryCollectorArgs) -> Collecte
 
 
 def _chapter_from_html(link: ChapterLink, html: str) -> CollectedChapter:
+    """Convert episode HTML into normalized chapter payload data."""
     title_page, body, _ = parse_episode_page(html)
     effective_title = title_page or link.title or f"Chapter {link.number}"
-    return CollectedChapter(number=link.number, title=effective_title, url=link.url, body=body)
+    return CollectedChapter(
+        number=link.number,
+        title=effective_title,
+        url=link.url,
+        body=body,
+    )
 
 
 def collect_chapters(args: StoryCollectorArgs, links: list[ChapterLink]) -> list[CollectedChapter]:
+    """Fetch chapter bodies either serially (respectful crawl) or in parallel."""
     if args.max_workers <= 1:
         headers = {"User-Agent": args.user_agent}
         chapters: list[CollectedChapter] = []
@@ -153,6 +166,7 @@ def collect_chapters(args: StoryCollectorArgs, links: list[ChapterLink]) -> list
 
     by_number: dict[int, CollectedChapter] = {}
     with ThreadPoolExecutor(max_workers=args.max_workers) as executor:
+        # Preserve stable ordering even though futures complete out of order.
         future_map = {
             executor.submit(_fetch_chapter_once, link, args): link.number for link in links
         }
@@ -169,6 +183,7 @@ def _write_collection_outputs(
     series_code: str,
     chapters: list[CollectedChapter],
 ) -> StoryCollectionResult:
+    """Write full text, per-chapter files, and metadata index for one run."""
     output_root.mkdir(parents=True, exist_ok=True)
     chapters_dir = output_root / "chapters"
     chapters_dir.mkdir(parents=True, exist_ok=True)
@@ -214,6 +229,7 @@ def _write_collection_outputs(
 
 
 def run_story_collection(args: StoryCollectorArgs) -> StoryCollectionResult:
+    """Execute full chapter collection from discovery to artifact export."""
     links = collect_chapter_links(args)
     print(f"[collect] discovered chapters: {len(links)}")
     chapters = collect_chapters(args, links)
@@ -230,6 +246,7 @@ def run_story_collection(args: StoryCollectorArgs) -> StoryCollectionResult:
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
+    """Define CLI flags for story collection runs."""
     parser = argparse.ArgumentParser(description="Collect full chapter text for a Syosetu series.")
     parser.add_argument("--base-url", default="https://ncode.syosetu.com")
     parser.add_argument("--series-code", required=True)
@@ -249,6 +266,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def _args_from_namespace(namespace: argparse.Namespace) -> StoryCollectorArgs:
+    """Normalize argparse namespace values into typed runtime args."""
     chapter_end_raw = int(namespace.chapter_end)
     max_chapters_raw = int(namespace.max_chapters)
     return StoryCollectorArgs(
@@ -267,6 +285,7 @@ def _args_from_namespace(namespace: argparse.Namespace) -> StoryCollectorArgs:
 
 
 def main(argv: list[str] | None = None) -> None:
+    """CLI entrypoint for story collection."""
     parser = build_arg_parser()
     parsed = parser.parse_args(argv)
     run_story_collection(_args_from_namespace(parsed))

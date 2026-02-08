@@ -9,6 +9,7 @@
 namespace {
 
 struct Metrics {
+  // Keep this plain-old struct easy to print and pass around.
   Metrics() : bytes(0), codepoints(0), lines(0), non_empty_lines(0), dialogue_lines(0) {}
 
   std::size_t bytes;
@@ -20,6 +21,8 @@ struct Metrics {
 
 bool DecodeNextCodepoint(const std::string& text, std::size_t* index,
                          std::uint32_t* out_codepoint) {
+  // Decode one UTF-8 codepoint; on malformed input, consume one byte so
+  // downstream metrics can keep moving instead of bailing out.
   if (*index >= text.size()) {
     return false;
   }
@@ -100,11 +103,13 @@ bool StartsWithDialogueMarker(const std::string& line) {
       return false;
     }
 
+    // Skip leading whitespace (ASCII and full-width).
     if (cp == static_cast<std::uint32_t>(' ') || cp == static_cast<std::uint32_t>('\t') ||
         cp == static_cast<std::uint32_t>('\r') || cp == 0x3000) {
       continue;
     }
 
+    // Treat common JP/EN quote openers as dialogue lines.
     if (cp == static_cast<std::uint32_t>('"') || cp == static_cast<std::uint32_t>('\'') ||
         cp == 0x300C || cp == 0x300E || cp == 0x201C) {
       return true;
@@ -195,6 +200,7 @@ void PrintMetricsJson(const Metrics& metrics) {
 }
 
 std::string DemoText() {
+  // Keep demo content short and deterministic for smoke testing.
   return "\"First dialogue line.\"\n"
          "Narration line continues here.\n"
          "    'Another quoted line.'\n"

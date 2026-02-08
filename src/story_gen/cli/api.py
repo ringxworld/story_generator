@@ -8,6 +8,7 @@ import uvicorn
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
+    """Create CLI args for the local API server process."""
     parser = argparse.ArgumentParser(description="Serve story_gen API.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
@@ -16,6 +17,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Parse CLI flags and start uvicorn with the app factory path."""
     parser = build_arg_parser()
     parsed = parser.parse_args(argv)
     uvicorn.run(

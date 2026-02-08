@@ -28,6 +28,7 @@ class VideoStoryArgs:
 
 
 def run_streaming(command: list[str]) -> None:
+    """Run a command and stream merged stdout/stderr as it executes."""
     process = subprocess.Popen(
         command,
         stdout=subprocess.PIPE,
@@ -45,6 +46,7 @@ def run_streaming(command: list[str]) -> None:
 
 
 def build_ytdlp_command(args: VideoStoryArgs) -> list[str]:
+    """Build the yt-dlp command used to extract audio only."""
     output_template = str(Path(args.output_dir) / "%(title)s.%(ext)s")
     return [
         "yt-dlp",
@@ -61,6 +63,7 @@ def build_ytdlp_command(args: VideoStoryArgs) -> list[str]:
 
 
 def build_whisper_command(args: VideoStoryArgs, audio_path: Path) -> list[str]:
+    """Build the whisper command for optional transcript generation."""
     return [
         args.whisper_binary,
         str(audio_path),
@@ -78,6 +81,7 @@ def build_whisper_command(args: VideoStoryArgs, audio_path: Path) -> list[str]:
 
 
 def newest_file(path: Path) -> Path:
+    """Return the most recently modified regular file in a directory."""
     files = [item for item in path.iterdir() if item.is_file()]
     if not files:
         raise RuntimeError(f"No files found in {path}")
@@ -85,11 +89,13 @@ def newest_file(path: Path) -> Path:
 
 
 def ensure_binary(binary: str) -> None:
+    """Fail fast when required external tools are not available."""
     if shutil.which(binary) is None:
         raise RuntimeError(f"Missing required binary: {binary}")
 
 
 def run_video_story_pipeline(args: VideoStoryArgs) -> VideoStoryResult:
+    """Download video audio and optionally run Whisper transcription."""
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -97,6 +103,7 @@ def run_video_story_pipeline(args: VideoStoryArgs) -> VideoStoryResult:
     print("[video] downloading audio with yt-dlp")
     run_streaming(build_ytdlp_command(args))
 
+    # yt-dlp decides the final filename, so we look for the newest artifact.
     audio_path = newest_file(output_dir)
     transcript_path: Path | None = None
 
@@ -121,6 +128,7 @@ def run_video_story_pipeline(args: VideoStoryArgs) -> VideoStoryResult:
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
+    """Define CLI flags for the video-story helper flow."""
     parser = argparse.ArgumentParser(
         description="Download YouTube audio for story study and optionally transcribe with Whisper.",
     )
@@ -140,6 +148,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def _args_from_namespace(namespace: argparse.Namespace) -> VideoStoryArgs:
+    """Normalize argparse values into typed runtime arguments."""
     return VideoStoryArgs(
         url=str(namespace.url),
         output_dir=str(namespace.output_dir),
@@ -153,6 +162,7 @@ def _args_from_namespace(namespace: argparse.Namespace) -> VideoStoryArgs:
 
 
 def main(argv: list[str] | None = None) -> None:
+    """CLI entrypoint for video story ingestion."""
     parser = build_arg_parser()
     parsed = parser.parse_args(argv)
     run_video_story_pipeline(_args_from_namespace(parsed))

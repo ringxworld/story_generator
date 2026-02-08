@@ -48,9 +48,11 @@ class StoryBible:
     canon_rules: tuple[str, ...] = ()
 
     def theme_keys(self) -> set[str]:
+        """Return canonical theme keys for fast membership checks."""
         return {theme.key for theme in self.themes}
 
     def character_keys(self) -> set[str]:
+        """Return canonical character keys for fast membership checks."""
         return {character.key for character in self.characters}
 
 
@@ -64,9 +66,11 @@ class StoryState:
     resolved_threads: list[str] = field(default_factory=list)
 
     def add_chapter(self, chapter: Chapter) -> None:
+        """Append one generated chapter to the current story state."""
         self.chapters.append(chapter)
 
     def chapter_order_is_valid(self) -> bool:
+        """Check that every chapter appears after all of its prerequisites."""
         seen: set[str] = set()
         for chapter in self.chapters:
             if not set(chapter.prerequisites).issubset(seen):

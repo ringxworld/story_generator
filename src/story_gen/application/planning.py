@@ -11,6 +11,7 @@ class DependencyPlanner:
     """Computes dependency views used to guide concrete implementations."""
 
     def chapter_dependency_graph(self, chapters: list[Chapter]) -> dict[str, set[str]]:
+        """Return `chapter -> prerequisite chapters` for graph-style checks."""
         graph: dict[str, set[str]] = {}
         for chapter in chapters:
             graph[chapter.key] = set(chapter.prerequisites)
@@ -19,6 +20,7 @@ class DependencyPlanner:
     def concept_dependency_map(
         self, bible: StoryBible, chapters: list[Chapter]
     ) -> dict[str, set[str]]:
+        """Map theme/character concepts to the chapters that depend on them."""
         mapping: dict[str, set[str]] = defaultdict(set)
         theme_keys = bible.theme_keys()
         character_keys = bible.character_keys()
@@ -33,6 +35,7 @@ class DependencyPlanner:
         return dict(mapping)
 
     def validate_chapter_dependencies(self, chapters: list[Chapter]) -> list[str]:
+        """Report unknown prerequisites and cycle issues in chapter ordering."""
         issues: list[str] = []
         known = {chapter.key for chapter in chapters}
 
@@ -49,6 +52,7 @@ class DependencyPlanner:
         return issues
 
     def _has_cycle(self, graph: dict[str, set[str]]) -> bool:
+        """Detect directed cycles using DFS temporary/permanent markings."""
         temporary: set[str] = set()
         permanent: set[str] = set()
 
