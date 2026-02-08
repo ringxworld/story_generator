@@ -10,7 +10,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack stack-up web-install web-dev web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -43,9 +43,12 @@ help:
 	@echo "  make blueprint            - validate/normalize a blueprint JSON file"
 	@echo "  make features             - extract persisted chapter features for one story"
 	@echo "  make dev-stack            - run API + web dev servers together"
+	@echo "  make dev-stack-hot        - run API + hot-edit web server together (web on :5174)"
 	@echo "  make stack-up             - bootstrap deps, build web bundle, then run dev stack"
+	@echo "  make stack-up-hot         - bootstrap deps, build web bundle, then run hot-edit stack"
 	@echo "  make web-install          - install frontend dependencies"
 	@echo "  make web-dev              - run React+TS frontend dev server"
+	@echo "  make web-hot              - run dedicated hot-edit frontend server on :5174"
 	@echo "  make web-typecheck        - run frontend TypeScript checks"
 	@echo "  make web-test             - run frontend tests"
 	@echo "  make web-coverage         - run frontend tests with coverage thresholds"
@@ -143,14 +146,23 @@ features:
 dev-stack:
 	$(RUN) python tools/dev_stack.py
 
+dev-stack-hot:
+	$(RUN) python tools/dev_stack.py --web-port 5174
+
 stack-up: sync web-install web-build
 	$(RUN) python tools/dev_stack.py
+
+stack-up-hot: sync web-install web-build
+	$(RUN) python tools/dev_stack.py --web-port 5174
 
 web-install:
 	npm install --prefix web
 
 web-dev:
 	npm run --prefix web dev
+
+web-hot:
+	npm run --prefix web dev:hot
 
 web-typecheck:
 	npm run --prefix web typecheck

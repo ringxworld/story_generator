@@ -24,6 +24,9 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "collect-story:" in makefile
     assert "video-story:" in makefile
     assert "features:" in makefile
+    assert "dev-stack-hot:" in makefile
+    assert "stack-up-hot:" in makefile
+    assert "web-hot:" in makefile
     assert "e2e:" in makefile
     assert "pytest tests/test_e2e_stack.py" in makefile
     assert "import-check:" in makefile
@@ -176,6 +179,7 @@ def test_pre_push_checks_include_docs_and_cpp_format() -> None:
 def test_frontend_vitest_coverage_gate_exists() -> None:
     package_json = _read("web/package.json")
     vitest_config = _read("web/vitest.config.ts")
+    assert '"dev:hot": "vite --host 127.0.0.1 --port 5174 --strictPort"' in package_json
     assert '"test:coverage": "vitest run --coverage"' in package_json
     assert '"@vitest/coverage-v8"' in package_json
     assert "thresholds" in vitest_config

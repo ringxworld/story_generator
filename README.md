@@ -37,6 +37,22 @@ For faster repeat runs (skip bootstrap/build), use:
 make dev-stack
 ```
 
+For dedicated frontend hot-edit iteration on a separate port:
+
+```bash
+make web-hot
+```
+
+Hot-edit endpoint:
+
+- Web hot mode: `http://127.0.0.1:5174`
+
+To run API + hot-edit web together:
+
+```bash
+make dev-stack-hot
+```
+
 ## Current Stage
 
 - Build the core story engine around themes, chapters, characters, and canon.

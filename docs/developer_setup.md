@@ -51,6 +51,12 @@ Fast path after first setup:
 make dev-stack
 ```
 
+Hot-edit path on separate frontend port:
+
+```bash
+make dev-stack-hot
+```
+
 Or run services separately:
 
 Terminal 1 (API):
@@ -65,10 +71,17 @@ Terminal 2 (web studio):
 make web-dev
 ```
 
+Terminal 2 (web hot-edit mode on dedicated port):
+
+```bash
+make web-hot
+```
+
 Default local endpoints:
 
 - API: `http://127.0.0.1:8000`
 - Web: `http://127.0.0.1:5173`
+- Web (hot mode): `http://127.0.0.1:5174`
 - API docs: `http://127.0.0.1:8000/docs`
 - ReDoc: `http://127.0.0.1:8000/redoc`
 - OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
