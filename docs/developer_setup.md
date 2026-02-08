@@ -56,6 +56,8 @@ Default local endpoints:
 - API: `http://127.0.0.1:8000`
 - Web: `http://127.0.0.1:5173`
 - API docs: `http://127.0.0.1:8000/docs`
+- ReDoc: `http://127.0.0.1:8000/redoc`
+- OpenAPI schema: `http://127.0.0.1:8000/openapi.json`
 
 Default local DB:
 

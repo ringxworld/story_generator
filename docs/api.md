@@ -49,6 +49,21 @@ uv run story-api --db-path work/local/story_gen.db
 - `POST /api/v1/essays/{essay_id}/evaluate`
   - Runs deterministic quality checks for "good essay mode" and returns pass/fail findings.
 
+## Interactive API docs (Swagger)
+
+When the API is running locally:
+
+- Swagger UI: `http://127.0.0.1:8000/docs`
+- ReDoc: `http://127.0.0.1:8000/redoc`
+- OpenAPI JSON: `http://127.0.0.1:8000/openapi.json`
+
+Auth flow in Swagger UI:
+
+1. Call `POST /api/v1/auth/login`.
+2. Copy `access_token` from the response.
+3. Click **Authorize** in Swagger UI and paste `Bearer <token>`.
+4. Execute authenticated routes (`/stories/*`, `/essays/*`).
+
 ## Notes
 
 - OpenAPI docs are available at `/docs` when running locally.

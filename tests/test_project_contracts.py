@@ -206,6 +206,16 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "javascripts" / "mermaid.js").exists()
 
 
+def test_api_docs_reference_swagger_and_openapi_endpoints() -> None:
+    api_docs = _read("docs/api.md")
+    setup_docs = _read("docs/developer_setup.md")
+    assert "http://127.0.0.1:8000/docs" in api_docs
+    assert "http://127.0.0.1:8000/redoc" in api_docs
+    assert "http://127.0.0.1:8000/openapi.json" in api_docs
+    assert "Authorize" in api_docs
+    assert "http://127.0.0.1:8000/redoc" in setup_docs
+
+
 def test_analysis_contract_scaffold_exists_and_is_valid_json() -> None:
     contracts_dir = ROOT / "work" / "contracts"
     expected_names = [

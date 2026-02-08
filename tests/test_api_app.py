@@ -91,6 +91,21 @@ def test_health_endpoint_returns_ok_payload() -> None:
     assert response.json() == {"status": "ok", "service": "story_gen"}
 
 
+def test_swagger_redoc_and_openapi_endpoints_are_available() -> None:
+    client = TestClient(create_app())
+    swagger = client.get("/docs")
+    redoc = client.get("/redoc")
+    openapi = client.get("/openapi.json")
+    assert swagger.status_code == 200
+    assert "Swagger UI" in swagger.text
+    assert redoc.status_code == 200
+    assert "ReDoc" in redoc.text
+    assert openapi.status_code == 200
+    payload = openapi.json()
+    assert payload["info"]["title"] == "story_gen API"
+    assert any(tag["name"] == "auth" for tag in payload["tags"])
+
+
 def test_api_root_reports_auth_and_story_endpoints() -> None:
     client = TestClient(create_app())
     response = client.get("/api/v1")

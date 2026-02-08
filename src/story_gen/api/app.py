@@ -244,6 +244,24 @@ def create_app(db_path: Path | None = None) -> FastAPI:
             "Local preview API for story blueprint editing and persistence. "
             "Designed for local/dev runtimes and future backend hosting."
         ),
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+        openapi_tags=[
+            {"name": "system", "description": "Service health and runtime metadata."},
+            {"name": "api", "description": "API discovery and root-level capability listing."},
+            {"name": "auth", "description": "Registration, login, and profile lookups."},
+            {"name": "stories", "description": "Story workspace CRUD and ownership-scoped reads."},
+            {"name": "features", "description": "Story feature extraction workflows."},
+            {
+                "name": "essays",
+                "description": "Essay workspace CRUD and deterministic quality checks.",
+            },
+        ],
+        swagger_ui_parameters={
+            "displayRequestDuration": True,
+            "defaultModelsExpandDepth": -1,
+        },
     )
     app.add_middleware(
         CORSMiddleware,
