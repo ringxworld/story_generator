@@ -1,0 +1,20 @@
+# story_gen
+
+`story_gen` treats narrative development like software engineering:
+
+- define canon and dependencies up front
+- enforce quality gates to prevent drift
+- iterate with reproducible workflows
+
+## Current direction
+
+- Build a durable story model around chapters, themes, and characters.
+- Learn craft patterns from reference analysis without redistributing source texts.
+- Keep automation strict so rapid iteration does not degrade architecture.
+
+## Start points
+
+- Dependency model: `docs/dependency_charts.md`
+- Reference ingestion: `docs/reference_pipeline.md`
+- Native acceleration: `docs/native_cpp.md`
+- API stub: `docs/api.md`

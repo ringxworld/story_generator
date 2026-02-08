@@ -46,6 +46,9 @@ jobs:
       - name: Pytest (coverage gate)
         run: uv run pytest
 
+      - name: Docs build
+        run: uv run mkdocs build --strict
+
   native:
     runs-on: ubuntu-latest
 

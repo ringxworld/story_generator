@@ -32,6 +32,7 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "uv run ruff format --check ." in workflow
     assert "uv run mypy" in workflow
     assert "uv run pytest" in workflow
+    assert "uv run mkdocs build --strict" in workflow
     assert "Configure CMake" in workflow
     assert "Run native tests" in workflow
     assert "Install native quality tools" in workflow
@@ -46,6 +47,7 @@ def test_deploy_workflow_requires_ci_success() -> None:
     assert "- CI" in workflow
     assert "conclusion == 'success'" in workflow
     assert "head_branch == 'main'" in workflow
+    assert "uv run mkdocs build --strict" in workflow
 
 
 def test_native_cmake_scaffold_present() -> None:
@@ -71,6 +73,14 @@ def test_pyproject_exposes_story_collection_entrypoints() -> None:
     assert 'story-reference = "story_gen.cli.reference:main"' in pyproject
     assert 'story-collect = "story_gen.cli.collect:main"' in pyproject
     assert 'story-video = "story_gen.cli.video:main"' in pyproject
+    assert 'story-api = "story_gen.cli.api:main"' in pyproject
+
+
+def test_mkdocs_configuration_exists() -> None:
+    config = _read("mkdocs.yml")
+    assert "site_name:" in config
+    assert "nav:" in config
+    assert "API:" in config
 
 
 def test_pyproject_enforces_pytest_coverage_gate() -> None:

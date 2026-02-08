@@ -10,7 +10,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check lint fix format format-check typecheck test coverage quality check story build-site reference reference-translate collect-story video-story cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check lint fix format format-check typecheck test coverage quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -28,11 +28,14 @@ help:
 	@echo "  make quality              - lock-check + lint + format-check + typecheck + tests"
 	@echo "  make check                - run lint + typecheck + tests"
 	@echo "  make story                - run the story_gen CLI"
-	@echo "  make build-site           - build static story site"
+	@echo "  make build-site           - build MkDocs pages site"
+	@echo "  make docs-serve           - serve MkDocs locally"
+	@echo "  make story-page           - build standalone story HTML page"
 	@echo "  make reference            - run reference pipeline (override REFERENCE_ARGS)"
 	@echo "  make reference-translate  - run reference pipeline with LibreTranslate"
 	@echo "  make collect-story        - collect full text for STORY_SERIES_CODE"
 	@echo "  make video-story          - download VIDEO_URL audio and optional transcript"
+	@echo "  make api                  - run local API stub server"
 	@echo "  make cpp-configure        - configure C++ tooling with CMake"
 	@echo "  make cpp-build            - build C++ tools"
 	@echo "  make cpp-test             - run C++ tests (ctest)"
@@ -84,6 +87,12 @@ story:
 	$(RUN) story-gen
 
 build-site:
+	$(RUN) mkdocs build --strict
+
+docs-serve:
+	$(RUN) mkdocs serve
+
+story-page:
 	$(RUN) python -m story_gen.site_builder
 
 reference:
@@ -97,6 +106,9 @@ collect-story:
 
 video-story:
 	$(RUN) story-video --url "$(VIDEO_URL)" $(VIDEO_ARGS)
+
+api:
+	$(RUN) story-api
 
 cpp-configure:
 	cmake -S . -B $(CPP_BUILD_DIR)

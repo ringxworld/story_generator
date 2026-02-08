@@ -1,13 +1,13 @@
 # story_gen
 
 [![CI](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml)
-[![Deploy Story Site](https://github.com/ringxworld/story_generator/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/deploy-pages.yml)
+[![Deploy Pages](https://github.com/ringxworld/story_generator/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/deploy-pages.yml)
 
 A story engineering project for building original fiction with discipline.
 
 We are treating storytelling like a software system: define canon, model dependencies, validate continuity, and evolve chapters without drift.
 
-Live reference site:
+Live project pages:
 - https://ringxworld.github.io/story_generator/
 
 ## Current Stage
@@ -37,3 +37,4 @@ Live reference site:
 - Native acceleration path (C++/CMake): `docs/native_cpp.md`
 - Full-series text collection: `src/story_gen/story_collector.py`
 - Video-story transcript ingestion: `src/story_gen/youtube_downloader.py`
+- HTTP API stub boundary: `src/story_gen/api/app.py`

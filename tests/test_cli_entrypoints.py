@@ -5,6 +5,7 @@ import runpy
 import pytest
 
 from story_gen.cli import app, collect, reference, video
+from story_gen.cli import api as api_cli
 from story_gen.reference_pipeline import PipelineArgs
 from story_gen.story_collector import StoryCollectorArgs
 from story_gen.youtube_downloader import VideoStoryArgs
@@ -54,3 +55,22 @@ def test_package_main_module_executes_cli_main(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr("story_gen.cli.main", fake_main)
     runpy.run_module("story_gen.cli.__main__", run_name="__main__")
     assert called["value"] is True
+
+
+def test_api_cli_calls_uvicorn(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, object]] = []
+
+    def fake_run(app: str, host: str, port: int, reload: bool) -> None:
+        calls.append({"app": app, "host": host, "port": port, "reload": reload})
+
+    monkeypatch.setattr("story_gen.cli.api.uvicorn.run", fake_run)
+    api_cli.main(["--host", "0.0.0.0", "--port", "9000", "--reload"])
+
+    assert calls == [
+        {
+            "app": "story_gen.api.app:app",
+            "host": "0.0.0.0",
+            "port": 9000,
+            "reload": True,
+        }
+    ]

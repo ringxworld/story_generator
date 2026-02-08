@@ -1,4 +1,4 @@
-name: Deploy Story Site
+name: Deploy Pages
 
 on:
   workflow_dispatch:
@@ -40,23 +40,8 @@ jobs:
       - name: Sync dependencies
         run: uv sync --all-groups
 
-      - name: Lockfile check
-        run: uv lock --check
-
-      - name: Ruff
-        run: uv run ruff check .
-
-      - name: Ruff format check
-        run: uv run ruff format --check .
-
-      - name: Mypy
-        run: uv run mypy
-
-      - name: Pytest
-        run: uv run pytest
-
-      - name: Build static story site
-        run: uv run python scripts/build_story_site.py
+      - name: Build docs site
+        run: uv run mkdocs build --strict
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

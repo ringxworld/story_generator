@@ -10,7 +10,10 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "beautifulsoup4>=4.12.3",
+  "fastapi>=0.116.1",
   "httpx>=0.28.1",
+  "pydantic>=2.11.7",
+  "uvicorn>=0.35.0",
 ]
 
 [project.scripts]
@@ -18,11 +21,14 @@ story-gen = "story_gen.cli:main"
 story-reference = "story_gen.cli.reference:main"
 story-collect = "story_gen.cli.collect:main"
 story-video = "story_gen.cli.video:main"
+story-api = "story_gen.cli.api:main"
 
 [dependency-groups]
 dev = [
   "pre-commit>=4.1.0",
   "mypy>=1.14.0",
+  "mkdocs>=1.6.1",
+  "mkdocs-material>=9.6.19",
   "pytest>=8.3.4",
   "pytest-cov>=6.0.0",
   "ruff>=0.9.6",
