@@ -92,6 +92,7 @@ def test_precommit_enforces_commit_and_push_quality() -> None:
     assert "check-toml" in precommit
     assert "check-yaml" in precommit
     assert "--unsafe" in precommit
+    assert "exclude: ^mkdocs\\.yml$" in precommit
     assert "cxx-format-fix" in precommit
     assert "cxx-format-check" in precommit
     assert "py-import-boundaries" in precommit
