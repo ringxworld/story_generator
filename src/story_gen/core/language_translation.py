@@ -80,9 +80,13 @@ def detect_language(text: str) -> LanguageDetectionResult:
     french_hits = sum(1 for token in tokens if token in _FRENCH_MARKERS)
     total = max(len(tokens), 1)
     if spanish_hits > french_hits and spanish_hits > 0:
-        return LanguageDetectionResult(language_code="es", confidence=min(1.0, spanish_hits / total + 0.2))
+        return LanguageDetectionResult(
+            language_code="es", confidence=min(1.0, spanish_hits / total + 0.2)
+        )
     if french_hits > spanish_hits and french_hits > 0:
-        return LanguageDetectionResult(language_code="fr", confidence=min(1.0, french_hits / total + 0.2))
+        return LanguageDetectionResult(
+            language_code="fr", confidence=min(1.0, french_hits / total + 0.2)
+        )
     return LanguageDetectionResult(language_code="en", confidence=0.65)
 
 
@@ -147,4 +151,3 @@ def _majority_language(values: list[str]) -> str:
         counts[value] = counts.get(value, 0) + 1
     ordered = sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))
     return ordered[0][0]
-

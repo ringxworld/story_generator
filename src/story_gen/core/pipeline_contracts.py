@@ -97,4 +97,3 @@ def validate_insight_output(insights: list[Insight]) -> None:
             raise ValueError("Insight records require evidence links.")
         if insight.confidence.score <= 0.0:
             raise ValueError("Insight confidence must be positive.")
-

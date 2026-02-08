@@ -185,4 +185,3 @@ class StoryDocument(SchemaModel):
     timeline_points: list[TimelinePoint] = Field(default_factory=list)
     insights: list[Insight] = Field(default_factory=list)
     quality_gate: QualityGate
-

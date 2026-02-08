@@ -57,4 +57,3 @@ def test_pipeline_handles_non_english_translation_path() -> None:
     translated = [segment.translated_text for segment in result.document.raw_segments]
     assert any(text is not None and "story" in text.lower() for text in translated)
     assert result.document.quality_gate.translation_quality >= 0.5
-

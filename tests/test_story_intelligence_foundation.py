@@ -65,7 +65,9 @@ def test_language_detection_and_translation_attach_alignment() -> None:
     detected = detect_language(segment.normalized_text)
     assert detected.language_code == "es"
 
-    translated, alignments, source_language = translate_segments(segments=[segment], target_language="en")
+    translated, alignments, source_language = translate_segments(
+        segments=[segment], target_language="en"
+    )
     assert source_language == "es"
     assert translated[0].translated_text is not None
     assert "story" in translated[0].translated_text
@@ -100,7 +102,9 @@ def test_pipeline_contracts_reject_invalid_sequences() -> None:
         timestamp_utc=None,
         evidence_segment_ids=[segment.segment_id],
         confidence=ConfidenceScore(method="rule.v1", score=0.7),
-        provenance=ProvenanceRecord(source_segment_ids=[segment.segment_id], generator="beat_detector"),
+        provenance=ProvenanceRecord(
+            source_segment_ids=[segment.segment_id], generator="beat_detector"
+        ),
     )
     with pytest.raises(ValueError, match="contiguous"):
         validate_beat_output([bad_beat])
@@ -120,4 +124,3 @@ def test_insight_contract_requires_positive_confidence() -> None:
     )
     with pytest.raises(ValueError, match="positive"):
         validate_insight_output([insight])
-

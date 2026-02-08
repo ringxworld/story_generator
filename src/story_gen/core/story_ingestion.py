@@ -6,6 +6,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from hashlib import sha256
+from typing import Literal, cast
 
 from story_gen.core.story_schema import RawSegment, stable_id
 
@@ -21,6 +22,9 @@ class IngestionRequest:
     source_type: str
     source_text: str
     idempotency_key: str
+
+
+SourceType = Literal["text", "document", "transcript"]
 
 
 @dataclass(frozen=True)
@@ -78,6 +82,12 @@ def ingest_story_text(request: IngestionRequest) -> IngestionArtifact:
     source_hash = sha256(normalized.encode("utf-8")).hexdigest()
     dedupe_key = sha256(f"{request.idempotency_key}|{source_hash}".encode("utf-8")).hexdigest()
 
+    source_type: SourceType = (
+        cast(SourceType, request.source_type)
+        if request.source_type in {"text", "document", "transcript"}
+        else "text"
+    )
+
     segments: list[RawSegment] = []
     char_cursor = 0
     for index, chunk in enumerate(_chunk_text(normalized), start=1):
@@ -87,7 +97,7 @@ def ingest_story_text(request: IngestionRequest) -> IngestionArtifact:
         segments.append(
             RawSegment(
                 segment_id=segment_id,
-                source_type=request.source_type if request.source_type in {"text", "document", "transcript"} else "text",
+                source_type=source_type,
                 original_text=chunk,
                 normalized_text=chunk,
                 translated_text=None,
@@ -104,4 +114,3 @@ def ingest_story_text(request: IngestionRequest) -> IngestionArtifact:
         dedupe_key=dedupe_key,
         segments=segments,
     )
-

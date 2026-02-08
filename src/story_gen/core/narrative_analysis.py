@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from story_gen.core.pipeline_contracts import validate_beat_input, validate_beat_output
 from story_gen.core.story_schema import (
     ConfidenceScore,
@@ -11,7 +13,13 @@ from story_gen.core.story_schema import (
     stable_id,
 )
 
-_STAGES = ("setup", "escalation", "climax", "resolution")
+StageName = Literal["setup", "escalation", "climax", "resolution"]
+_STAGES: tuple[StageName, StageName, StageName, StageName] = (
+    "setup",
+    "escalation",
+    "climax",
+    "resolution",
+)
 
 
 def detect_story_beats(*, events: list[ExtractedEvent]) -> list[StoryBeat]:
@@ -40,7 +48,7 @@ def detect_story_beats(*, events: list[ExtractedEvent]) -> list[StoryBeat]:
     return beats
 
 
-def _stage_for_position(*, position: int, total: int) -> str:
+def _stage_for_position(*, position: int, total: int) -> StageName:
     if total <= 3:
         if position == 1:
             return "setup"
@@ -55,4 +63,3 @@ def _stage_for_position(*, position: int, total: int) -> str:
     if position <= quarter * 3:
         return _STAGES[2]
     return _STAGES[3]
-

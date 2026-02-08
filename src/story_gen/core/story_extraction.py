@@ -34,7 +34,9 @@ def extract_events_and_entities(
         if not sentences:
             sentences = [source_text]
         event_summary = sentences[0][:4000]
-        entity_names = sorted({token.lower() for token in _ENTITY_TOKEN.findall(segment.original_text)})
+        entity_names = sorted(
+            {token.lower() for token in _ENTITY_TOKEN.findall(segment.original_text)}
+        )
         for entity in entity_names:
             entities_by_name[entity].append(segment.segment_id)
         events.append(
@@ -77,4 +79,3 @@ def _build_entities(mentions: dict[str, list[str]]) -> list[EntityMention]:
             )
         )
     return entities
-

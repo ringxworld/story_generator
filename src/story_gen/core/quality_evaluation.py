@@ -79,7 +79,9 @@ def _translation_quality(segments: list[RawSegment]) -> float:
         return 1.0
     unchanged = 0
     for segment in translated:
-        if segment.translated_text == segment.normalized_text and segment.language_code not in {"en", "und"}:
+        if segment.translated_text == segment.normalized_text and segment.language_code not in {
+            "en",
+            "und",
+        }:
             unchanged += 1
     return 1.0 - (unchanged / len(translated))
-

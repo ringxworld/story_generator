@@ -101,4 +101,3 @@ def run_story_analysis(
         evaluation=evaluation,
         graph_svg=graph_svg,
     )
-

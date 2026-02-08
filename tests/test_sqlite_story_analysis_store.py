@@ -28,9 +28,12 @@ def test_story_analysis_store_write_and_read_latest(tmp_path: Path) -> None:
     latest = store.get_latest_analysis(owner_id="owner-1", story_id="story-a")
     assert latest is not None
     latest_run, document, dashboard, graph_svg = latest
+    overview = dashboard.get("overview")
+    assert isinstance(overview, dict)
     assert latest_run.run_id == run.run_id
     assert document.story_id == "story-a"
-    assert dashboard["overview"]["events_count"] >= 1
+    assert isinstance(overview.get("events_count"), int)
+    assert overview["events_count"] >= 1
     assert graph_svg.startswith("<svg")
 
 

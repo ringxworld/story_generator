@@ -505,7 +505,9 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         if story is None or story.owner_id != user.user_id:
             raise HTTPException(status_code=404, detail="Story not found")
         blueprint = StoryBlueprint.model_validate_json(story.blueprint_json)
-        source_text = payload.source_text.strip() if payload.source_text else _analysis_source_text(blueprint)
+        source_text = (
+            payload.source_text.strip() if payload.source_text else _analysis_source_text(blueprint)
+        )
         if not source_text:
             raise HTTPException(
                 status_code=422,

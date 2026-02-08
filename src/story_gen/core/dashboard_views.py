@@ -205,7 +205,9 @@ def _build_timeline_lanes(
 def _build_theme_heatmap(themes: list[ThemeSignal]) -> list[ThemeHeatmapCell]:
     return [
         ThemeHeatmapCell(theme=signal.label, stage=signal.stage, intensity=signal.strength)
-        for signal in sorted(themes, key=lambda signal: (signal.label, signal.stage, signal.theme_id))
+        for signal in sorted(
+            themes, key=lambda signal: (signal.label, signal.stage, signal.theme_id)
+        )
     ]
 
 
@@ -305,4 +307,3 @@ def _build_graph(
                 )
             )
     return nodes, edges
-

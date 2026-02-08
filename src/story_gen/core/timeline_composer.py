@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 from story_gen.core.pipeline_contracts import validate_timeline_input, validate_timeline_output
 from story_gen.core.story_schema import (
@@ -13,6 +14,8 @@ from story_gen.core.story_schema import (
     TimelinePoint,
     stable_id,
 )
+
+StageName = Literal["setup", "escalation", "climax", "resolution"]
 
 
 @dataclass(frozen=True)
@@ -85,7 +88,7 @@ def compose_timeline(
     return ComposedTimeline(actual_time=actual_time, narrative_order=narrative_order)
 
 
-def _stage_for_order(order: int, total: int) -> str:
+def _stage_for_order(order: int, total: int) -> StageName:
     if total <= 1:
         return "setup"
     ratio = order / total
@@ -96,4 +99,3 @@ def _stage_for_order(order: int, total: int) -> str:
     if ratio <= 0.75:
         return "climax"
     return "resolution"
-

@@ -179,4 +179,3 @@ class SQLiteStoryAnalysisStore:
         dashboard = json.loads(str(row["dashboard_json"]))
         graph_svg = str(row["graph_svg"])
         return metadata, document, dashboard, graph_svg
-

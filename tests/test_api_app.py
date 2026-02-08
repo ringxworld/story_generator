@@ -219,9 +219,7 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
     assert isinstance(timeline.json(), list)
     assert len(timeline.json()) >= 1
 
-    heatmap = client.get(
-        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap", headers=headers
-    )
+    heatmap = client.get(f"/api/v1/stories/{story_id}/dashboard/themes/heatmap", headers=headers)
     assert heatmap.status_code == 200
     assert isinstance(heatmap.json(), list)
 

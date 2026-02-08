@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
+from typing import Literal
 
 from story_gen.core.pipeline_contracts import validate_theme_input, validate_theme_output
 from story_gen.core.story_schema import (
@@ -24,6 +25,7 @@ _THEME_KEYWORDS: dict[str, tuple[str, ...]] = {
 
 _POSITIVE_WORDS = {"hope", "trust", "healed", "resolved", "love", "calm"}
 _NEGATIVE_WORDS = {"fear", "betray", "war", "loss", "anger", "conflict"}
+ThemeDirection = Literal["emerging", "strengthening", "steady", "fading"]
 
 
 @dataclass(frozen=True)
@@ -88,6 +90,7 @@ def _detect_themes(beats: list[StoryBeat]) -> list[ThemeSignal]:
         max_hits = max(len(sorted_hits), 1)
         for position, (_, beat) in enumerate(sorted_hits, start=1):
             strength = round(position / max_hits, 3)
+            direction: ThemeDirection
             if position == 1:
                 direction = "emerging"
             elif position == max_hits:
@@ -173,4 +176,3 @@ def _build_emotions(beats: list[StoryBeat]) -> list[EmotionSignal]:
         tone = "positive" if score >= 0.55 else "negative" if score <= 0.45 else "neutral"
         signals.append(EmotionSignal(stage=stage, tone=tone, score=score))
     return signals
-

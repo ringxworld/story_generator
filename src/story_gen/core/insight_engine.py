@@ -53,7 +53,9 @@ def generate_insights(*, beats: list[StoryBeat], themes: list[ThemeSignal]) -> l
         if not stage_beats:
             continue
         stage_summary = " ".join(beat.summary for beat in stage_beats[:3])
-        evidence = sorted({segment for beat in stage_beats for segment in beat.evidence_segment_ids})
+        evidence = sorted(
+            {segment for beat in stage_beats for segment in beat.evidence_segment_ids}
+        )
         insights.append(
             Insight(
                 insight_id=stable_id(prefix="ins", text=f"meso:{stage}:{stage_summary}"),
@@ -107,4 +109,3 @@ def _apply_theme_boost(*, insights: list[Insight], themes: list[ThemeSignal]) ->
                 )
             }
         )
-
