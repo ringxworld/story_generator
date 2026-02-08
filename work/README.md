@@ -7,6 +7,12 @@ This directory is for local research artifacts and literary analysis work.
 - `resources/`: stable templates and notes you maintain in git
 - `reference_data/`: generated chapter dumps, translations, and reports (ignored by git)
 
+## Current resources
+
+- `work/resources/literary_lens.md`: reusable chapter review checklist
+- `work/resources/focus_names.txt`: tracked names for mention analysis
+- `work/resources/kingdom_hearts_metaphysics.md`: thematic reference model for meaning, participation, and world-coherence design
+
 ## Suggested workflow
 
 1. Update `resources/focus_names.txt` with characters you want tracked.
