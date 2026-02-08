@@ -2,10 +2,12 @@ UV ?= uv
 RUN = $(UV) run
 REFERENCE_ARGS ?= --max-episodes 10
 TRANSLATE_URL ?= http://localhost:5000
+CPP_BUILD_DIR ?= build/cpp
+CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync lock-check lint fix format format-check typecheck test quality check story build-site reference reference-translate deploy clean
+.PHONY: help sync lock-check lint fix format format-check typecheck test quality check story build-site reference reference-translate cpp-configure cpp-build cpp-test cpp-demo deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -23,6 +25,10 @@ help:
 	@echo "  make build-site           - build static story site"
 	@echo "  make reference            - run reference pipeline (override REFERENCE_ARGS)"
 	@echo "  make reference-translate  - run reference pipeline with LibreTranslate"
+	@echo "  make cpp-configure        - configure C++ tooling with CMake"
+	@echo "  make cpp-build            - build C++ tools"
+	@echo "  make cpp-test             - run C++ tests (ctest)"
+	@echo "  make cpp-demo             - run chapter_metrics demo output"
 	@echo "  make deploy               - run checks, build site, and push main"
 	@echo "  make clean                - remove local caches and generated site/"
 
@@ -66,6 +72,18 @@ reference:
 
 reference-translate:
 	$(RUN) story-reference --translate-provider libretranslate --libretranslate-url $(TRANSLATE_URL) $(REFERENCE_ARGS)
+
+cpp-configure:
+	cmake -S . -B $(CPP_BUILD_DIR)
+
+cpp-build: cpp-configure
+	cmake --build $(CPP_BUILD_DIR) --config $(CPP_CONFIG)
+
+cpp-test: cpp-build
+	ctest --test-dir $(CPP_BUILD_DIR) -C $(CPP_CONFIG) --output-on-failure
+
+cpp-demo: cpp-build
+	ctest --test-dir $(CPP_BUILD_DIR) -C $(CPP_CONFIG) -R chapter_metrics_demo --output-on-failure
 
 deploy: quality build-site
 	git push origin main

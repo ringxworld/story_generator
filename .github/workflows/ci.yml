@@ -37,3 +37,19 @@ jobs:
 
       - name: Pytest
         run: uv run pytest
+
+  native:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure CMake
+        run: cmake -S . -B build/cpp
+
+      - name: Build native tools
+        run: cmake --build build/cpp --config Release
+
+      - name: Run native tests
+        run: ctest --test-dir build/cpp -C Release --output-on-failure

@@ -6,3 +6,5 @@ __pycache__/
 *.pyc
 site/
 work_tmp_*.html
+build/
+CMakeUserPresets.json

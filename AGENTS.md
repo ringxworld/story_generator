@@ -28,6 +28,8 @@ Use `Makefile` targets instead of ad-hoc commands whenever possible:
 - `make test` -> pytest
 - `make build-site` -> build static site
 - `make reference` -> run reference ingestion pipeline
+- `make cpp-build` -> build native C++ tools
+- `make cpp-test` -> run native C++ tests
 - `make deploy` -> quality + site build + push
 
 If `make` is unavailable in the local shell, run equivalent `uv` commands directly.
@@ -63,6 +65,15 @@ Any meaningful code change should pass:
 - Keep reference ingestion for private analysis; avoid redistribution of full third-party text.
 - Preserve cache behavior and deterministic outputs for tests.
 
+## Native C++ Guardrails
+
+- Use C++20 and keep native tools focused on measurable hotspots.
+- Keep Python as orchestrator; native binaries should be composable via CLI.
+- If compiler toolchain is available, validate native changes with:
+  1. `make cpp-configure`
+  2. `make cpp-build`
+  3. `make cpp-test`
+
 ## Documentation Maintenance
 
 Update docs when behavior changes:
@@ -70,6 +81,7 @@ Update docs when behavior changes:
 - `README.md` for project direction and high-level goals
 - `docs/reference_pipeline.md` for ingestion workflow details
 - `docs/dependency_charts.md` for architecture changes
+- `docs/native_cpp.md` for native acceleration workflow
 
 ## Definition of Done (Per Prompt)
 

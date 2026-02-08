@@ -34,3 +34,4 @@ Live reference site:
 
 - Story model and planning architecture: `docs/dependency_charts.md`
 - Reference ingestion + analysis workflow: `docs/reference_pipeline.md`
+- Native acceleration path (C++/CMake): `docs/native_cpp.md`
