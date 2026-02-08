@@ -33,6 +33,7 @@ nav:
       - 0006 Story Feature Pipeline: adr/0006-story-first-feature-extraction-and-schema-enforcement.md
       - 0007 Frontend Coverage Gate: adr/0007-frontend-coverage-gate.md
       - 0008 Good Essay Mode Product Surface: adr/0008-good-essay-mode-product-surface.md
+      - 0009 Story Intelligence Pipeline: adr/0009-story-intelligence-pipeline-and-dashboard-read-models.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

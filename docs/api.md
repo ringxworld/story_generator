@@ -38,6 +38,24 @@ uv run story-api --db-path work/local/story_gen.db
   - Runs story-first chapter feature extraction and persists a new run.
 - `GET /api/v1/stories/{story_id}/features/latest`
   - Returns latest persisted extraction result for that story.
+- `POST /api/v1/stories/{story_id}/analysis/run`
+  - Runs deterministic story intelligence analysis (ingestion, translation, beats, themes, timeline, insights).
+- `GET /api/v1/stories/{story_id}/analysis/latest`
+  - Returns latest persisted analysis run summary for that story.
+- `GET /api/v1/stories/{story_id}/dashboard/overview`
+  - Returns big-picture card payload for dashboard.
+- `GET /api/v1/stories/{story_id}/dashboard/timeline`
+  - Returns timeline lane payloads for actual-time and narrative-order views.
+- `GET /api/v1/stories/{story_id}/dashboard/themes/heatmap`
+  - Returns theme-by-stage intensity cells.
+- `GET /api/v1/stories/{story_id}/dashboard/arcs`
+  - Returns arc chart points (character/conflict/emotion lanes).
+- `GET /api/v1/stories/{story_id}/dashboard/drilldown/{item_id}`
+  - Returns detail payload for one drilldown item.
+- `GET /api/v1/stories/{story_id}/dashboard/graph`
+  - Returns graph nodes/edges for interactive rendering.
+- `GET /api/v1/stories/{story_id}/dashboard/graph/export.svg`
+  - Returns SVG export payload for graph image use.
 - `GET /api/v1/essays?limit=<n>`
   - Lists essays for the authenticated owner.
 - `POST /api/v1/essays`
@@ -69,6 +87,7 @@ Auth flow in Swagger UI:
 - OpenAPI docs are available at `/docs` when running locally.
 - Default local DB path is `work/local/story_gen.db`.
 - Auth is bearer-token based for local/dev workflows.
+- Dashboard and analysis endpoints are owner-scoped and require a prior analysis run.
 - This API is intended for local/dev now and backend hosting later.
 - GitHub Pages is static hosting only, so it can serve docs/front-end but not this Python API.
 - Python users can work with the same contracts via `story_gen.api` and `story-blueprint`.
