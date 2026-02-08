@@ -22,3 +22,4 @@
 - Reference ingestion: `docs/reference_pipeline.md`
 - Native acceleration: `docs/native_cpp.md`
 - API stub: `docs/api.md`
+- Developer setup runbook: `docs/developer_setup.md`

@@ -40,6 +40,7 @@ Live project pages:
 - Native acceleration path (C++/CMake): `docs/native_cpp.md`
 - Deployment split (Pages + API): `docs/deployment.md`
 - Planned DigitalOcean deployment baseline: `docs/droplet_stack.md`
+- Developer local setup runbook: `docs/developer_setup.md`
 - React + TypeScript story studio: `docs/studio.md`
 - Story-first feature extraction pipeline: `docs/feature_pipeline.md`
 - Full-series text collection: `src/story_gen/cli/story_collector.py`

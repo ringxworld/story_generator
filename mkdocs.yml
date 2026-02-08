@@ -16,6 +16,7 @@ nav:
   - Architecture: architecture.md
   - Architecture Diagrams: architecture_diagrams.md
   - API: api.md
+  - Developer Setup: developer_setup.md
   - Good Essay Mode: essay_mode.md
   - Deployment: deployment.md
   - Studio: studio.md
