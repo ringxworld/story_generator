@@ -14,6 +14,8 @@
 
 ## Start points
 
+- Architecture contracts: `docs/architecture.md`
+- ADR workflow: `docs/adr/README.md`
 - Dependency model: `docs/dependency_charts.md`
 - Reference ingestion: `docs/reference_pipeline.md`
 - Native acceleration: `docs/native_cpp.md`

@@ -32,9 +32,16 @@ Live project pages:
 
 ## Focus Areas
 
+- Architecture contracts: `docs/architecture.md`
+- ADR records: `docs/adr/`
 - Story model and planning architecture: `docs/dependency_charts.md`
 - Reference ingestion + analysis workflow: `docs/reference_pipeline.md`
 - Native acceleration path (C++/CMake): `docs/native_cpp.md`
 - Full-series text collection: `src/story_gen/story_collector.py`
 - Video-story transcript ingestion: `src/story_gen/youtube_downloader.py`
 - HTTP API stub boundary: `src/story_gen/api/app.py`
+
+## Governance
+
+- Contribution process: `CONTRIBUTING.md`
+- Security reporting: `SECURITY.md`

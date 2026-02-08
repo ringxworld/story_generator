@@ -66,6 +66,10 @@ def test_native_quality_config_files_exist() -> None:
     assert (ROOT / ".clang-format").exists()
     assert (ROOT / ".clang-tidy").exists()
     assert (ROOT / ".pre-commit-config.yaml").exists()
+    assert (ROOT / "CODEOWNERS").exists()
+    assert (ROOT / "CONTRIBUTING.md").exists()
+    assert (ROOT / "SECURITY.md").exists()
+    assert (ROOT / "LICENSE").exists()
 
 
 def test_pyproject_exposes_story_collection_entrypoints() -> None:
@@ -81,6 +85,8 @@ def test_mkdocs_configuration_exists() -> None:
     assert "site_name:" in config
     assert "nav:" in config
     assert "API:" in config
+    assert "Architecture:" in config
+    assert "ADR:" in config
 
 
 def test_pyproject_enforces_pytest_coverage_gate() -> None:
@@ -102,3 +108,40 @@ def test_argparse_boundaries_for_story_tools() -> None:
     assert "import argparse" in collect_cli
     assert "import argparse" in reference_cli
     assert "import argparse" in video_cli
+
+
+def test_architecture_docs_and_adr_scaffold_exist() -> None:
+    assert (ROOT / "docs" / "architecture.md").exists()
+    assert (ROOT / "docs" / "adr").is_dir()
+    assert (ROOT / "docs" / "adr" / "README.md").exists()
+    assert (ROOT / "docs" / "adr" / "0000-template.md").exists()
+
+
+def test_boundary_package_scaffolds_exist() -> None:
+    assert (ROOT / "src" / "story_gen" / "api").is_dir()
+    assert (ROOT / "src" / "story_gen" / "core").is_dir()
+    assert (ROOT / "src" / "story_gen" / "adapters").is_dir()
+    assert (ROOT / "src" / "story_gen" / "native").is_dir()
+    assert (ROOT / "cpp" / "include").is_dir()
+
+
+def test_no_utils_module_names() -> None:
+    for path in (ROOT / "src").rglob("*.py"):
+        assert path.name != "utils.py", str(path.relative_to(ROOT))
+
+
+def test_todo_requires_issue_reference() -> None:
+    scan_roots = [ROOT / "src", ROOT / "tests", ROOT / "docs"]
+    excluded = {
+        (ROOT / "tests" / "test_project_contracts.py").resolve(),
+    }
+    for root in scan_roots:
+        for path in root.rglob("*"):
+            if path.resolve() in excluded:
+                continue
+            if path.suffix not in {".py", ".md", ".yml", ".yaml", ".toml"}:
+                continue
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if "TODO" not in line:
+                    continue
+                assert "TODO(#" in line, f"{path.relative_to(ROOT)}: {line.strip()}"

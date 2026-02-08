@@ -1,104 +1,87 @@
 # AGENTS.md
 
-Project operating guide for coding agents working in `story_generator`.
+Repository operating rules for coding agents.
 
-## Mission
+## 0. Prime Directive
 
-Build `story_gen` as a disciplined story-engineering project:
-- stable canon and chapter dependencies
-- strict quality gates
-- reproducible workflows for reference analysis and publication
+- You may generate code quickly.
+- You may not change architecture without explicit approval.
+- If a requested change violates repository contracts, stop and ask for clarification.
+- Prefer correctness and boundary integrity over speed.
 
-## Non-Negotiables
+## 1. Required Repository Contracts
 
-- Keep changes small, typed, and testable.
-- Prefer strict typing over loose dictionaries.
-- Do not weaken CI quality gates.
-- Keep argparse-heavy CLIs in `src/story_gen/cli/`.
-- Do not commit generated artifacts under `work/reference_data/` or `site/`.
-- After each completed user prompt:
-  1. commit
-  2. push to `origin/main`
+These artifacts must remain present:
 
-## Source of Truth Commands
+- `LICENSE`
+- `CONTRIBUTING.md`
+- `SECURITY.md`
+- `CODEOWNERS`
+- `docs/architecture.md`
+- `docs/adr/`
 
-Use `Makefile` targets instead of ad-hoc commands whenever possible:
+If a change introduces new public behavior or a new dependency, add an ADR.
 
-- `make quality` -> lockfile check + lint + format-check + mypy + pytest
-- `make hooks-install` -> install local pre-commit/pre-push gates
-- `make hooks-run` -> run all configured hooks
-- `make fix` -> auto-fix lint + format
-- `make test` -> pytest
-- `make build-site` -> build static site
-- `make reference` -> run reference ingestion pipeline
-- `make collect-story` -> collect full text for a series code
-- `make video-story` -> download video audio + optional transcript
-- `make cpp-build` -> build native C++ tools
-- `make cpp-test` -> run native C++ tests
-- `make deploy` -> quality + site build + push
+## 2. Module Ownership and Boundaries
 
-If `make` is unavailable in the local shell, run equivalent `uv` commands directly.
+Python ownership model:
 
-## Quality Gate Requirements
+- `src/story_gen/api/` -> public API layer
+- `src/story_gen/core/` -> internal logic
+- `src/story_gen/adapters/` -> side effects / IO
+- `src/story_gen/native/` -> native binding boundary
+- `src/story_gen/cli/` -> argparse command entrypoints
 
-Any meaningful code change should pass:
+Import rules:
 
-1. `uv lock --check`
-2. `uv run ruff check .`
-3. `uv run ruff format --check .`
-4. `uv run mypy`
-5. `uv run pytest`
+- `api` may import `core`, `adapters`, `native`
+- `core` must not import `api`, `adapters`, `native`
+- `adapters` must not be imported by `core`
+- only `native` may import compiled extension modules
 
-Local commit/push guardrails should be enabled via pre-commit:
+## 3. Python / C++ Boundary Rules
 
-- `pre-commit` stage: formatting/lint safeguards
-- `pre-push` stage: `uv lock --check`, `mypy`, `pytest`
+- C++ source: `cpp/`
+- Public C++ headers: `cpp/include/`
+- Binding code: `bindings/` or `src/story_gen/native/`
+- C++ must not include Python headers outside binding code
+- Python must not expose raw-pointer ownership semantics
 
-## Typing Standards
+## 4. Quality and Enforcement
 
-- Keep `mypy` strict-compatible (`pyproject.toml`).
-- Prefer:
-  - dataclasses for domain/config objects
-  - `TypedDict` for serialized JSON payloads
-  - explicit union/`Literal` types for option modes
-- Avoid `Any` unless unavoidable and justified.
+Expected checks:
 
-## CI/CD Expectations
+- `uv lock --check`
+- `uv run ruff check .`
+- `uv run ruff format --check .`
+- `uv run mypy`
+- `uv run pytest`
+- `uv run mkdocs build --strict`
 
-- `CI` must remain the primary quality gate.
-- Pages deployment should only run after successful CI on `main` (or explicit manual dispatch).
-- If workflow changes are made, keep local commands and workflow steps aligned.
+Do not bypass pre-commit or CI.
 
-## Reference Pipeline Guardrails
+## 5. Entropy Prevention
 
-- Respect crawl delay defaults and target-site policies.
-- Keep reference ingestion for private analysis; avoid redistribution of full third-party text.
-- Preserve cache behavior and deterministic outputs for tests.
+- No `utils` module names.
+- No `TODO` without issue reference (example: `TODO(#123): ...`).
+- No new public API without docs and tests.
+- Feature flags require explicit removal plan.
 
-## Native C++ Guardrails
+## 6. ADR Discipline
 
-- Use C++11+ and keep native tools focused on measurable hotspots.
-- Keep Python as orchestrator; native binaries should be composable via CLI.
-- If compiler toolchain is available, validate native changes with:
-  1. `make cpp-configure`
-  2. `make cpp-build`
-  3. `make cpp-test`
-  4. `make cpp-format-check`
-  5. `make cpp-cppcheck`
+Before non-trivial implementation, add/update ADR with:
 
-## Documentation Maintenance
+- Problem
+- Non-goals
+- Public API
+- Invariants
+- Test plan
 
-Update docs when behavior changes:
+## 7. Completion Rule
 
-- `README.md` for project direction and high-level goals
-- `docs/reference_pipeline.md` for ingestion workflow details
-- `docs/dependency_charts.md` for architecture changes
-- `docs/native_cpp.md` for native acceleration workflow
+After each completed prompt:
 
-## Definition of Done (Per Prompt)
-
-1. Implement requested change
-2. Validate with quality gates relevant to scope
-3. Summarize results concisely
-4. Commit with a clear message
-5. Push to `origin/main`
+1. implement
+2. validate
+3. commit
+4. push to `origin/main`

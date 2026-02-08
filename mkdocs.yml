@@ -13,7 +13,12 @@ theme:
 
 nav:
   - Home: index.md
+  - Architecture: architecture.md
   - API: api.md
+  - ADR:
+      - Index: adr/README.md
+      - Template: adr/0000-template.md
+      - 0001 Repository Guardrails: adr/0001-repository-guardrails.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md
