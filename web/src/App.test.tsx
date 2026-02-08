@@ -108,6 +108,7 @@ const sampleEvaluation: EssayEvaluationResponse = {
 
 describe("App", () => {
   beforeEach(() => {
+    window.history.replaceState({}, "", "/");
     localStorage.clear();
     vi.clearAllMocks();
     mockedApi.listStories.mockResolvedValue([]);
@@ -119,6 +120,13 @@ describe("App", () => {
     mockedApi.getDashboardArcs.mockRejectedValue(new Error("not found"));
     mockedApi.getDashboardGraph.mockRejectedValue(new Error("not found"));
     mockedApi.exportDashboardGraphSvg.mockRejectedValue(new Error("not found"));
+  });
+
+  it("renders offline demo mode when query flag is set", () => {
+    window.history.replaceState({}, "", "/?demo=1");
+    render(<App />);
+    expect(screen.getByText("Offline Demo Mode")).toBeInTheDocument();
+    expect(screen.getByText("Offline demo mode for GitHub Pages. No backend required.")).toBeInTheDocument();
   });
 
   it("renders studio heading and auth section", () => {

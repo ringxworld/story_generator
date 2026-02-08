@@ -146,6 +146,91 @@ ul {
   padding: 0.5rem 0.6rem;
 }
 
+.hero-note {
+  margin-top: 0.35rem;
+  opacity: 0.88;
+}
+
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.pill {
+  display: inline-block;
+  border: 1px solid #c9b797;
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  background: #f2e6cf;
+  color: #3a2f22;
+  font-weight: 600;
+}
+
+.kpi-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.kpi-card {
+  border: 1px solid #d4c19f;
+  border-radius: 10px;
+  padding: 0.65rem;
+  background: #fbf6ec;
+}
+
+.demo-board {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.timeline-list {
+  margin: 0.4rem 0 0.8rem;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.theme-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #d4c19f;
+  background: #fbf6ec;
+}
+
+.theme-table th,
+.theme-table td {
+  border: 1px solid #e1cfb0;
+  padding: 0.35rem 0.45rem;
+  text-align: left;
+}
+
+.graph-wrap {
+  width: 100%;
+  border: 1px solid #ccb99a;
+  border-radius: 10px;
+  background: #f5ecd9;
+}
+
+.graph-wrap line {
+  stroke: #988064;
+  stroke-width: 1.5;
+}
+
+.graph-wrap circle {
+  fill: #4d8f7a;
+  stroke: #214238;
+  stroke-width: 1;
+  cursor: pointer;
+}
+
+.graph-wrap text {
+  fill: #2a241c;
+  font-size: 10px;
+}
+
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible {

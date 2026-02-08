@@ -28,7 +28,9 @@ def _lerp(a: float, b: float, t: float) -> float:
     return a + (b - a) * t
 
 
-def _mix_rgb(base: tuple[int, int, int, int], top: tuple[int, int, int, int], t: float) -> tuple[int, int, int, int]:
+def _mix_rgb(
+    base: tuple[int, int, int, int], top: tuple[int, int, int, int], t: float
+) -> tuple[int, int, int, int]:
     return (
         int(round(_lerp(base[0], top[0], t))),
         int(round(_lerp(base[1], top[1], t))),
@@ -37,7 +39,9 @@ def _mix_rgb(base: tuple[int, int, int, int], top: tuple[int, int, int, int], t:
     )
 
 
-def _set_pixel(canvas: bytearray, size: int, x: int, y: int, color: tuple[int, int, int, int]) -> None:
+def _set_pixel(
+    canvas: bytearray, size: int, x: int, y: int, color: tuple[int, int, int, int]
+) -> None:
     if not (0 <= x < size and 0 <= y < size):
         return
     idx = (y * size + x) * 4
@@ -417,10 +421,20 @@ def _manifest_payload() -> dict[str, object]:
         "background_color": "#1F1B17",
         "theme_color": "#2E473D",
         "icons": [
-            {"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-            {"src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
             {
-                "src": "/icons/icon-512-maskable.png",
+                "src": "icons/icon-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any",
+            },
+            {
+                "src": "icons/icon-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any",
+            },
+            {
+                "src": "icons/icon-512-maskable.png",
                 "sizes": "512x512",
                 "type": "image/png",
                 "purpose": "maskable",

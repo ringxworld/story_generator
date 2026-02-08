@@ -22,6 +22,8 @@ import {
   updateStory,
 } from "./api";
 import { applyBlueprintToForm, buildBlueprintFromForm, emptyStoryForm, StoryFormState } from "./blueprint_form";
+import { isOfflineDemoMode } from "./demo_mode";
+import { OfflineDemoStudio } from "./offline_demo";
 import type {
   DashboardArcPointResponse,
   DashboardGraphResponse,
@@ -57,6 +59,11 @@ const defaultEssayBlueprint = (): EssayBlueprint => ({
 });
 
 const App = (): JSX.Element => {
+  if (isOfflineDemoMode()) {
+    return <OfflineDemoStudio />;
+  }
+  const brandMarkUrl = `${import.meta.env.BASE_URL}brand/story-gen-mark.svg`;
+
   const [token, setToken] = useState<string>(() => window.localStorage.getItem(TOKEN_STORAGE_KEY) ?? "");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -299,7 +306,7 @@ const App = (): JSX.Element => {
         <div className="hero-head">
           <img
             className="brand-mark"
-            src="/brand/story-gen-mark.svg"
+            src={brandMarkUrl}
             width={56}
             height={56}
             alt="story_gen brand mark"
