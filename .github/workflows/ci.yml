@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  test:
+  quality:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,8 +23,14 @@ jobs:
       - name: Sync dependencies
         run: uv sync --all-groups
 
+      - name: Lockfile check
+        run: uv lock --check
+
       - name: Ruff
         run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
 
       - name: Mypy
         run: uv run mypy

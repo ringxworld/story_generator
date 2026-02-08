@@ -10,9 +10,7 @@ def test_story_state_chapter_order_valid() -> None:
     )
     state = StoryState(bible=bible)
     state.add_chapter(Chapter(key="ch01", title="A", objective="Start"))
-    state.add_chapter(
-        Chapter(key="ch02", title="B", objective="Continue", prerequisites=("ch01",))
-    )
+    state.add_chapter(Chapter(key="ch02", title="B", objective="Continue", prerequisites=("ch01",)))
     assert state.chapter_order_is_valid() is True
 
 

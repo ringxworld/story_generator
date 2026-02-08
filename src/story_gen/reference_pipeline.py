@@ -1,4 +1,4 @@
-﻿"""Reference-story ingestion pipeline for syosetu web novels.
+"""Reference-story ingestion pipeline for syosetu web novels.
 
 This module supports:
 - crawling episode metadata from an index page
@@ -389,6 +389,7 @@ def _chunk_text(text: str, max_chars: int) -> list[str]:
         chunks.append("\n\n".join(current))
     return chunks
 
+
 class LibreTranslateTranslator:
     """Translation adapter for LibreTranslate-compatible APIs."""
 
@@ -609,6 +610,7 @@ def _write_json(path: Path, payload: object) -> None:
         encoding="utf-8",
     )
 
+
 def run_pipeline(args: PipelineArgs) -> None:
     """Execute crawling, optional translation, and analysis export."""
     work_dir = Path(args.work_dir)
@@ -627,9 +629,7 @@ def run_pipeline(args: PipelineArgs) -> None:
     with httpx.Client(headers=headers, timeout=60.0, follow_redirects=True) as client:
         start_page = max(1, args.start_page)
         first_url = (
-            args.base_url
-            if start_page == 1
-            else f"{args.base_url.rstrip('/')}/?p={start_page}"
+            args.base_url if start_page == 1 else f"{args.base_url.rstrip('/')}/?p={start_page}"
         )
         first_html = client.get(first_url).text
         first_page_episodes, last_page = parse_index_page(first_html, args.base_url)
@@ -680,10 +680,7 @@ def run_pipeline(args: PipelineArgs) -> None:
             if output_file.exists() and not args.force_fetch:
                 raw_cached = json.loads(output_file.read_text(encoding="utf-8"))
                 episode_records.append(_episode_record_from_loaded(raw_cached))
-                print(
-                    f"[raw] {idx}/{len(filtered_meta)} episode {meta.episode_number}: "
-                    "cached"
-                )
+                print(f"[raw] {idx}/{len(filtered_meta)} episode {meta.episode_number}: cached")
                 continue
 
             if idx > 1:
@@ -798,7 +795,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="LibreTranslate base URL, e.g. http://localhost:5000",
     )
     parser.add_argument("--libretranslate-api-key", default="")
-    parser.add_argument("--translate-delay-seconds", type=float, default=DEFAULT_TRANSLATE_DELAY_SECONDS)
+    parser.add_argument(
+        "--translate-delay-seconds", type=float, default=DEFAULT_TRANSLATE_DELAY_SECONDS
+    )
     parser.add_argument("--translate-chunk-size", type=int, default=DEFAULT_TRANSLATE_CHUNK_SIZE)
     parser.add_argument("--force-translate", action="store_true")
     parser.add_argument("--sample-count", type=int, default=5)

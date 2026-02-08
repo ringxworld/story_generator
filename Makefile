@@ -5,16 +5,19 @@ TRANSLATE_URL ?= http://localhost:5000
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync lint fix format typecheck test check story build-site reference reference-translate deploy clean
+.PHONY: help sync lock-check lint fix format format-check typecheck test quality check story build-site reference reference-translate deploy clean
 
 help:
 	@echo "story_gen targets:"
 	@echo "  make sync                 - install/update dependencies with uv"
+	@echo "  make lock-check           - verify uv.lock matches pyproject constraints"
 	@echo "  make lint                 - run ruff checks"
 	@echo "  make fix                  - auto-fix lint issues and format code"
 	@echo "  make format               - format code with ruff"
+	@echo "  make format-check         - verify formatting without changing files"
 	@echo "  make typecheck            - run mypy"
 	@echo "  make test                 - run pytest"
+	@echo "  make quality              - lock-check + lint + format-check + typecheck + tests"
 	@echo "  make check                - run lint + typecheck + tests"
 	@echo "  make story                - run the story_gen CLI"
 	@echo "  make build-site           - build static story site"
@@ -26,6 +29,9 @@ help:
 sync:
 	$(UV) sync --all-groups
 
+lock-check:
+	$(UV) lock --check
+
 lint:
 	$(RUN) ruff check .
 
@@ -36,13 +42,18 @@ fix:
 format:
 	$(RUN) ruff format .
 
+format-check:
+	$(RUN) ruff format --check .
+
 typecheck:
 	$(RUN) mypy
 
 test:
 	$(RUN) pytest
 
-check: lint typecheck test
+quality: lock-check lint format-check typecheck test
+
+check: quality
 
 story:
 	$(RUN) story-gen
@@ -56,7 +67,7 @@ reference:
 reference-translate:
 	$(RUN) story-reference --translate-provider libretranslate --libretranslate-url $(TRANSLATE_URL) $(REFERENCE_ARGS)
 
-deploy: check build-site
+deploy: quality build-site
 	git push origin main
 
 clean:

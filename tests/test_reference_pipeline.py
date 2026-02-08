@@ -148,9 +148,7 @@ class _FakeClient:
 def _base_args(tmp_path: Path, **overrides: object) -> PipelineArgs:
     base_url_override = overrides.get("base_url")
     base_url = (
-        str(base_url_override)
-        if base_url_override is not None
-        else "https://example.com/n1234aa/"
+        str(base_url_override) if base_url_override is not None else "https://example.com/n1234aa/"
     )
     return PipelineArgs(
         base_url=base_url,
