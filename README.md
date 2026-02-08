@@ -93,6 +93,13 @@ Typography:
 - Section headings: `Alegreya`
 - Code: `JetBrains Mono`
 
+Icon system:
+
+- Branded source assets: `web/public/brand/story-gen-mark.svg`
+- Browser/app icon pack: `web/public/icons/`
+- Docs logo/favicon assets: `docs/assets/brand/`
+- Regenerate all icon outputs with: `make brand-icons`
+
 ## Current Stage
 
 - Build the core story engine around themes, chapters, characters, and canon.

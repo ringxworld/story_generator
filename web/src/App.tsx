@@ -296,11 +296,22 @@ const App = (): JSX.Element => {
   return (
     <main className="shell">
       <header className="hero">
-        <h1>story_gen studio</h1>
-        <p>
-          Build strict contracts for story and essay generation workflows.
-          API base: <code>{apiBaseUrl}</code>
-        </p>
+        <div className="hero-head">
+          <img
+            className="brand-mark"
+            src="/brand/story-gen-mark.svg"
+            width={56}
+            height={56}
+            alt="story_gen brand mark"
+          />
+          <div>
+            <h1>story_gen studio</h1>
+            <p>
+              Build strict contracts for story and essay generation workflows.
+              API base: <code>{apiBaseUrl}</code>
+            </p>
+          </div>
+        </div>
       </header>
 
       <section className="card">

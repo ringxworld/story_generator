@@ -41,6 +41,12 @@ body {
   box-shadow: var(--shadow-soft);
 }
 
+.hero-head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
 .hero h1 {
   margin: 0 0 0.3rem;
   font-family: "Alegreya", Georgia, serif;
@@ -48,6 +54,14 @@ body {
 
 .hero p {
   margin: 0;
+}
+
+.brand-mark {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(11, 9, 7, 0.24);
+  flex: 0 0 auto;
 }
 
 .card {
@@ -146,6 +160,16 @@ textarea:focus-visible {
 }
 
 @media (max-width: 800px) {
+  .hero-head {
+    align-items: flex-start;
+  }
+
+  .brand-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+  }
+
   .story-grid {
     grid-template-columns: 1fr;
   }

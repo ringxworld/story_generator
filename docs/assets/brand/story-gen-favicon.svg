@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="story_gen brand mark">
+  <defs>
+    <radialGradient id="sg-bg" cx="36%" cy="34%" r="75%">
+      <stop offset="0%" stop-color="#2E473D"/>
+      <stop offset="100%" stop-color="#1F1B17"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#sg-bg)"/>
+  <circle cx="256" cy="241" r="166" fill="none" stroke="#CCB99A" stroke-width="24" stroke-opacity="0.55"/>
+  <rect x="113" y="276" width="286" height="148" rx="28" fill="#CCB99A"/>
+  <rect x="121" y="284" width="270" height="132" rx="24" fill="#EFE3CC"/>
+  <line x1="256" y1="292" x2="256" y2="416" stroke="#7A6348" stroke-width="6" stroke-opacity="0.8"/>
+  <rect x="136" y="312" width="104" height="12" fill="#FFF8EE" fill-opacity="0.72"/>
+  <rect x="272" y="312" width="104" height="12" fill="#FFF8EE" fill-opacity="0.72"/>
+  <line x1="164" y1="212" x2="344" y2="122" stroke="#7E441D" stroke-width="38" stroke-linecap="round"/>
+  <line x1="164" y1="212" x2="344" y2="122" stroke="#A45B2A" stroke-width="22" stroke-linecap="round"/>
+  <polygon points="353,98 377,122 353,146 329,122" fill="#21352D"/>
+  <polygon points="353,106 369,122 353,138 337,122" fill="#F7F2E6"/>
+  <polygon points="359,122 365,128 359,134 353,128" fill="#21352D"/>
+  <path d="M394 57l8 23h23l-18 14 7 23-20-13-20 13 7-23-18-14h23z" fill="#F7F2E6"/>
+  <path d="M394 67l5 15h15l-12 9 5 15-13-9-13 9 5-15-12-9h15z" fill="#A45B2A"/>
+</svg>

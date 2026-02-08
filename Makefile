@@ -10,7 +10,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot docker-build docker-up docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -46,6 +46,7 @@ help:
 	@echo "  make dev-stack-hot        - run API + hot-edit web server together (web on :5174)"
 	@echo "  make stack-up             - bootstrap deps, build web bundle, then run dev stack"
 	@echo "  make stack-up-hot         - bootstrap deps, build web bundle, then run hot-edit stack"
+	@echo "  make brand-icons          - regenerate branded website/docs icons from source script"
 	@echo "  make docker-build         - build local Docker images (API + web)"
 	@echo "  make docker-up            - launch API + web via docker compose"
 	@echo "  make docker-down          - stop docker compose services"
@@ -159,6 +160,9 @@ stack-up: sync web-install web-build
 
 stack-up-hot: sync web-install web-build
 	$(RUN) python tools/dev_stack.py --web-port 5174
+
+brand-icons:
+	$(RUN) python tools/generate_brand_icons.py
 
 docker-build:
 	docker compose build

@@ -13,8 +13,7 @@ This runbook takes a new developer from empty machine to a working local stack.
   - C++ compiler (MSVC/clang/gcc)
   - `clang-format`
   - `cppcheck`
-- Optional container tooling:
-  - Docker Desktop (or Docker Engine + Compose)
+- Docker Desktop (or Docker Engine + Compose)
 
 ## 2. Clone and bootstrap
 
@@ -38,6 +37,7 @@ make hooks-install
 ```
 
 This installs both `pre-commit` and `pre-push` checks.
+The pre-push gate also validates Docker CI image buildability.
 
 ## 4. Run the local stack
 
@@ -153,6 +153,12 @@ Build docs locally:
 ```bash
 make docs-serve
 make build-site
+```
+
+Regenerate brand icon pack:
+
+```bash
+make brand-icons
 ```
 
 ## 7. Optional NLP dependency groups

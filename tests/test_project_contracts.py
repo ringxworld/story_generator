@@ -27,6 +27,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "dev-stack-hot:" in makefile
     assert "stack-up-hot:" in makefile
     assert "web-hot:" in makefile
+    assert "brand-icons:" in makefile
     assert "docker-build:" in makefile
     assert "docker-up:" in makefile
     assert "docker-down:" in makefile
@@ -138,6 +139,8 @@ def test_mkdocs_configuration_exists() -> None:
     assert "Feature Pipeline:" in config
     assert "Architecture:" in config
     assert "ADR:" in config
+    assert "logo: assets/brand/story-gen-mark.svg" in config
+    assert "favicon: assets/brand/story-gen-favicon.svg" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -179,11 +182,14 @@ def test_pre_push_checks_include_docs_and_cpp_format() -> None:
     checks = _read("src/story_gen/pre_push_checks.py")
     assert 'run_tool("pre-commit", "run", "--all-files")' in checks
     assert "uv executable not found in PATH" in checks
+    assert "docker executable not found in PATH" in checks
     assert 'run_tool("mkdocs", "build", "--strict")' in checks
     assert '"npm", "run", "--prefix", "web", "typecheck"' in checks
     assert '"npm", "run", "--prefix", "web", "test:coverage"' in checks
     assert '"npm", "run", "--prefix", "web", "build"' in checks
     assert 'run_tool("clang-format", "--dry-run", "--Werror", *cpp_sources)' in checks
+    assert '"docker/ci.Dockerfile"' in checks
+    assert '"story-gen-ci-prepush"' in checks
 
 
 def test_frontend_vitest_coverage_gate_exists() -> None:
@@ -212,6 +218,11 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     ).exists()
     assert (ROOT / "docs" / "adr" / "0007-frontend-coverage-gate.md").exists()
     assert (ROOT / "docs" / "adr" / "0008-good-essay-mode-product-surface.md").exists()
+    assert (
+        ROOT / "docs" / "adr" / "0009-story-intelligence-pipeline-and-dashboard-read-models.md"
+    ).exists()
+    assert (ROOT / "docs" / "adr" / "0010-docker-local-stack-and-ci-validation.md").exists()
+    assert (ROOT / "docs" / "adr" / "0011-brand-icon-system-for-web-and-docs.md").exists()
     assert (ROOT / "docs" / "studio.md").exists()
     assert (ROOT / "docs" / "developer_setup.md").exists()
     assert (ROOT / "docs" / "essay_mode.md").exists()
@@ -283,6 +294,16 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "docker" / "api.Dockerfile").exists()
     assert (ROOT / "docker" / "web.Dockerfile").exists()
     assert (ROOT / "docker" / "ci.Dockerfile").exists()
+    assert (ROOT / "tools" / "generate_brand_icons.py").exists()
+    assert (ROOT / "web" / "public" / "favicon.svg").exists()
+    assert (ROOT / "web" / "public" / "favicon.ico").exists()
+    assert (ROOT / "web" / "public" / "site.webmanifest").exists()
+    assert (ROOT / "web" / "public" / "icons" / "icon-16.png").exists()
+    assert (ROOT / "web" / "public" / "icons" / "icon-32.png").exists()
+    assert (ROOT / "web" / "public" / "icons" / "icon-192.png").exists()
+    assert (ROOT / "web" / "public" / "icons" / "icon-512.png").exists()
+    assert (ROOT / "docs" / "assets" / "brand" / "story-gen-mark.svg").exists()
+    assert (ROOT / "docs" / "assets" / "brand" / "story-gen-favicon.svg").exists()
 
 
 def test_no_utils_module_names() -> None:
