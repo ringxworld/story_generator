@@ -59,6 +59,8 @@ Python:
 
 - Public functions require type hints, docstrings, and explicit error handling
 - No implicit exports; re-export explicitly
+- Tests must cover both success and failure paths for meaningful behavior
+- Do not delete or weaken tests to make CI pass
 
 C++:
 

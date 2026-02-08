@@ -10,6 +10,7 @@ from story_gen.cli.story_collector import _args_from_namespace
 from story_gen.story_collector import (
     StoryCollectorArgs,
     _index_page_url,
+    collect_chapter_links,
     run_story_collection,
 )
 
@@ -126,3 +127,45 @@ def test_args_from_namespace_normalizes_ranges() -> None:
     assert args.crawl_delay_seconds == 0.0
     assert args.max_workers == 1
     assert args.timeout_seconds == 1.0
+
+
+def test_collect_chapter_links_honors_range_and_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "https://example.com"
+    series = "n1234ab"
+    index_url = f"{base_url}/{series}/"
+    index_html = f"""
+    <html><body>
+      <div class="p-eplist">
+        <div class="p-eplist__sublist">
+          <a href="/{series}/1/" class="p-eplist__subtitle">Episode One</a>
+          <div class="p-eplist__update">2024/01/01 00:00</div>
+        </div>
+        <div class="p-eplist__sublist">
+          <a href="/{series}/2/" class="p-eplist__subtitle">Episode Two</a>
+          <div class="p-eplist__update">2024/01/02 00:00</div>
+        </div>
+      </div>
+    </body></html>
+    """
+    fake_client = _FakeClient({index_url: index_html})
+    monkeypatch.setattr("story_gen.story_collector.httpx.Client", lambda **kwargs: fake_client)
+
+    args = StoryCollectorArgs(
+        base_url=base_url,
+        series_code=series,
+        output_dir="work/story_collector",
+        output_filename="full_story.txt",
+        chapter_start=2,
+        chapter_end=None,
+        max_chapters=1,
+        crawl_delay_seconds=0.0,
+        max_workers=1,
+        timeout_seconds=30.0,
+        user_agent="test-agent",
+    )
+
+    links = collect_chapter_links(args)
+    assert [link.number for link in links] == [2]
+    assert links[0].title == "Episode Two"

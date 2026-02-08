@@ -59,6 +59,8 @@ Expected checks:
 - `uv run mkdocs build --strict`
 
 Do not bypass pre-commit or CI.
+Do not remove tests to satisfy gates. Add or adjust tests to validate both
+working paths and failure paths of the behavior under test.
 
 ## 5. Entropy Prevention
 

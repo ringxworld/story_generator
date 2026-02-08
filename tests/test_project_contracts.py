@@ -117,6 +117,14 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0000-template.md").exists()
 
 
+def test_policy_docs_require_failure_path_testing_rules() -> None:
+    contributing = _read("CONTRIBUTING.md")
+    agents = _read("AGENTS.md")
+    assert "Tests must cover both success and failure paths" in contributing
+    assert "Do not delete or weaken tests to make CI pass" in contributing
+    assert "Do not remove tests to satisfy gates" in agents
+
+
 def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "src" / "story_gen" / "api").is_dir()
     assert (ROOT / "src" / "story_gen" / "core").is_dir()

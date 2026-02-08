@@ -12,6 +12,7 @@ from story_gen.youtube_downloader import (
     build_ytdlp_command,
     ensure_binary,
     newest_file,
+    run_streaming,
     run_video_story_pipeline,
 )
 
@@ -62,6 +63,13 @@ def test_newest_file_selects_latest(tmp_path: Path) -> None:
     assert newest_file(output) == second
 
 
+def test_newest_file_raises_when_directory_has_no_files(tmp_path: Path) -> None:
+    output = tmp_path / "video"
+    output.mkdir()
+    with pytest.raises(RuntimeError, match="No files found"):
+        newest_file(output)
+
+
 def test_run_video_story_pipeline_with_transcript(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -100,6 +108,23 @@ def test_ensure_binary_raises_when_missing(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr("story_gen.youtube_downloader.shutil.which", lambda _name: None)
     with pytest.raises(RuntimeError, match="Missing required binary"):
         ensure_binary("yt-dlp")
+
+
+def test_run_streaming_raises_on_non_zero_exit(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _FakeProcess:
+        def __init__(self) -> None:
+            self.stdout = ["line one\n"]
+
+        def wait(self) -> int:
+            return 2
+
+    monkeypatch.setattr(
+        "story_gen.youtube_downloader.subprocess.Popen",
+        lambda *args, **kwargs: _FakeProcess(),
+    )
+
+    with pytest.raises(RuntimeError, match="exit code 2"):
+        run_streaming(["yt-dlp", "--version"])
 
 
 def test_args_from_namespace_builds_dataclass() -> None:
