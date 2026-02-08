@@ -10,6 +10,7 @@ This file defines the stable shape of the repository and import boundaries.
   - Internal pure business logic and domain orchestration.
 - `src/story_gen/adapters/`
   - Side effects: filesystem, network, subprocesses, model loading.
+  - Local persistence adapters (for example SQLite story storage).
 - `src/story_gen/native/`
   - Python-facing boundary for compiled/native integrations.
 - `src/story_gen/cli/`

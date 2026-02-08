@@ -100,6 +100,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "site_name:" in config
     assert "nav:" in config
     assert "API:" in config
+    assert "Deployment:" in config
     assert "Architecture:" in config
     assert "ADR:" in config
 
@@ -149,6 +150,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "README.md").exists()
     assert (ROOT / "docs" / "adr" / "0000-template.md").exists()
     assert (ROOT / "docs" / "adr" / "0002-nlp-stack-and-analysis-contract-scaffold.md").exists()
+    assert (ROOT / "docs" / "adr" / "0003-pages-static-hosting-and-local-sqlite-api.md").exists()
 
 
 def test_analysis_contract_scaffold_exists_and_is_valid_json() -> None:

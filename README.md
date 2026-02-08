@@ -37,9 +37,10 @@ Live project pages:
 - Story model and planning architecture: `docs/dependency_charts.md`
 - Reference ingestion + analysis workflow: `docs/reference_pipeline.md`
 - Native acceleration path (C++/CMake): `docs/native_cpp.md`
-- Full-series text collection: `src/story_gen/story_collector.py`
-- Video-story transcript ingestion: `src/story_gen/youtube_downloader.py`
-- HTTP API stub boundary: `src/story_gen/api/app.py`
+- Deployment split (Pages + API): `docs/deployment.md`
+- Full-series text collection: `src/story_gen/cli/story_collector.py`
+- Video-story transcript ingestion: `src/story_gen/cli/youtube_downloader.py`
+- HTTP API local-preview boundary: `src/story_gen/api/app.py`
 
 ## Governance
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import runpy
 
 import pytest
@@ -79,3 +80,10 @@ def test_api_cli_calls_uvicorn(monkeypatch: pytest.MonkeyPatch) -> None:
             "reload": True,
         }
     ]
+
+
+def test_api_cli_sets_db_path_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("STORY_GEN_DB_PATH", raising=False)
+    monkeypatch.setattr("story_gen.cli.api.uvicorn.run", lambda *args, **kwargs: None)
+    api_cli.main(["--db-path", "work/local/custom.db"])
+    assert os.environ["STORY_GEN_DB_PATH"] == "work/local/custom.db"
