@@ -33,6 +33,7 @@ Live project pages:
 ## Focus Areas
 
 - Architecture contracts: `docs/architecture.md`
+- Visual architecture diagrams: `docs/architecture_diagrams.md`
 - ADR records: `docs/adr/`
 - Story model and planning architecture: `docs/dependency_charts.md`
 - Reference ingestion + analysis workflow: `docs/reference_pipeline.md`

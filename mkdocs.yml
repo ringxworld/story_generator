@@ -14,6 +14,7 @@ theme:
 nav:
   - Home: index.md
   - Architecture: architecture.md
+  - Architecture Diagrams: architecture_diagrams.md
   - API: api.md
   - Deployment: deployment.md
   - Studio: studio.md
@@ -35,5 +36,14 @@ nav:
 
 markdown_extensions:
   - admonition
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - toc:
       permalink: true
+
+extra_javascript:
+  - https://unpkg.com/mermaid@10/dist/mermaid.min.js
+  - javascripts/mermaid.js

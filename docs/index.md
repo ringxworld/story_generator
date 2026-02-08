@@ -15,6 +15,7 @@
 ## Start points
 
 - Architecture contracts: `docs/architecture.md`
+- Visual architecture map: `docs/architecture_diagrams.md`
 - ADR workflow: `docs/adr/README.md`
 - Dependency model: `docs/dependency_charts.md`
 - Reference ingestion: `docs/reference_pipeline.md`

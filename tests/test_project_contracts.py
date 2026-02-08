@@ -105,6 +105,7 @@ def test_mkdocs_configuration_exists() -> None:
     config = _read("mkdocs.yml")
     assert "site_name:" in config
     assert "nav:" in config
+    assert "Architecture Diagrams:" in config
     assert "API:" in config
     assert "Deployment:" in config
     assert "Studio:" in config
@@ -112,6 +113,9 @@ def test_mkdocs_configuration_exists() -> None:
     assert "Feature Pipeline:" in config
     assert "Architecture:" in config
     assert "ADR:" in config
+    assert "pymdownx.superfences" in config
+    assert "mermaid.min.js" in config
+    assert "javascripts/mermaid.js" in config
 
 
 def test_pyproject_enforces_pytest_coverage_gate() -> None:
@@ -173,6 +177,8 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "studio.md").exists()
     assert (ROOT / "docs" / "droplet_stack.md").exists()
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
+    assert (ROOT / "docs" / "architecture_diagrams.md").exists()
+    assert (ROOT / "docs" / "javascripts" / "mermaid.js").exists()
 
 
 def test_analysis_contract_scaffold_exists_and_is_valid_json() -> None:
