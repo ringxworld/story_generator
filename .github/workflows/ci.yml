@@ -104,3 +104,34 @@ jobs:
 
       - name: Run native tests
         run: ctest --test-dir build/cpp -C Release --output-on-failure
+
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build API Docker image
+        run: docker build -f docker/api.Dockerfile -t story-gen-api .
+
+      - name: Build web Docker image
+        run: docker build -f docker/web.Dockerfile -t story-gen-web .
+
+      - name: Docker compose stack smoke test
+        run: |
+          trap "docker compose down --remove-orphans" EXIT
+          docker compose up -d --build
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8000/healthz > /dev/null; then
+              break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/healthz
+
+      - name: Build CI Docker image
+        run: docker build -f docker/ci.Dockerfile -t story-gen-ci .
+
+      - name: Run full checks in CI Docker image
+        run: docker run --rm story-gen-ci
