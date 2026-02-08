@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Final
 
@@ -48,6 +49,8 @@ _FRENCH_TO_ENGLISH: Final[dict[str, str]] = {
     "guerre": "war",
     "memoire": "memory",
 }
+_JAPANESE_SCRIPT = re.compile(r"[\u3040-\u30ff\u4e00-\u9fff]")
+_LATIN_LETTER = re.compile(r"[A-Za-z]")
 
 
 @dataclass(frozen=True)
@@ -72,6 +75,12 @@ class SegmentAlignment:
 
 def detect_language(text: str) -> LanguageDetectionResult:
     """Detect language from lightweight lexical markers."""
+    japanese_chars = len(_JAPANESE_SCRIPT.findall(text))
+    latin_chars = len(_LATIN_LETTER.findall(text))
+    if japanese_chars >= 4 and japanese_chars >= latin_chars:
+        confidence = min(1.0, 0.8 + japanese_chars / max(len(text), 1) * 0.2)
+        return LanguageDetectionResult(language_code="ja", confidence=round(confidence, 3))
+
     tokens = [token.strip(".,!?;:()[]{}\"'").lower() for token in text.split()]
     if not tokens:
         return LanguageDetectionResult(language_code="und", confidence=0.0)

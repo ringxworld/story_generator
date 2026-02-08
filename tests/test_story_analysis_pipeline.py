@@ -57,3 +57,11 @@ def test_pipeline_handles_non_english_translation_path() -> None:
     translated = [segment.translated_text for segment in result.document.raw_segments]
     assert any(text is not None and "story" in text.lower() for text in translated)
     assert result.document.quality_gate.translation_quality >= 0.5
+
+
+def test_pipeline_marks_untranslated_japanese_as_quality_warning() -> None:
+    japanese_story = "これは危険だ。スバルは記憶の断片を追いかける。"
+    result = run_story_analysis(story_id="story-ja", source_text=japanese_story)
+    assert result.document.source_language == "ja"
+    assert result.document.quality_gate.translation_quality < 0.5
+    assert "translation_quality_low" in result.document.quality_gate.reasons

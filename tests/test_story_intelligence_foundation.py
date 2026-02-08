@@ -75,6 +75,13 @@ def test_language_detection_and_translation_attach_alignment() -> None:
     assert alignments[0].source_segment_id == segment.segment_id
 
 
+def test_language_detection_identifies_japanese_text() -> None:
+    text = "これは危険な匂いがする。スバルは記憶を辿る。"
+    detected = detect_language(text)
+    assert detected.language_code == "ja"
+    assert detected.confidence >= 0.8
+
+
 def test_pipeline_contracts_reject_invalid_sequences() -> None:
     segment = _sample_segment("seg_one", 1)
     validate_extraction_input([segment])
