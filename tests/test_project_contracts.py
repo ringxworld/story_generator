@@ -70,3 +70,9 @@ def test_pyproject_exposes_story_collection_entrypoints() -> None:
     pyproject = _read("pyproject.toml")
     assert 'story-collect = "story_gen.story_collector:cli_main"' in pyproject
     assert 'story-video = "story_gen.youtube_downloader:cli_main"' in pyproject
+
+
+def test_pyproject_enforces_pytest_coverage_gate() -> None:
+    pyproject = _read("pyproject.toml")
+    assert "--cov=story_gen" in pyproject
+    assert "--cov-fail-under=80" in pyproject

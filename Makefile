@@ -10,7 +10,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check lint fix format format-check typecheck test quality check story build-site reference reference-translate collect-story video-story cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check lint fix format format-check typecheck test coverage quality check story build-site reference reference-translate collect-story video-story cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -23,7 +23,8 @@ help:
 	@echo "  make format               - format code with ruff"
 	@echo "  make format-check         - verify formatting without changing files"
 	@echo "  make typecheck            - run mypy"
-	@echo "  make test                 - run pytest"
+	@echo "  make test                 - run pytest with coverage gate"
+	@echo "  make coverage             - run pytest with coverage gate"
 	@echo "  make quality              - lock-check + lint + format-check + typecheck + tests"
 	@echo "  make check                - run lint + typecheck + tests"
 	@echo "  make story                - run the story_gen CLI"
@@ -72,6 +73,8 @@ typecheck:
 
 test:
 	$(RUN) pytest
+
+coverage: test
 
 quality: lock-check lint format-check typecheck test
 
