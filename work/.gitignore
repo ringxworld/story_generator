@@ -1,1 +1,5 @@
-reference_data/
+*
+!.gitignore
+!README.md
+!resources/
+!resources/**
