@@ -118,6 +118,8 @@ def test_api_root_reports_auth_and_story_endpoints() -> None:
     assert "/api/v1/auth/register" in payload["endpoints"]
     assert "/api/v1/stories" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/features/extract" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/analysis/run" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/overview" in payload["endpoints"]
     assert "/api/v1/essays" in payload["endpoints"]
     assert "/api/v1/essays/{essay_id}/evaluate" in payload["endpoints"]
 
@@ -188,6 +190,63 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
     assert latest.status_code == 200
     assert latest.json()["run_id"] == extracted_payload["run_id"]
 
+    latest_analysis_before_run = client.get(
+        f"/api/v1/stories/{story_id}/analysis/latest", headers=headers
+    )
+    assert latest_analysis_before_run.status_code == 404
+
+    analysis_run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={},
+    )
+    assert analysis_run.status_code == 200
+    analysis_payload = analysis_run.json()
+    assert analysis_payload["story_id"] == story_id
+    assert analysis_payload["schema_version"] == "story_analysis.v1"
+    assert analysis_payload["event_count"] >= 1
+
+    latest_analysis = client.get(f"/api/v1/stories/{story_id}/analysis/latest", headers=headers)
+    assert latest_analysis.status_code == 200
+    assert latest_analysis.json()["run_id"] == analysis_payload["run_id"]
+
+    overview = client.get(f"/api/v1/stories/{story_id}/dashboard/overview", headers=headers)
+    assert overview.status_code == 200
+    assert overview.json()["events_count"] >= 1
+
+    timeline = client.get(f"/api/v1/stories/{story_id}/dashboard/timeline", headers=headers)
+    assert timeline.status_code == 200
+    assert isinstance(timeline.json(), list)
+    assert len(timeline.json()) >= 1
+
+    heatmap = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap", headers=headers
+    )
+    assert heatmap.status_code == 200
+    assert isinstance(heatmap.json(), list)
+
+    arcs = client.get(f"/api/v1/stories/{story_id}/dashboard/arcs", headers=headers)
+    assert arcs.status_code == 200
+    assert isinstance(arcs.json(), list)
+
+    graph = client.get(f"/api/v1/stories/{story_id}/dashboard/graph", headers=headers)
+    assert graph.status_code == 200
+    graph_payload = graph.json()
+    assert isinstance(graph_payload["nodes"], list)
+    assert isinstance(graph_payload["edges"], list)
+
+    graph_export = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/graph/export.svg", headers=headers
+    )
+    assert graph_export.status_code == 200
+    assert graph_export.json()["svg"].startswith("<svg")
+
+    drilldown = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/drilldown/missing-item",
+        headers=headers,
+    )
+    assert drilldown.status_code == 404
+
 
 def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     client = TestClient(create_app(db_path=tmp_path / "stories.db"))
@@ -208,10 +267,47 @@ def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     )
     bob_extract = client.post(f"/api/v1/stories/{story_id}/features/extract", headers=bob_headers)
     bob_latest = client.get(f"/api/v1/stories/{story_id}/features/latest", headers=bob_headers)
+    bob_analysis_run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run", headers=bob_headers, json={}
+    )
+    bob_analysis_latest = client.get(
+        f"/api/v1/stories/{story_id}/analysis/latest", headers=bob_headers
+    )
+    bob_dashboard = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/overview", headers=bob_headers
+    )
     assert bob_get.status_code == 404
     assert bob_put.status_code == 404
     assert bob_extract.status_code == 404
     assert bob_latest.status_code == 404
+    assert bob_analysis_run.status_code == 404
+    assert bob_analysis_latest.status_code == 404
+    assert bob_dashboard.status_code == 404
+
+
+def test_story_analysis_accepts_custom_source_text(tmp_path: Path) -> None:
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    headers = _auth_headers(client, "alice@example.com")
+    create = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Spanish Story", "blueprint": _sample_blueprint()},
+    )
+    assert create.status_code == 201
+    story_id = create.json()["story_id"]
+
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={
+            "source_text": "La historia revela la memoria familiar.",
+            "source_type": "text",
+            "target_language": "en",
+        },
+    )
+    assert run.status_code == 200
+    payload = run.json()
+    assert payload["source_language"] == "es"
 
 
 def test_essay_crud_and_evaluation_lifecycle(tmp_path: Path) -> None:

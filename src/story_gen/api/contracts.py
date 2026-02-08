@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -258,6 +258,120 @@ class StoryFeatureRunResponse(ContractModel):
     schema_version: str
     extracted_at_utc: str
     chapter_features: list[StoryFeatureRowResponse]
+
+
+class StoryAnalysisRunRequest(ContractModel):
+    """Trigger a full story intelligence analysis run."""
+
+    source_text: str | None = Field(default=None, max_length=200000)
+    source_type: Literal["text", "document", "transcript"] = "text"
+    target_language: str = Field(default="en", min_length=2, max_length=16)
+
+
+class StoryAnalysisGateResponse(ContractModel):
+    """Quality gate summary for analysis runs."""
+
+    passed: bool
+    confidence_floor: float = Field(ge=0.0, le=1.0)
+    hallucination_risk: float = Field(ge=0.0, le=1.0)
+    translation_quality: float = Field(ge=0.0, le=1.0)
+    reasons: list[str] = Field(default_factory=list)
+
+
+class StoryAnalysisRunResponse(ContractModel):
+    """Summary view of one story analysis run."""
+
+    run_id: str
+    story_id: str
+    owner_id: str
+    schema_version: str
+    analyzed_at_utc: str
+    source_language: str
+    target_language: str
+    segment_count: int = Field(ge=1)
+    event_count: int = Field(ge=1)
+    beat_count: int = Field(ge=1)
+    theme_count: int = Field(ge=0)
+    insight_count: int = Field(ge=1)
+    quality_gate: StoryAnalysisGateResponse
+
+
+class DashboardOverviewResponse(ContractModel):
+    """Big-picture dashboard card payload."""
+
+    title: str
+    macro_thesis: str
+    confidence_floor: float = Field(ge=0.0, le=1.0)
+    quality_passed: bool
+    events_count: int = Field(ge=0)
+    beats_count: int = Field(ge=0)
+    themes_count: int = Field(ge=0)
+
+
+class DashboardTimelineLaneResponse(ContractModel):
+    """Timeline lane payload used by visualization UIs."""
+
+    lane: str
+    items: list[dict[str, Any]]
+
+
+class DashboardThemeHeatmapCellResponse(ContractModel):
+    """Theme heatmap cell payload."""
+
+    theme: str
+    stage: str
+    intensity: float = Field(ge=0.0, le=1.0)
+
+
+class DashboardArcPointResponse(ContractModel):
+    """Arc chart point payload."""
+
+    lane: str
+    stage: str
+    value: float
+    label: str
+
+
+class DashboardDrilldownResponse(ContractModel):
+    """Drilldown payload for one item id."""
+
+    item_id: str
+    item_type: str
+    title: str
+    content: str
+    evidence_segment_ids: list[str]
+
+
+class DashboardGraphNodeResponse(ContractModel):
+    """Interactive graph node payload."""
+
+    id: str
+    label: str
+    group: str
+    stage: str | None = None
+
+
+class DashboardGraphEdgeResponse(ContractModel):
+    """Interactive graph edge payload."""
+
+    source: str
+    target: str
+    relation: str
+    weight: float
+
+
+class DashboardGraphResponse(ContractModel):
+    """Graph payload for interactive rendering."""
+
+    nodes: list[DashboardGraphNodeResponse]
+    edges: list[DashboardGraphEdgeResponse]
+
+
+class DashboardGraphExportResponse(ContractModel):
+    """Graph export payload."""
+
+    format: Literal["svg"] = "svg"
+    svg: str
 
 
 class EssaySectionRequirement(ContractModel):

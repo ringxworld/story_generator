@@ -17,12 +17,25 @@ from pydantic import BaseModel, Field
 
 from story_gen.adapters.sqlite_essay_store import SQLiteEssayStore, StoredEssay
 from story_gen.adapters.sqlite_feature_store import SQLiteFeatureStore, StoredFeatureRun
+from story_gen.adapters.sqlite_story_analysis_store import (
+    SQLiteStoryAnalysisStore,
+    StoredAnalysisRun,
+)
 from story_gen.adapters.sqlite_story_store import SQLiteStoryStore, StoredStory, StoredUser
 from story_gen.api.contracts import (
     AuthLoginRequest,
     AuthRegisterRequest,
     AuthTokenResponse,
     ChapterBlock,
+    DashboardArcPointResponse,
+    DashboardDrilldownResponse,
+    DashboardGraphEdgeResponse,
+    DashboardGraphExportResponse,
+    DashboardGraphNodeResponse,
+    DashboardGraphResponse,
+    DashboardOverviewResponse,
+    DashboardThemeHeatmapCellResponse,
+    DashboardTimelineLaneResponse,
     EssayBlueprint,
     EssayCreateRequest,
     EssayEvaluateRequest,
@@ -31,6 +44,9 @@ from story_gen.api.contracts import (
     EssayResponse,
     EssaySectionRequirement,
     EssayUpdateRequest,
+    StoryAnalysisGateResponse,
+    StoryAnalysisRunRequest,
+    StoryAnalysisRunResponse,
     StoryBlueprint,
     StoryCreateRequest,
     StoryFeatureRowResponse,
@@ -45,11 +61,13 @@ from story_gen.core.essay_quality import (
     EssaySectionSpec,
     evaluate_essay_quality,
 )
+from story_gen.core.story_analysis_pipeline import run_story_analysis
 from story_gen.core.story_feature_pipeline import (
     ChapterFeatureInput,
     StoryFeatureExtractionResult,
     extract_story_features,
 )
+from story_gen.core.story_schema import StoryDocument
 
 DEFAULT_DB_PATH = Path("work/local/story_gen.db")
 TOKEN_TTL_HOURS = 24
@@ -81,6 +99,15 @@ class ApiRootResponse(BaseModel):
             "/api/v1/stories/{story_id}",
             "/api/v1/stories/{story_id}/features/extract",
             "/api/v1/stories/{story_id}/features/latest",
+            "/api/v1/stories/{story_id}/analysis/run",
+            "/api/v1/stories/{story_id}/analysis/latest",
+            "/api/v1/stories/{story_id}/dashboard/overview",
+            "/api/v1/stories/{story_id}/dashboard/timeline",
+            "/api/v1/stories/{story_id}/dashboard/themes/heatmap",
+            "/api/v1/stories/{story_id}/dashboard/arcs",
+            "/api/v1/stories/{story_id}/dashboard/drilldown/{item_id}",
+            "/api/v1/stories/{story_id}/dashboard/graph",
+            "/api/v1/stories/{story_id}/dashboard/graph/export.svg",
             "/api/v1/essays",
             "/api/v1/essays/{essay_id}",
             "/api/v1/essays/{essay_id}/evaluate",
@@ -229,11 +256,51 @@ def _feature_run_response(
     )
 
 
+def _analysis_source_text(blueprint: StoryBlueprint) -> str:
+    chunks: list[str] = []
+    for chapter in blueprint.chapters:
+        text = chapter.draft_text.strip() if chapter.draft_text else chapter.objective.strip()
+        if text:
+            chunks.append(f"{chapter.title}. {text}")
+    if chunks:
+        return "\n\n".join(chunks)
+    return blueprint.premise
+
+
+def _analysis_summary_response(
+    *,
+    run: StoredAnalysisRun,
+    document: StoryDocument,
+) -> StoryAnalysisRunResponse:
+    return StoryAnalysisRunResponse(
+        run_id=run.run_id,
+        story_id=run.story_id,
+        owner_id=run.owner_id,
+        schema_version=run.schema_version,
+        analyzed_at_utc=run.analyzed_at_utc,
+        source_language=document.source_language,
+        target_language=document.target_language,
+        segment_count=len(document.raw_segments),
+        event_count=len(document.extracted_events),
+        beat_count=len(document.story_beats),
+        theme_count=len(document.theme_signals),
+        insight_count=len(document.insights),
+        quality_gate=StoryAnalysisGateResponse(
+            passed=document.quality_gate.passed,
+            confidence_floor=document.quality_gate.confidence_floor,
+            hallucination_risk=document.quality_gate.hallucination_risk,
+            translation_quality=document.quality_gate.translation_quality,
+            reasons=document.quality_gate.reasons,
+        ),
+    )
+
+
 def create_app(db_path: Path | None = None) -> FastAPI:
     """Create the API application."""
     effective_db_path = _resolve_db_path(db_path)
     store = SQLiteStoryStore(db_path=effective_db_path)
     feature_store = SQLiteFeatureStore(db_path=effective_db_path)
+    analysis_store = SQLiteStoryAnalysisStore(db_path=effective_db_path)
     essay_store = SQLiteEssayStore(db_path=effective_db_path)
     bearer = HTTPBearer(auto_error=False)
 
@@ -253,6 +320,11 @@ def create_app(db_path: Path | None = None) -> FastAPI:
             {"name": "auth", "description": "Registration, login, and profile lookups."},
             {"name": "stories", "description": "Story workspace CRUD and ownership-scoped reads."},
             {"name": "features", "description": "Story feature extraction workflows."},
+            {
+                "name": "analysis",
+                "description": "Story intelligence extraction, translation, and scoring workflows.",
+            },
+            {"name": "dashboard", "description": "Visualization-oriented dashboard read models."},
             {
                 "name": "essays",
                 "description": "Essay workspace CRUD and deterministic quality checks.",
@@ -418,6 +490,206 @@ def create_app(db_path: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Feature run not found")
         run, result = latest
         return _feature_run_response(run=run, result=result)
+
+    @app.post(
+        "/api/v1/stories/{story_id}/analysis/run",
+        response_model=StoryAnalysisRunResponse,
+        tags=["stories", "analysis"],
+    )
+    def run_analysis(
+        story_id: str,
+        payload: StoryAnalysisRunRequest,
+        user: StoredUser = Depends(current_user),
+    ) -> StoryAnalysisRunResponse:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        blueprint = StoryBlueprint.model_validate_json(story.blueprint_json)
+        source_text = payload.source_text.strip() if payload.source_text else _analysis_source_text(blueprint)
+        if not source_text:
+            raise HTTPException(
+                status_code=422,
+                detail="Story must include source text or chapter content to run analysis.",
+            )
+        analysis_result = run_story_analysis(
+            story_id=story.story_id,
+            source_text=source_text,
+            source_type=payload.source_type,
+            target_language=payload.target_language,
+        )
+        run = analysis_store.write_analysis_result(owner_id=user.user_id, result=analysis_result)
+        return _analysis_summary_response(run=run, document=analysis_result.document)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/analysis/latest",
+        response_model=StoryAnalysisRunResponse,
+        tags=["stories", "analysis"],
+    )
+    def get_latest_analysis(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> StoryAnalysisRunResponse:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Analysis run not found")
+        run, document, _, _ = latest
+        return _analysis_summary_response(run=run, document=document)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/overview",
+        response_model=DashboardOverviewResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_overview(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardOverviewResponse:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Analysis run not found")
+        _, _, dashboard, _ = latest
+        payload = dashboard.get("overview")
+        if not isinstance(payload, dict):
+            raise HTTPException(status_code=500, detail="Invalid dashboard overview payload")
+        return DashboardOverviewResponse.model_validate(payload)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/timeline",
+        response_model=list[DashboardTimelineLaneResponse],
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_timeline(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> list[DashboardTimelineLaneResponse]:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Analysis run not found")
+        _, _, dashboard, _ = latest
+        payload = dashboard.get("timeline_lanes")
+        if not isinstance(payload, list):
+            raise HTTPException(status_code=500, detail="Invalid dashboard timeline payload")
+        return [DashboardTimelineLaneResponse.model_validate(item) for item in payload]
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/themes/heatmap",
+        response_model=list[DashboardThemeHeatmapCellResponse],
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_theme_heatmap(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> list[DashboardThemeHeatmapCellResponse]:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Analysis run not found")
+        _, _, dashboard, _ = latest
+        payload = dashboard.get("theme_heatmap")
+        if not isinstance(payload, list):
+            raise HTTPException(status_code=500, detail="Invalid dashboard theme payload")
+        return [DashboardThemeHeatmapCellResponse.model_validate(item) for item in payload]
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/arcs",
+        response_model=list[DashboardArcPointResponse],
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_arcs(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> list[DashboardArcPointResponse]:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Analysis run not found")
+        _, _, dashboard, _ = latest
+        payload = dashboard.get("arc_points")
+        if not isinstance(payload, list):
+            raise HTTPException(status_code=500, detail="Invalid dashboard arc payload")
+        return [DashboardArcPointResponse.model_validate(item) for item in payload]
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/drilldown/{item_id}",
+        response_model=DashboardDrilldownResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_drilldown(
+        story_id: str,
+        item_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardDrilldownResponse:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Analysis run not found")
+        _, _, dashboard, _ = latest
+        drilldown = dashboard.get("drilldown")
+        if not isinstance(drilldown, dict):
+            raise HTTPException(status_code=500, detail="Invalid dashboard drilldown payload")
+        item = drilldown.get(item_id)
+        if item is None:
+            raise HTTPException(status_code=404, detail="Dashboard item not found")
+        if not isinstance(item, dict):
+            raise HTTPException(status_code=500, detail="Invalid dashboard drilldown item")
+        return DashboardDrilldownResponse.model_validate(item)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/graph",
+        response_model=DashboardGraphResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_graph(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardGraphResponse:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Analysis run not found")
+        _, _, dashboard, _ = latest
+        node_payload = dashboard.get("graph_nodes")
+        edge_payload = dashboard.get("graph_edges")
+        if not isinstance(node_payload, list) or not isinstance(edge_payload, list):
+            raise HTTPException(status_code=500, detail="Invalid dashboard graph payload")
+        nodes = [DashboardGraphNodeResponse.model_validate(item) for item in node_payload]
+        edges = [DashboardGraphEdgeResponse.model_validate(item) for item in edge_payload]
+        return DashboardGraphResponse(nodes=nodes, edges=edges)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/graph/export.svg",
+        response_model=DashboardGraphExportResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_graph_export_svg(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardGraphExportResponse:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Analysis run not found")
+        _, _, _, graph_svg = latest
+        return DashboardGraphExportResponse(svg=graph_svg)
 
     @app.get("/api/v1/essays", response_model=list[EssayResponse], tags=["essays"])
     def list_essays(
