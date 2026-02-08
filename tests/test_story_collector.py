@@ -92,13 +92,14 @@ def test_story_collection_writes_outputs(
         user_agent="test-agent",
     )
 
-    output_root = run_story_collection(args)
-    assert output_root.exists()
-    full_story = (output_root / "full_story.txt").read_text(encoding="utf-8")
+    result = run_story_collection(args)
+    assert result.output_root.exists()
+    assert result.chapter_count == 1
+    full_story = result.full_story_path.read_text(encoding="utf-8")
     assert "Chapter One" in full_story
     assert "Hello world." in full_story
 
-    index_payload = json.loads((output_root / "index.json").read_text(encoding="utf-8"))
+    index_payload = json.loads(result.index_path.read_text(encoding="utf-8"))
     assert index_payload["chapter_count"] == 1
     assert index_payload["chapters"][0]["number"] == 1
 

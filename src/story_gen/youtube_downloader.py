@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+from story_gen.pipelines.results import VideoStoryResult
+
 AudioFormat = Literal["mp3", "m4a", "wav", "flac", "opus"]
 WhisperTask = Literal["transcribe", "translate"]
 
@@ -87,7 +89,7 @@ def ensure_binary(binary: str) -> None:
         raise RuntimeError(f"Missing required binary: {binary}")
 
 
-def run_video_story_pipeline(args: VideoStoryArgs) -> tuple[Path, Path | None]:
+def run_video_story_pipeline(args: VideoStoryArgs) -> VideoStoryResult:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -111,7 +113,11 @@ def run_video_story_pipeline(args: VideoStoryArgs) -> tuple[Path, Path | None]:
     print(f"[video] audio: {audio_path}")
     if transcript_path:
         print(f"[video] transcript: {transcript_path}")
-    return (audio_path, transcript_path)
+    return VideoStoryResult(
+        output_dir=output_dir,
+        audio_path=audio_path,
+        transcript_path=transcript_path,
+    )
 
 
 def build_arg_parser() -> argparse.ArgumentParser:

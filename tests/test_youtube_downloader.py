@@ -89,9 +89,10 @@ def test_run_video_story_pipeline_with_transcript(
     monkeypatch.setattr("story_gen.youtube_downloader.run_streaming", fake_run_streaming)
     monkeypatch.setattr("story_gen.youtube_downloader.newest_file", lambda _path: audio_file)
 
-    final_audio, final_transcript = run_video_story_pipeline(args)
-    assert final_audio == audio_file
-    assert final_transcript == transcript_file
+    result = run_video_story_pipeline(args)
+    assert result.output_dir == output_dir
+    assert result.audio_path == audio_file
+    assert result.transcript_path == transcript_file
     assert len(invoked) == 2
 
 

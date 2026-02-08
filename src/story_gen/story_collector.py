@@ -13,6 +13,7 @@ from typing import TypedDict
 
 import httpx
 
+from story_gen.pipelines.results import StoryCollectionResult
 from story_gen.reference_pipeline import parse_episode_page, parse_index_page
 
 
@@ -125,6 +126,10 @@ def _fetch_chapter_once(link: ChapterLink, args: StoryCollectorArgs) -> Collecte
         headers=headers, timeout=args.timeout_seconds, follow_redirects=True
     ) as client:
         html = _fetch_text(client, link.url)
+    return _chapter_from_html(link, html)
+
+
+def _chapter_from_html(link: ChapterLink, html: str) -> CollectedChapter:
     title_page, body, _ = parse_episode_page(html)
     effective_title = title_page or link.title or f"Chapter {link.number}"
     return CollectedChapter(number=link.number, title=effective_title, url=link.url, body=body)
@@ -143,16 +148,7 @@ def collect_chapters(args: StoryCollectorArgs, links: list[ChapterLink]) -> list
                 if index > 0:
                     time.sleep(args.crawl_delay_seconds)
                 html = _fetch_text(client, link.url)
-                title_page, body, _ = parse_episode_page(html)
-                effective_title = title_page or link.title or f"Chapter {link.number}"
-                chapters.append(
-                    CollectedChapter(
-                        number=link.number,
-                        title=effective_title,
-                        url=link.url,
-                        body=body,
-                    )
-                )
+                chapters.append(_chapter_from_html(link, html))
         return chapters
 
     by_number: dict[int, CollectedChapter] = {}
@@ -172,7 +168,7 @@ def _write_collection_outputs(
     base_url: str,
     series_code: str,
     chapters: list[CollectedChapter],
-) -> None:
+) -> StoryCollectionResult:
     output_root.mkdir(parents=True, exist_ok=True)
     chapters_dir = output_root / "chapters"
     chapters_dir.mkdir(parents=True, exist_ok=True)
@@ -204,26 +200,33 @@ def _write_collection_outputs(
             for chapter in chapters
         ],
     }
-    (output_root / "index.json").write_text(
+    index_path = output_root / "index.json"
+    index_path.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+    return StoryCollectionResult(
+        output_root=output_root,
+        full_story_path=full_story_path,
+        index_path=index_path,
+        chapter_count=len(chapters),
+    )
 
 
-def run_story_collection(args: StoryCollectorArgs) -> Path:
+def run_story_collection(args: StoryCollectorArgs) -> StoryCollectionResult:
     links = collect_chapter_links(args)
     print(f"[collect] discovered chapters: {len(links)}")
     chapters = collect_chapters(args, links)
     output_root = Path(args.output_dir) / args.series_code
-    _write_collection_outputs(
+    result = _write_collection_outputs(
         output_root=output_root,
         output_filename=args.output_filename,
         base_url=args.base_url,
         series_code=args.series_code,
         chapters=chapters,
     )
-    print(f"[collect] wrote output to: {output_root}")
-    return output_root
+    print(f"[collect] wrote output to: {result.output_root}")
+    return result
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
