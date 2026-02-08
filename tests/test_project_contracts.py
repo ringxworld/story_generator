@@ -27,6 +27,11 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "dev-stack-hot:" in makefile
     assert "stack-up-hot:" in makefile
     assert "web-hot:" in makefile
+    assert "docker-build:" in makefile
+    assert "docker-up:" in makefile
+    assert "docker-down:" in makefile
+    assert "docker-logs:" in makefile
+    assert "docker-ci:" in makefile
     assert "e2e:" in makefile
     assert "pytest tests/test_e2e_stack.py" in makefile
     assert "import-check:" in makefile
@@ -55,6 +60,11 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "Frontend tests (coverage gate)" in workflow
     assert "npm run --prefix web test:coverage" in workflow
     assert "Frontend build" in workflow
+    assert "Build API Docker image" in workflow
+    assert "Build web Docker image" in workflow
+    assert "Docker compose stack smoke test" in workflow
+    assert "Build CI Docker image" in workflow
+    assert "Run full checks in CI Docker image" in workflow
 
 
 def test_deploy_workflow_requires_ci_success() -> None:
@@ -268,6 +278,11 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "ops" / ".env.gcp.example").exists()
     assert (ROOT / "ops" / ".env.azure.example").exists()
     assert (ROOT / "tools" / "run_dev_tool.py").exists()
+    assert (ROOT / ".dockerignore").exists()
+    assert (ROOT / "docker-compose.yml").exists()
+    assert (ROOT / "docker" / "api.Dockerfile").exists()
+    assert (ROOT / "docker" / "web.Dockerfile").exists()
+    assert (ROOT / "docker" / "ci.Dockerfile").exists()
 
 
 def test_no_utils_module_names() -> None:

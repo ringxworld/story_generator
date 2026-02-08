@@ -7,6 +7,13 @@
 - FastAPI service: local runtime today, external backend host later
 - Persistence: SQLite (`work/local/story_gen.db`) for local or single-instance deployments
 
+Local Docker composition for this split is available in:
+
+- `docker-compose.yml`
+- `docker/api.Dockerfile`
+- `docker/web.Dockerfile`
+- `docker/ci.Dockerfile` (CI parity checks)
+
 ## Why this split exists
 
 GitHub Pages does not run server-side application runtimes. It serves static

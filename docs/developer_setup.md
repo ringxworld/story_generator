@@ -13,6 +13,8 @@ This runbook takes a new developer from empty machine to a working local stack.
   - C++ compiler (MSVC/clang/gcc)
   - `clang-format`
   - `cppcheck`
+- Optional container tooling:
+  - Docker Desktop (or Docker Engine + Compose)
 
 ## 2. Clone and bootstrap
 
@@ -176,7 +178,33 @@ docker compose -f ops/docker-compose.azure.yml --env-file ops/.env.azure.example
 
 Use these as reference scaffolds only; they are not production manifests.
 
-## 9. Troubleshooting
+## 9. Docker local stack (optional)
+
+Run the local API + web studio inside containers:
+
+```bash
+make docker-up
+```
+
+Endpoints:
+
+- API: `http://127.0.0.1:8000`
+- Web: `http://127.0.0.1:5173`
+
+Lifecycle commands:
+
+```bash
+make docker-down
+make docker-logs
+```
+
+Run full quality checks in the CI-equivalent container:
+
+```bash
+make docker-ci
+```
+
+## 10. Troubleshooting
 
 `uv: command not found`
 

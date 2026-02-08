@@ -53,6 +53,27 @@ To run API + hot-edit web together:
 make dev-stack-hot
 ```
 
+## Quick Start (Docker)
+
+If you want a containerized local stack:
+
+```bash
+make docker-up
+```
+
+This builds and launches:
+
+- FastAPI API container on `http://127.0.0.1:8000`
+- React dev server container on `http://127.0.0.1:5173`
+
+Other Docker commands:
+
+```bash
+make docker-down   # stop services
+make docker-logs   # tail logs
+make docker-ci     # run full CI-quality checks in Docker
+```
+
 ## Visual System
 
 The project uses one shared visual system across the React studio and GitHub Pages docs.
