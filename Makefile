@@ -10,7 +10,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check lint fix format format-check typecheck test coverage quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test coverage quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -18,6 +18,7 @@ help:
 	@echo "  make hooks-install        - install git pre-commit and pre-push hooks"
 	@echo "  make hooks-run            - run pre-commit on all files"
 	@echo "  make lock-check           - verify uv.lock matches pyproject constraints"
+	@echo "  make import-check         - enforce Python import layer boundaries"
 	@echo "  make lint                 - run ruff checks"
 	@echo "  make fix                  - auto-fix lint issues and format code"
 	@echo "  make format               - format code with ruff"
@@ -58,6 +59,9 @@ hooks-run:
 lock-check:
 	$(UV) lock --check
 
+import-check:
+	$(RUN) python tools/check_imports.py
+
 lint:
 	$(RUN) ruff check .
 
@@ -79,7 +83,7 @@ test:
 
 coverage: test
 
-quality: lock-check lint format-check typecheck test
+quality: lock-check import-check lint format-check typecheck test
 
 check: quality
 

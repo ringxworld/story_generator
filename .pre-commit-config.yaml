@@ -23,6 +23,11 @@ repos:
         entry: uv run ruff format
         language: system
         types_or: [python]
+      - id: py-import-boundaries
+        name: python import boundaries
+        entry: uv run python tools/check_imports.py
+        language: system
+        pass_filenames: false
       - id: cxx-format-fix
         name: clang-format -i
         entry: uv run clang-format -i

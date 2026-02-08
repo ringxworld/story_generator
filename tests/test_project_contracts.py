@@ -22,6 +22,8 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "cpp-cppcheck:" in makefile
     assert "collect-story:" in makefile
     assert "video-story:" in makefile
+    assert "import-check:" in makefile
+    assert "quality: lock-check import-check" in makefile
 
 
 def test_ci_workflow_includes_code_quality_steps() -> None:
@@ -33,6 +35,7 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "uv run mypy" in workflow
     assert "uv run pytest" in workflow
     assert "uv run mkdocs build --strict" in workflow
+    assert "uv run python tools/check_imports.py" in workflow
     assert "Configure CMake" in workflow
     assert "Run native tests" in workflow
     assert "Install native quality tools" in workflow
@@ -79,6 +82,7 @@ def test_precommit_enforces_commit_and_push_quality() -> None:
     assert "check-yaml" in precommit
     assert "cxx-format-fix" in precommit
     assert "cxx-format-check" in precommit
+    assert "py-import-boundaries" in precommit
     assert "py-quality-pre-push" in precommit
 
 
@@ -122,8 +126,9 @@ def test_argparse_boundaries_for_story_tools() -> None:
 
 def test_pre_push_checks_include_docs_and_cpp_format() -> None:
     checks = _read("src/story_gen/pre_push_checks.py")
+    assert '"uv", "run", "python", "tools/check_imports.py"' in checks
     assert '"uv", "run", "mkdocs", "build", "--strict"' in checks
-    assert '"clang-format", "--dry-run", "--Werror"' in checks
+    assert '"uv", "run", "clang-format", "--dry-run", "--Werror"' in checks
 
 
 def test_architecture_docs_and_adr_scaffold_exist() -> None:

@@ -52,6 +52,7 @@ Import rules:
 Expected checks:
 
 - `uv lock --check`
+- `uv run python tools/check_imports.py`
 - `uv run ruff check .`
 - `uv run ruff format --check .`
 - `uv run mypy`

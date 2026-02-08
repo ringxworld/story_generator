@@ -14,6 +14,7 @@ def run(command: list[str]) -> None:
 
 def main() -> None:
     run(["uv", "lock", "--check"])
+    run(["uv", "run", "python", "tools/check_imports.py"])
     run(["uv", "run", "ruff", "check", "."])
     run(["uv", "run", "ruff", "format", "--check", "."])
     run(["uv", "run", "mypy"])

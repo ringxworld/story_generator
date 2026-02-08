@@ -61,6 +61,7 @@ Python:
 - No implicit exports; re-export explicitly
 - Tests must cover both success and failure paths for meaningful behavior
 - Do not delete or weaken tests to make CI pass
+- Import boundaries are enforced by `tools/check_imports.py`
 
 C++:
 

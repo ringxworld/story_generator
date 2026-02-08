@@ -31,6 +31,9 @@ jobs:
       - name: Pre-commit hooks (all files)
         run: uv run pre-commit run --all-files
 
+      - name: Import boundary check
+        run: uv run python tools/check_imports.py
+
       - name: Lockfile check
         run: uv lock --check
 
