@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -19,24 +20,37 @@ def test_pre_push_checks_runs_expected_commands_in_order(
         return subprocess.CompletedProcess(args=command, returncode=0)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr("story_gen.pre_push_checks.shutil.which", lambda _: "uv")
     pre_push_checks.main()
 
-    assert executed[:8] == [
-        ["uv", "run", "pre-commit", "run", "--all-files"],
-        ["uv", "lock", "--check"],
-        ["uv", "run", "python", "tools/check_imports.py"],
-        ["uv", "run", "ruff", "check", "."],
-        ["uv", "run", "ruff", "format", "--check", "."],
-        ["uv", "run", "mypy"],
-        ["uv", "run", "pytest"],
-        ["uv", "run", "mkdocs", "build", "--strict"],
+    assert executed[0][:4] == [
+        sys.executable,
+        str(pre_push_checks.TOOL_RUNNER),
+        "pre-commit",
+        "run",
     ]
+    assert executed[0][-1] == "--all-files"
+    assert executed[1][-2:] == ["lock", "--check"]
+    assert executed[2][0] == sys.executable
+    assert executed[2][-1].endswith("check_imports.py")
+    assert executed[3][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "ruff"]
+    assert executed[3][-2:] == ["check", "."]
+    assert executed[4][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "ruff"]
+    assert executed[4][-3:] == ["format", "--check", "."]
+    assert executed[5][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "mypy"]
+    assert executed[6][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "pytest"]
+    assert executed[7][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "mkdocs"]
+    assert executed[7][-2:] == ["build", "--strict"]
     assert ["npm", "run", "--prefix", "web", "typecheck"] in executed
     assert ["npm", "run", "--prefix", "web", "test:coverage"] in executed
     assert ["npm", "run", "--prefix", "web", "build"] in executed
-    clang_commands = [command for command in executed if "clang-format" in command]
+    clang_commands = [
+        command
+        for command in executed
+        if command[:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "clang-format"]
+    ]
     assert len(clang_commands) == 1
-    assert clang_commands[0][:5] == ["uv", "run", "clang-format", "--dry-run", "--Werror"]
+    assert clang_commands[0][3:5] == ["--dry-run", "--Werror"]
     assert any("chapter_metrics.cpp" in part for part in clang_commands[0])
 
 
@@ -48,23 +62,27 @@ def test_pre_push_checks_stops_on_command_failure(
     def fake_run(command: list[str], check: bool) -> subprocess.CompletedProcess[str]:
         assert check is False
         executed.append(command)
+        is_ruff_check = command[:3] == [
+            sys.executable,
+            str(pre_push_checks.TOOL_RUNNER),
+            "ruff",
+        ] and command[-2:] == ["check", "."]
         return subprocess.CompletedProcess(
             args=command,
-            returncode=1 if command == ["uv", "run", "ruff", "check", "."] else 0,
+            returncode=1 if is_ruff_check else 0,
         )
 
     monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr("story_gen.pre_push_checks.shutil.which", lambda _: "uv")
 
     with pytest.raises(SystemExit) as raised:
         pre_push_checks.main()
 
     assert raised.value.code == 1
-    assert executed == [
-        ["uv", "run", "pre-commit", "run", "--all-files"],
-        ["uv", "lock", "--check"],
-        ["uv", "run", "python", "tools/check_imports.py"],
-        ["uv", "run", "ruff", "check", "."],
-    ]
+    assert executed[0][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "pre-commit"]
+    assert executed[1][-2:] == ["lock", "--check"]
+    assert executed[2][0] == sys.executable
+    assert executed[3][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "ruff"]
 
 
 def test_pre_push_checks_skips_clang_when_no_cpp_sources(
@@ -79,6 +97,7 @@ def test_pre_push_checks_skips_clang_when_no_cpp_sources(
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(Path, "glob", lambda self, pattern: iter(()))
+    monkeypatch.setattr("story_gen.pre_push_checks.shutil.which", lambda _: "uv")
 
     pre_push_checks.main()
 
@@ -104,5 +123,20 @@ def test_pre_push_checks_skips_web_when_package_missing(
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(Path, "exists", fake_exists)
+    monkeypatch.setattr("story_gen.pre_push_checks.shutil.which", lambda _: "uv")
     pre_push_checks.main()
     assert all(command[:3] != ["npm", "run", "--prefix"] for command in executed)
+
+
+def test_pre_push_checks_requires_uv_for_lock_check(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda command, check: subprocess.CompletedProcess(args=command, returncode=0),
+    )
+    monkeypatch.setattr("story_gen.pre_push_checks.shutil.which", lambda _: None)
+
+    with pytest.raises(SystemExit, match="uv executable not found in PATH"):
+        pre_push_checks.main()

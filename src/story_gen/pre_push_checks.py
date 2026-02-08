@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
+import sys
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+TOOL_RUNNER = REPO_ROOT / "tools" / "run_dev_tool.py"
 
 
 def run(command: list[str]) -> None:
@@ -13,16 +18,24 @@ def run(command: list[str]) -> None:
         raise SystemExit(completed.returncode)
 
 
+def run_tool(tool: str, *args: str) -> None:
+    """Run one development tool through the repository tool wrapper."""
+    run([sys.executable, str(TOOL_RUNNER), tool, *args])
+
+
 def main() -> None:
     """Mirror CI checks locally before code leaves the machine."""
-    run(["uv", "run", "pre-commit", "run", "--all-files"])
-    run(["uv", "lock", "--check"])
-    run(["uv", "run", "python", "tools/check_imports.py"])
-    run(["uv", "run", "ruff", "check", "."])
-    run(["uv", "run", "ruff", "format", "--check", "."])
-    run(["uv", "run", "mypy"])
-    run(["uv", "run", "pytest"])
-    run(["uv", "run", "mkdocs", "build", "--strict"])
+    run_tool("pre-commit", "run", "--all-files")
+    uv_executable = shutil.which("uv")
+    if uv_executable is None:
+        raise SystemExit("uv executable not found in PATH")
+    run([uv_executable, "lock", "--check"])
+    run([sys.executable, str(REPO_ROOT / "tools" / "check_imports.py")])
+    run_tool("ruff", "check", ".")
+    run_tool("ruff", "format", "--check", ".")
+    run_tool("mypy")
+    run_tool("pytest")
+    run_tool("mkdocs", "build", "--strict")
     web_package = Path("web") / "package.json"
     if web_package.exists():
         run(["npm", "run", "--prefix", "web", "typecheck"])
@@ -30,7 +43,7 @@ def main() -> None:
         run(["npm", "run", "--prefix", "web", "build"])
     cpp_sources = [str(path) for path in sorted((Path("cpp")).glob("*.cpp"))]
     if cpp_sources:
-        run(["uv", "run", "clang-format", "--dry-run", "--Werror", *cpp_sources])
+        run_tool("clang-format", "--dry-run", "--Werror", *cpp_sources)
 
 
 if __name__ == "__main__":

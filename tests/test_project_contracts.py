@@ -96,6 +96,8 @@ def test_precommit_enforces_commit_and_push_quality() -> None:
     assert "cxx-format-check" in precommit
     assert "py-import-boundaries" in precommit
     assert "py-quality-pre-push" in precommit
+    assert "tools/run_dev_tool.py ruff check --fix" in precommit
+    assert "tools/run_dev_tool.py clang-format --dry-run --Werror" in precommit
 
 
 def test_pyproject_exposes_story_collection_entrypoints() -> None:
@@ -161,13 +163,13 @@ def test_argparse_boundaries_for_story_tools() -> None:
 
 def test_pre_push_checks_include_docs_and_cpp_format() -> None:
     checks = _read("src/story_gen/pre_push_checks.py")
-    assert '"uv", "run", "pre-commit", "run", "--all-files"' in checks
-    assert '"uv", "run", "python", "tools/check_imports.py"' in checks
-    assert '"uv", "run", "mkdocs", "build", "--strict"' in checks
+    assert 'run_tool("pre-commit", "run", "--all-files")' in checks
+    assert "uv executable not found in PATH" in checks
+    assert 'run_tool("mkdocs", "build", "--strict")' in checks
     assert '"npm", "run", "--prefix", "web", "typecheck"' in checks
     assert '"npm", "run", "--prefix", "web", "test:coverage"' in checks
     assert '"npm", "run", "--prefix", "web", "build"' in checks
-    assert '"uv", "run", "clang-format", "--dry-run", "--Werror"' in checks
+    assert 'run_tool("clang-format", "--dry-run", "--Werror", *cpp_sources)' in checks
 
 
 def test_frontend_vitest_coverage_gate_exists() -> None:
@@ -250,6 +252,7 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "ops" / ".env.aws.example").exists()
     assert (ROOT / "ops" / ".env.gcp.example").exists()
     assert (ROOT / "ops" / ".env.azure.example").exists()
+    assert (ROOT / "tools" / "run_dev_tool.py").exists()
 
 
 def test_no_utils_module_names() -> None:
