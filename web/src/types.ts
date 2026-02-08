@@ -102,3 +102,87 @@ export type EssayEvaluationResponse = {
   required_citations: number;
   checks: EssayQualityCheckResponse[];
 };
+
+export type StoryAnalysisGateResponse = {
+  passed: boolean;
+  confidence_floor: number;
+  hallucination_risk: number;
+  translation_quality: number;
+  reasons: string[];
+};
+
+export type StoryAnalysisRunResponse = {
+  run_id: string;
+  story_id: string;
+  owner_id: string;
+  schema_version: string;
+  analyzed_at_utc: string;
+  source_language: string;
+  target_language: string;
+  segment_count: number;
+  event_count: number;
+  beat_count: number;
+  theme_count: number;
+  insight_count: number;
+  quality_gate: StoryAnalysisGateResponse;
+};
+
+export type DashboardOverviewResponse = {
+  title: string;
+  macro_thesis: string;
+  confidence_floor: number;
+  quality_passed: boolean;
+  events_count: number;
+  beats_count: number;
+  themes_count: number;
+};
+
+export type DashboardTimelineLaneResponse = {
+  lane: string;
+  items: Array<Record<string, string | number | null>>;
+};
+
+export type DashboardThemeHeatmapCellResponse = {
+  theme: string;
+  stage: string;
+  intensity: number;
+};
+
+export type DashboardArcPointResponse = {
+  lane: string;
+  stage: string;
+  value: number;
+  label: string;
+};
+
+export type DashboardDrilldownResponse = {
+  item_id: string;
+  item_type: string;
+  title: string;
+  content: string;
+  evidence_segment_ids: string[];
+};
+
+export type DashboardGraphNodeResponse = {
+  id: string;
+  label: string;
+  group: string;
+  stage: string | null;
+};
+
+export type DashboardGraphEdgeResponse = {
+  source: string;
+  target: string;
+  relation: string;
+  weight: number;
+};
+
+export type DashboardGraphResponse = {
+  nodes: DashboardGraphNodeResponse[];
+  edges: DashboardGraphEdgeResponse[];
+};
+
+export type DashboardGraphExportResponse = {
+  format: "svg";
+  svg: string;
+};

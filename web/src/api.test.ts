@@ -2,12 +2,20 @@ import {
   apiBaseUrl,
   createEssay,
   createStory,
+  exportDashboardGraphSvg,
   evaluateEssay,
+  getDashboardArcs,
+  getDashboardGraph,
+  getDashboardOverview,
+  getDashboardThemeHeatmap,
+  getDashboardTimeline,
+  getLatestStoryAnalysis,
   listEssays,
   listStories,
   login,
   me,
   register,
+  runStoryAnalysis,
   updateEssay,
   updateStory,
 } from "./api";
@@ -340,5 +348,61 @@ describe("api client", () => {
     );
 
     await expect(me("token-abc")).rejects.toThrow("Request failed with 500");
+  });
+
+  it("calls story analysis and dashboard endpoints with auth", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        asResponse({
+          ok: true,
+          json: async () => ({
+            run_id: "run-1",
+            story_id: "s-1",
+            owner_id: "u-1",
+            schema_version: "story_analysis.v1",
+            analyzed_at_utc: "2026-01-01T00:00:00Z",
+            source_language: "en",
+            target_language: "en",
+            segment_count: 1,
+            event_count: 1,
+            beat_count: 1,
+            theme_count: 1,
+            insight_count: 3,
+            quality_gate: {
+              passed: true,
+              confidence_floor: 0.7,
+              hallucination_risk: 0.1,
+              translation_quality: 1,
+              reasons: [],
+            },
+          }),
+        }),
+      )
+      .mockResolvedValue(
+        asResponse({
+          ok: true,
+          json: async () => ({ nodes: [], edges: [] }),
+        }),
+      );
+
+    await runStoryAnalysis("token-abc", "s-1");
+    await getLatestStoryAnalysis("token-abc", "s-1");
+    await getDashboardOverview("token-abc", "s-1");
+    await getDashboardTimeline("token-abc", "s-1");
+    await getDashboardThemeHeatmap("token-abc", "s-1");
+    await getDashboardArcs("token-abc", "s-1");
+    await getDashboardGraph("token-abc", "s-1");
+    await exportDashboardGraphSvg("token-abc", "s-1");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${apiBaseUrl}/api/v1/stories/s-1/analysis/run`,
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: "Bearer token-abc",
+        }),
+      }),
+    );
   });
 });

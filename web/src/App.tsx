@@ -4,17 +4,36 @@ import {
   apiBaseUrl,
   createEssay,
   createStory,
+  exportDashboardGraphSvg,
   evaluateEssay,
+  getDashboardArcs,
+  getDashboardGraph,
+  getDashboardOverview,
+  getDashboardThemeHeatmap,
+  getDashboardTimeline,
+  getLatestStoryAnalysis,
   listEssays,
   listStories,
   login,
   me,
   register,
+  runStoryAnalysis,
   updateEssay,
   updateStory,
 } from "./api";
 import { applyBlueprintToForm, buildBlueprintFromForm, emptyStoryForm, StoryFormState } from "./blueprint_form";
-import type { EssayBlueprint, EssayEvaluationResponse, EssayResponse, StoryResponse } from "./types";
+import type {
+  DashboardArcPointResponse,
+  DashboardGraphResponse,
+  DashboardOverviewResponse,
+  DashboardThemeHeatmapCellResponse,
+  DashboardTimelineLaneResponse,
+  EssayBlueprint,
+  EssayEvaluationResponse,
+  EssayResponse,
+  StoryAnalysisRunResponse,
+  StoryResponse,
+} from "./types";
 
 const TOKEN_STORAGE_KEY = "story_gen.token";
 
@@ -56,6 +75,14 @@ const App = (): JSX.Element => {
   );
   const [essayDraftText, setEssayDraftText] = useState("");
   const [essayEvaluation, setEssayEvaluation] = useState<EssayEvaluationResponse | null>(null);
+  const [analysisRun, setAnalysisRun] = useState<StoryAnalysisRunResponse | null>(null);
+  const [dashboardOverview, setDashboardOverview] = useState<DashboardOverviewResponse | null>(null);
+  const [dashboardTimeline, setDashboardTimeline] = useState<DashboardTimelineLaneResponse[]>([]);
+  const [dashboardHeatmap, setDashboardHeatmap] = useState<DashboardThemeHeatmapCellResponse[]>([]);
+  const [dashboardArcs, setDashboardArcs] = useState<DashboardArcPointResponse[]>([]);
+  const [dashboardGraph, setDashboardGraph] = useState<DashboardGraphResponse | null>(null);
+  const [graphSvg, setGraphSvg] = useState("");
+  const [selectedGraphNodeId, setSelectedGraphNodeId] = useState<string | null>(null);
 
   const isAuthenticated = token.trim().length > 0;
   const selectedStory = useMemo(
@@ -66,6 +93,12 @@ const App = (): JSX.Element => {
     () => essays.find((essay) => essay.essay_id === selectedEssayId) ?? null,
     [selectedEssayId, essays],
   );
+  const selectedGraphNode = useMemo(
+    () =>
+      dashboardGraph?.nodes.find((node) => node.id === selectedGraphNodeId) ??
+      (dashboardGraph?.nodes[0] ?? null),
+    [dashboardGraph, selectedGraphNodeId],
+  );
 
   const refreshStories = async (currentToken: string): Promise<void> => {
     const freshStories = await listStories(currentToken);
@@ -75,6 +108,25 @@ const App = (): JSX.Element => {
   const refreshEssays = async (currentToken: string): Promise<void> => {
     const freshEssays = await listEssays(currentToken);
     setEssays(freshEssays);
+  };
+
+  const refreshStoryDashboard = async (currentToken: string, storyId: string): Promise<void> => {
+    const [latest, overview, timeline, heatmap, arcs, graph, svgExport] = await Promise.all([
+      getLatestStoryAnalysis(currentToken, storyId),
+      getDashboardOverview(currentToken, storyId),
+      getDashboardTimeline(currentToken, storyId),
+      getDashboardThemeHeatmap(currentToken, storyId),
+      getDashboardArcs(currentToken, storyId),
+      getDashboardGraph(currentToken, storyId),
+      exportDashboardGraphSvg(currentToken, storyId),
+    ]);
+    setAnalysisRun(latest);
+    setDashboardOverview(overview);
+    setDashboardTimeline(timeline);
+    setDashboardHeatmap(heatmap);
+    setDashboardArcs(arcs);
+    setDashboardGraph(graph);
+    setGraphSvg(svgExport.svg);
   };
 
   const onRegister = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -114,6 +166,14 @@ const App = (): JSX.Element => {
     setEssayBlueprintRaw(JSON.stringify(defaultEssayBlueprint(), null, 2));
     setEssayDraftText("");
     setEssayEvaluation(null);
+    setAnalysisRun(null);
+    setDashboardOverview(null);
+    setDashboardTimeline([]);
+    setDashboardHeatmap([]);
+    setDashboardArcs([]);
+    setDashboardGraph(null);
+    setGraphSvg("");
+    setSelectedGraphNodeId(null);
     setStatus("Signed out.");
   };
 
@@ -183,9 +243,46 @@ const App = (): JSX.Element => {
     }
   };
 
+  const onRunStoryAnalysis = async (): Promise<void> => {
+    if (!isAuthenticated) {
+      setStatus("Sign in before running analysis.");
+      return;
+    }
+    if (!selectedStory) {
+      setStatus("Select a story first.");
+      return;
+    }
+    try {
+      const run = await runStoryAnalysis(token, selectedStory.story_id, {});
+      setAnalysisRun(run);
+      await refreshStoryDashboard(token, selectedStory.story_id);
+      setSelectedGraphNodeId(null);
+      setStatus(
+        run.quality_gate.passed
+          ? `Analysis complete (${run.event_count} events).`
+          : `Analysis completed with warnings (${run.quality_gate.reasons.join(", ")}).`,
+      );
+    } catch (error) {
+      setStatus(`Story analysis failed: ${(error as Error).message}`);
+    }
+  };
+
   const onSelectStory = (story: StoryResponse): void => {
     setSelectedStoryId(story.story_id);
     setStoryForm(applyBlueprintToForm(story.title, story.blueprint));
+    setAnalysisRun(null);
+    setDashboardOverview(null);
+    setDashboardTimeline([]);
+    setDashboardHeatmap([]);
+    setDashboardArcs([]);
+    setDashboardGraph(null);
+    setGraphSvg("");
+    setSelectedGraphNodeId(null);
+    if (token.trim()) {
+      void refreshStoryDashboard(token, story.story_id).catch(() => {
+        setStatus("No analysis run yet for this story.");
+      });
+    }
   };
 
   const onSelectEssay = (essay: EssayResponse): void => {
@@ -264,6 +361,14 @@ const App = (): JSX.Element => {
               onClick={() => {
                 setSelectedStoryId(null);
                 setStoryForm(emptyStoryForm());
+                setAnalysisRun(null);
+                setDashboardOverview(null);
+                setDashboardTimeline([]);
+                setDashboardHeatmap([]);
+                setDashboardArcs([]);
+                setDashboardGraph(null);
+                setGraphSvg("");
+                setSelectedGraphNodeId(null);
               }}
             >
               New story
@@ -329,6 +434,101 @@ const App = (): JSX.Element => {
             </label>
             <button type="submit">{selectedStory ? "Update Story" : "Create Story"}</button>
           </form>
+
+          <article className="stack">
+            <h3>Story Intelligence</h3>
+            <div className="inline-actions">
+              <button type="button" className="muted" onClick={() => void onRunStoryAnalysis()}>
+                Run Analysis
+              </button>
+            </div>
+            {analysisRun ? (
+              <div className="status">
+                <div>Run: {analysisRun.run_id}</div>
+                <div>
+                  Lang: {analysisRun.source_language} {"->"} {analysisRun.target_language}
+                </div>
+                <div>
+                  Events: {analysisRun.event_count} | Beats: {analysisRun.beat_count} | Themes:{" "}
+                  {analysisRun.theme_count}
+                </div>
+                <div>
+                  Quality: {analysisRun.quality_gate.passed ? "pass" : "warn"} (confidence floor{" "}
+                  {analysisRun.quality_gate.confidence_floor.toFixed(2)})
+                </div>
+              </div>
+            ) : (
+              <div className="status">Run analysis to generate timeline, themes, arcs, and graph.</div>
+            )}
+            {dashboardOverview ? (
+              <div className="status">
+                <strong>{dashboardOverview.title}</strong>
+                <div>{dashboardOverview.macro_thesis}</div>
+              </div>
+            ) : null}
+            <div className="status">
+              <strong>Timeline lanes:</strong> {dashboardTimeline.length}
+              <br />
+              <strong>Heatmap cells:</strong> {dashboardHeatmap.length}
+              <br />
+              <strong>Arc points:</strong> {dashboardArcs.length}
+            </div>
+            {dashboardGraph ? (
+              <div className="stack">
+                <strong>Interactive Graph</strong>
+                <svg viewBox="0 0 780 280" role="img" aria-label="story-graph">
+                  {dashboardGraph.edges.slice(0, 120).map((edge, index) => {
+                    const sourceIndex = dashboardGraph.nodes.findIndex((node) => node.id === edge.source);
+                    const targetIndex = dashboardGraph.nodes.findIndex((node) => node.id === edge.target);
+                    const x1 = 30 + (sourceIndex % 12) * 62;
+                    const y1 = 30 + Math.floor(sourceIndex / 12) * 60;
+                    const x2 = 30 + (targetIndex % 12) * 62;
+                    const y2 = 30 + Math.floor(targetIndex / 12) * 60;
+                    return (
+                      <line
+                        key={`${edge.source}-${edge.target}-${index}`}
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke="#a7bcb2"
+                        strokeWidth={1}
+                      />
+                    );
+                  })}
+                  {dashboardGraph.nodes.slice(0, 120).map((node, index) => {
+                    const x = 30 + (index % 12) * 62;
+                    const y = 30 + Math.floor(index / 12) * 60;
+                    const selected = node.id === selectedGraphNode?.id;
+                    return (
+                      <g key={node.id}>
+                        <circle
+                          cx={x}
+                          cy={y}
+                          r={selected ? 9 : 7}
+                          fill={selected ? "#2f6e5a" : "#4d8f7a"}
+                          onClick={() => setSelectedGraphNodeId(node.id)}
+                        />
+                        <text x={x + 10} y={y + 4} fontSize="10">
+                          {node.label}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+                {selectedGraphNode ? (
+                  <div className="status">
+                    Selected: {selectedGraphNode.label} ({selectedGraphNode.group})
+                    {selectedGraphNode.stage ? ` | ${selectedGraphNode.stage}` : ""}
+                  </div>
+                ) : null}
+                <details>
+                  <summary>SVG export</summary>
+                  <textarea readOnly rows={6} value={graphSvg} />
+                </details>
+              </div>
+            ) : null}
+          </article>
         </div>
       </section>
 

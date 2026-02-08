@@ -1,8 +1,16 @@
 import type {
   AuthTokenResponse,
+  DashboardArcPointResponse,
+  DashboardDrilldownResponse,
+  DashboardGraphExportResponse,
+  DashboardGraphResponse,
+  DashboardOverviewResponse,
+  DashboardThemeHeatmapCellResponse,
+  DashboardTimelineLaneResponse,
   EssayBlueprint,
   EssayEvaluationResponse,
   EssayResponse,
+  StoryAnalysisRunResponse,
   StoryBlueprint,
   StoryResponse,
   UserResponse,
@@ -115,4 +123,80 @@ export const evaluateEssay = async (
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ draft_text: draftText }),
+  });
+
+export const runStoryAnalysis = async (
+  token: string,
+  storyId: string,
+  payload: { source_text?: string; source_type?: "text" | "document" | "transcript"; target_language?: string } = {},
+): Promise<StoryAnalysisRunResponse> =>
+  requestJson<StoryAnalysisRunResponse>(`/api/v1/stories/${storyId}/analysis/run`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+
+export const getLatestStoryAnalysis = async (token: string, storyId: string): Promise<StoryAnalysisRunResponse> =>
+  requestJson<StoryAnalysisRunResponse>(`/api/v1/stories/${storyId}/analysis/latest`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const getDashboardOverview = async (
+  token: string,
+  storyId: string,
+): Promise<DashboardOverviewResponse> =>
+  requestJson<DashboardOverviewResponse>(`/api/v1/stories/${storyId}/dashboard/overview`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const getDashboardTimeline = async (
+  token: string,
+  storyId: string,
+): Promise<DashboardTimelineLaneResponse[]> =>
+  requestJson<DashboardTimelineLaneResponse[]>(`/api/v1/stories/${storyId}/dashboard/timeline`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const getDashboardThemeHeatmap = async (
+  token: string,
+  storyId: string,
+): Promise<DashboardThemeHeatmapCellResponse[]> =>
+  requestJson<DashboardThemeHeatmapCellResponse[]>(
+    `/api/v1/stories/${storyId}/dashboard/themes/heatmap`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+
+export const getDashboardArcs = async (
+  token: string,
+  storyId: string,
+): Promise<DashboardArcPointResponse[]> =>
+  requestJson<DashboardArcPointResponse[]>(`/api/v1/stories/${storyId}/dashboard/arcs`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const getDashboardDrilldown = async (
+  token: string,
+  storyId: string,
+  itemId: string,
+): Promise<DashboardDrilldownResponse> =>
+  requestJson<DashboardDrilldownResponse>(`/api/v1/stories/${storyId}/dashboard/drilldown/${itemId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const getDashboardGraph = async (
+  token: string,
+  storyId: string,
+): Promise<DashboardGraphResponse> =>
+  requestJson<DashboardGraphResponse>(`/api/v1/stories/${storyId}/dashboard/graph`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const exportDashboardGraphSvg = async (
+  token: string,
+  storyId: string,
+): Promise<DashboardGraphExportResponse> =>
+  requestJson<DashboardGraphExportResponse>(`/api/v1/stories/${storyId}/dashboard/graph/export.svg`, {
+    headers: { Authorization: `Bearer ${token}` },
   });
