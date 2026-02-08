@@ -2,12 +2,15 @@ UV ?= uv
 RUN = $(UV) run
 REFERENCE_ARGS ?= --max-episodes 10
 TRANSLATE_URL ?= http://localhost:5000
+STORY_SERIES_CODE ?= n2866cb
+VIDEO_URL ?=
+VIDEO_ARGS ?=
 CPP_BUILD_DIR ?= build/cpp
 CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check lint fix format format-check typecheck test quality check story build-site reference reference-translate cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check lint fix format format-check typecheck test quality check story build-site reference reference-translate collect-story video-story cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -27,6 +30,8 @@ help:
 	@echo "  make build-site           - build static story site"
 	@echo "  make reference            - run reference pipeline (override REFERENCE_ARGS)"
 	@echo "  make reference-translate  - run reference pipeline with LibreTranslate"
+	@echo "  make collect-story        - collect full text for STORY_SERIES_CODE"
+	@echo "  make video-story          - download VIDEO_URL audio and optional transcript"
 	@echo "  make cpp-configure        - configure C++ tooling with CMake"
 	@echo "  make cpp-build            - build C++ tools"
 	@echo "  make cpp-test             - run C++ tests (ctest)"
@@ -83,6 +88,12 @@ reference:
 
 reference-translate:
 	$(RUN) story-reference --translate-provider libretranslate --libretranslate-url $(TRANSLATE_URL) $(REFERENCE_ARGS)
+
+collect-story:
+	$(RUN) story-collect --series-code $(STORY_SERIES_CODE)
+
+video-story:
+	$(RUN) story-video --url "$(VIDEO_URL)" $(VIDEO_ARGS)
 
 cpp-configure:
 	cmake -S . -B $(CPP_BUILD_DIR)

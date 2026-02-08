@@ -20,6 +20,8 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "cpp-format:" in makefile
     assert "cpp-format-check:" in makefile
     assert "cpp-cppcheck:" in makefile
+    assert "collect-story:" in makefile
+    assert "video-story:" in makefile
 
 
 def test_ci_workflow_includes_code_quality_steps() -> None:
@@ -62,3 +64,9 @@ def test_native_quality_config_files_exist() -> None:
     assert (ROOT / ".clang-format").exists()
     assert (ROOT / ".clang-tidy").exists()
     assert (ROOT / ".pre-commit-config.yaml").exists()
+
+
+def test_pyproject_exposes_story_collection_entrypoints() -> None:
+    pyproject = _read("pyproject.toml")
+    assert 'story-collect = "story_gen.story_collector:cli_main"' in pyproject
+    assert 'story-video = "story_gen.youtube_downloader:cli_main"' in pyproject

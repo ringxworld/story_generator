@@ -30,6 +30,8 @@ Use `Makefile` targets instead of ad-hoc commands whenever possible:
 - `make test` -> pytest
 - `make build-site` -> build static site
 - `make reference` -> run reference ingestion pipeline
+- `make collect-story` -> collect full text for a series code
+- `make video-story` -> download video audio + optional transcript
 - `make cpp-build` -> build native C++ tools
 - `make cpp-test` -> run native C++ tests
 - `make deploy` -> quality + site build + push
