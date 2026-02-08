@@ -10,7 +10,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot docker-build docker-up docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -46,6 +46,11 @@ help:
 	@echo "  make dev-stack-hot        - run API + hot-edit web server together (web on :5174)"
 	@echo "  make stack-up             - bootstrap deps, build web bundle, then run dev stack"
 	@echo "  make stack-up-hot         - bootstrap deps, build web bundle, then run hot-edit stack"
+	@echo "  make docker-build         - build local Docker images (API + web)"
+	@echo "  make docker-up            - launch API + web via docker compose"
+	@echo "  make docker-down          - stop docker compose services"
+	@echo "  make docker-logs          - tail docker compose logs"
+	@echo "  make docker-ci            - run full project checks in CI Docker image"
 	@echo "  make web-install          - install frontend dependencies"
 	@echo "  make web-dev              - run React+TS frontend dev server"
 	@echo "  make web-hot              - run dedicated hot-edit frontend server on :5174"
@@ -154,6 +159,22 @@ stack-up: sync web-install web-build
 
 stack-up-hot: sync web-install web-build
 	$(RUN) python tools/dev_stack.py --web-port 5174
+
+docker-build:
+	docker compose build
+
+docker-up:
+	docker compose up --build
+
+docker-down:
+	docker compose down --remove-orphans
+
+docker-logs:
+	docker compose logs -f
+
+docker-ci:
+	docker build -f docker/ci.Dockerfile -t story-gen-ci .
+	docker run --rm story-gen-ci
 
 web-install:
 	npm install --prefix web
