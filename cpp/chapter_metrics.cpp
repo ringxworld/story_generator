@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cctype>
 #include <cstdint>
 #include <fstream>
@@ -86,12 +87,8 @@ bool DecodeNextCodepoint(const std::string& text, std::size_t* index,
 }
 
 bool IsLineBlank(const std::string& line) {
-  for (unsigned char c : line) {
-    if (!std::isspace(c)) {
-      return false;
-    }
-  }
-  return true;
+  return std::all_of(line.begin(), line.end(),
+                     [](unsigned char c) { return std::isspace(c) != 0; });
 }
 
 bool StartsWithDialogueMarker(const std::string& line) {
