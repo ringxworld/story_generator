@@ -80,7 +80,9 @@ def test_story_api_client_feature_methods(monkeypatch: pytest.MonkeyPatch) -> No
             )
         return httpx.Response(status_code=404, request=request)
 
-    def fake_get(url: str, headers: dict[str, str] | None = None, timeout: float = 30.0) -> httpx.Response:
+    def fake_get(
+        url: str, headers: dict[str, str] | None = None, timeout: float = 30.0
+    ) -> httpx.Response:
         del headers, timeout
         request = httpx.Request("GET", url)
         return httpx.Response(

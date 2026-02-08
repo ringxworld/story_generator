@@ -10,7 +10,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test coverage quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features web-install web-dev web-typecheck web-test web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features web-install web-dev web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -27,7 +27,9 @@ help:
 	@echo "  make test                 - run pytest with coverage gate"
 	@echo "  make coverage             - run pytest with coverage gate"
 	@echo "  make quality              - lock-check + lint + format-check + typecheck + tests"
-	@echo "  make check                - run lint + typecheck + tests"
+	@echo "  make frontend-quality     - frontend typecheck + coverage + build"
+	@echo "  make native-quality       - native format check + cppcheck"
+	@echo "  make check                - full local gate (python + frontend + native)"
 	@echo "  make story                - run the story_gen CLI"
 	@echo "  make build-site           - build MkDocs pages site"
 	@echo "  make docs-serve           - serve MkDocs locally"
@@ -43,6 +45,7 @@ help:
 	@echo "  make web-dev              - run React+TS frontend dev server"
 	@echo "  make web-typecheck        - run frontend TypeScript checks"
 	@echo "  make web-test             - run frontend tests"
+	@echo "  make web-coverage         - run frontend tests with coverage thresholds"
 	@echo "  make web-build            - build frontend production bundle"
 	@echo "  make cpp-configure        - configure C++ tooling with CMake"
 	@echo "  make cpp-build            - build C++ tools"
@@ -92,7 +95,11 @@ coverage: test
 
 quality: lock-check import-check lint format-check typecheck test
 
-check: quality
+frontend-quality: web-typecheck web-coverage web-build
+
+native-quality: cpp-format-check cpp-cppcheck
+
+check: quality frontend-quality native-quality
 
 story:
 	$(RUN) story-gen
@@ -138,6 +145,9 @@ web-typecheck:
 
 web-test:
 	npm run --prefix web test
+
+web-coverage:
+	npm run --prefix web test:coverage
 
 web-build:
 	npm run --prefix web build

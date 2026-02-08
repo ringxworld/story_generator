@@ -31,7 +31,7 @@ def test_pre_push_checks_runs_expected_commands_in_order(
         ["uv", "run", "mkdocs", "build", "--strict"],
     ]
     assert ["npm", "run", "--prefix", "web", "typecheck"] in executed
-    assert ["npm", "run", "--prefix", "web", "test"] in executed
+    assert ["npm", "run", "--prefix", "web", "test:coverage"] in executed
     assert ["npm", "run", "--prefix", "web", "build"] in executed
     clang_commands = [command for command in executed if "clang-format" in command]
     assert len(clang_commands) == 1

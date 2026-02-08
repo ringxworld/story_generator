@@ -25,7 +25,7 @@ def main() -> None:
     web_package = Path("web") / "package.json"
     if web_package.exists():
         run(["npm", "run", "--prefix", "web", "typecheck"])
-        run(["npm", "run", "--prefix", "web", "test"])
+        run(["npm", "run", "--prefix", "web", "test:coverage"])
         run(["npm", "run", "--prefix", "web", "build"])
     cpp_sources = [str(path) for path in sorted((Path("cpp")).glob("*.cpp"))]
     if cpp_sources:

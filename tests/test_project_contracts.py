@@ -26,6 +26,9 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "features:" in makefile
     assert "import-check:" in makefile
     assert "quality: lock-check import-check" in makefile
+    assert "frontend-quality:" in makefile
+    assert "native-quality:" in makefile
+    assert "web-coverage:" in makefile
 
 
 def test_ci_workflow_includes_code_quality_steps() -> None:
@@ -44,7 +47,8 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "C++ format check" in workflow
     assert "Cppcheck" in workflow
     assert "Frontend typecheck" in workflow
-    assert "Frontend tests" in workflow
+    assert "Frontend tests (coverage gate)" in workflow
+    assert "npm run --prefix web test:coverage" in workflow
     assert "Frontend build" in workflow
 
 
@@ -155,9 +159,18 @@ def test_pre_push_checks_include_docs_and_cpp_format() -> None:
     assert '"uv", "run", "python", "tools/check_imports.py"' in checks
     assert '"uv", "run", "mkdocs", "build", "--strict"' in checks
     assert '"npm", "run", "--prefix", "web", "typecheck"' in checks
-    assert '"npm", "run", "--prefix", "web", "test"' in checks
+    assert '"npm", "run", "--prefix", "web", "test:coverage"' in checks
     assert '"npm", "run", "--prefix", "web", "build"' in checks
     assert '"uv", "run", "clang-format", "--dry-run", "--Werror"' in checks
+
+
+def test_frontend_vitest_coverage_gate_exists() -> None:
+    package_json = _read("web/package.json")
+    vitest_config = _read("web/vitest.config.ts")
+    assert '"test:coverage": "vitest run --coverage"' in package_json
+    assert '"@vitest/coverage-v8"' in package_json
+    assert "thresholds" in vitest_config
+    assert "lines: 80" in vitest_config
 
 
 def test_architecture_docs_and_adr_scaffold_exist() -> None:
@@ -174,6 +187,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (
         ROOT / "docs" / "adr" / "0006-story-first-feature-extraction-and-schema-enforcement.md"
     ).exists()
+    assert (ROOT / "docs" / "adr" / "0007-frontend-coverage-gate.md").exists()
     assert (ROOT / "docs" / "studio.md").exists()
     assert (ROOT / "docs" / "droplet_stack.md").exists()
     assert (ROOT / "docs" / "feature_pipeline.md").exists()

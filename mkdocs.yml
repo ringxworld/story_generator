@@ -29,6 +29,7 @@ nav:
       - 0004 FastAPI + React + Auth: adr/0004-fastapi-backend-react-studio-and-token-auth.md
       - 0005 DigitalOcean + S3-Compatible Storage: adr/0005-digitalocean-droplet-and-s3-compatible-storage-plan.md
       - 0006 Story Feature Pipeline: adr/0006-story-first-feature-extraction-and-schema-enforcement.md
+      - 0007 Frontend Coverage Gate: adr/0007-frontend-coverage-gate.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md
