@@ -27,6 +27,27 @@ Baseline hosted stack:
 - GitHub Pages
   - static docs and optional static frontend build
 
+## Compose variants for future cloud targets
+
+We keep additional compose templates under `ops/` for cloud portability planning:
+
+- `ops/docker-compose.droplet.yml`
+- `ops/docker-compose.aws.yml`
+- `ops/docker-compose.gcp.yml`
+- `ops/docker-compose.azure.yml`
+
+Each variant uses the same app contract and can run in two modes:
+
+- local fallback mode (bundled Postgres + MinIO containers)
+- managed-service mode (external DB/object storage via env vars)
+
+Environment templates:
+
+- `ops/.env.example`
+- `ops/.env.aws.example`
+- `ops/.env.gcp.example`
+- `ops/.env.azure.example`
+
 S3-compatible note:
 
 - MinIO gives local/self-host object storage semantics.

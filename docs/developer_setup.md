@@ -133,7 +133,20 @@ uv sync --group topic
 uv sync --group advanced
 ```
 
-## 8. Troubleshooting
+## 8. Optional cloud compose scaffolds
+
+If you want to smoke-test deployment shapes locally:
+
+```bash
+docker compose -f ops/docker-compose.droplet.yml --env-file ops/.env.example up -d
+docker compose -f ops/docker-compose.aws.yml --env-file ops/.env.aws.example up -d
+docker compose -f ops/docker-compose.gcp.yml --env-file ops/.env.gcp.example up -d
+docker compose -f ops/docker-compose.azure.yml --env-file ops/.env.azure.example up -d
+```
+
+Use these as reference scaffolds only; they are not production manifests.
+
+## 9. Troubleshooting
 
 `uv: command not found`
 

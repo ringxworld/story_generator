@@ -238,8 +238,14 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "web").is_dir()
     assert (ROOT / "ops").is_dir()
     assert (ROOT / "ops" / "docker-compose.droplet.yml").exists()
+    assert (ROOT / "ops" / "docker-compose.aws.yml").exists()
+    assert (ROOT / "ops" / "docker-compose.gcp.yml").exists()
+    assert (ROOT / "ops" / "docker-compose.azure.yml").exists()
     assert (ROOT / "ops" / "Caddyfile").exists()
     assert (ROOT / "ops" / ".env.example").exists()
+    assert (ROOT / "ops" / ".env.aws.example").exists()
+    assert (ROOT / "ops" / ".env.gcp.example").exists()
+    assert (ROOT / "ops" / ".env.azure.example").exists()
 
 
 def test_no_utils_module_names() -> None:
