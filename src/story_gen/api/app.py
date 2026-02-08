@@ -15,16 +15,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
+from story_gen.adapters.sqlite_feature_store import SQLiteFeatureStore, StoredFeatureRun
 from story_gen.adapters.sqlite_story_store import SQLiteStoryStore, StoredStory, StoredUser
 from story_gen.api.contracts import (
     AuthLoginRequest,
     AuthRegisterRequest,
     AuthTokenResponse,
+    ChapterBlock,
     StoryBlueprint,
     StoryCreateRequest,
+    StoryFeatureRowResponse,
+    StoryFeatureRunResponse,
     StoryResponse,
     StoryUpdateRequest,
     UserResponse,
+)
+from story_gen.core.story_feature_pipeline import (
+    ChapterFeatureInput,
+    StoryFeatureExtractionResult,
+    extract_story_features,
 )
 
 DEFAULT_DB_PATH = Path("work/local/story_gen.db")
@@ -55,6 +64,8 @@ class ApiRootResponse(BaseModel):
             "/api/v1/me",
             "/api/v1/stories",
             "/api/v1/stories/{story_id}",
+            "/api/v1/stories/{story_id}/features/extract",
+            "/api/v1/stories/{story_id}/features/latest",
         ]
     )
 
@@ -126,10 +137,49 @@ def _story_response(story: StoredStory) -> StoryResponse:
     )
 
 
+def _chapter_input_from_blueprint(chapter: ChapterBlock) -> ChapterFeatureInput:
+    source_text = chapter.draft_text or chapter.objective
+    return ChapterFeatureInput(
+        chapter_key=chapter.key,
+        title=chapter.title,
+        text=source_text,
+    )
+
+
+def _feature_run_response(
+    *,
+    run: StoredFeatureRun,
+    result: StoryFeatureExtractionResult,
+) -> StoryFeatureRunResponse:
+    return StoryFeatureRunResponse(
+        run_id=run.run_id,
+        story_id=run.story_id,
+        owner_id=run.owner_id,
+        schema_version=run.schema_version,
+        extracted_at_utc=run.extracted_at_utc,
+        chapter_features=[
+            StoryFeatureRowResponse(
+                schema_version=row.schema_version,
+                story_id=row.story_id,
+                chapter_key=row.chapter_key,
+                chapter_index=row.chapter_index,
+                source_length_chars=row.source_length_chars,
+                sentence_count=row.sentence_count,
+                token_count=row.token_count,
+                avg_sentence_length=row.avg_sentence_length,
+                dialogue_line_ratio=row.dialogue_line_ratio,
+                top_keywords=row.top_keywords,
+            )
+            for row in result.chapter_features
+        ],
+    )
+
+
 def create_app(db_path: Path | None = None) -> FastAPI:
     """Create the API application."""
     effective_db_path = _resolve_db_path(db_path)
     store = SQLiteStoryStore(db_path=effective_db_path)
+    feature_store = SQLiteFeatureStore(db_path=effective_db_path)
     bearer = HTTPBearer(auto_error=False)
 
     app = FastAPI(
@@ -253,6 +303,48 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         if story is None:
             raise HTTPException(status_code=404, detail="Story not found")
         return _story_response(story)
+
+    @app.post(
+        "/api/v1/stories/{story_id}/features/extract",
+        response_model=StoryFeatureRunResponse,
+        tags=["stories", "features"],
+    )
+    def extract_features(
+        story_id: str, user: StoredUser = Depends(current_user)
+    ) -> StoryFeatureRunResponse:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        blueprint = StoryBlueprint.model_validate_json(story.blueprint_json)
+        chapters = [_chapter_input_from_blueprint(chapter) for chapter in blueprint.chapters]
+        if not chapters:
+            raise HTTPException(
+                status_code=422,
+                detail="Story must include at least one chapter to extract features.",
+            )
+        result = extract_story_features(story_id=story.story_id, chapters=chapters)
+        run = feature_store.write_feature_result(owner_id=user.user_id, result=result)
+        return _feature_run_response(run=run, result=result)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/features/latest",
+        response_model=StoryFeatureRunResponse,
+        tags=["stories", "features"],
+    )
+    def get_latest_features(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> StoryFeatureRunResponse:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        latest = feature_store.get_latest_feature_result(
+            owner_id=user.user_id, story_id=story.story_id
+        )
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Feature run not found")
+        run, result = latest
+        return _feature_run_response(run=run, result=result)
 
     return app
 

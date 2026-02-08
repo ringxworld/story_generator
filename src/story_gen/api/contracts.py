@@ -154,7 +154,9 @@ class StoryBlueprint(ContractModel):
                 raise ValueError(
                     f"Chapter '{chapter.key}' references unknown character keys: {unknown_characters}."
                 )
-            unknown_prerequisites = [key for key in chapter.prerequisites if key not in chapter_keys]
+            unknown_prerequisites = [
+                key for key in chapter.prerequisites if key not in chapter_keys
+            ]
             if unknown_prerequisites:
                 raise ValueError(
                     f"Chapter '{chapter.key}' references unknown prerequisite chapter keys: {unknown_prerequisites}."
@@ -222,6 +224,32 @@ class StoryResponse(ContractModel):
     blueprint: StoryBlueprint
     created_at_utc: str
     updated_at_utc: str
+
+
+class StoryFeatureRowResponse(ContractModel):
+    """Feature metrics extracted for one chapter."""
+
+    schema_version: str
+    story_id: str
+    chapter_key: str
+    chapter_index: int
+    source_length_chars: int
+    sentence_count: int
+    token_count: int
+    avg_sentence_length: float
+    dialogue_line_ratio: float
+    top_keywords: list[str]
+
+
+class StoryFeatureRunResponse(ContractModel):
+    """Latest persisted feature extraction result for one story."""
+
+    run_id: str
+    story_id: str
+    owner_id: str
+    schema_version: str
+    extracted_at_utc: str
+    chapter_features: list[StoryFeatureRowResponse]
 
 
 class AuthRegisterRequest(ContractModel):

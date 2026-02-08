@@ -34,6 +34,10 @@ uv run story-api --db-path work/local/story_gen.db
   - Reads one owner-scoped story.
 - `PUT /api/v1/stories/{story_id}`
   - Updates title/blueprint for one owner-scoped story.
+- `POST /api/v1/stories/{story_id}/features/extract`
+  - Runs story-first chapter feature extraction and persists a new run.
+- `GET /api/v1/stories/{story_id}/features/latest`
+  - Returns latest persisted extraction result for that story.
 
 ## Notes
 

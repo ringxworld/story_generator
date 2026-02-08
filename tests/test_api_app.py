@@ -66,6 +66,7 @@ def test_api_root_reports_auth_and_story_endpoints() -> None:
     assert payload["auth"] == "bearer-token"
     assert "/api/v1/auth/register" in payload["endpoints"]
     assert "/api/v1/stories" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/features/extract" in payload["endpoints"]
 
 
 def test_api_includes_cors_headers_for_local_studio_origin(tmp_path: Path) -> None:
@@ -118,6 +119,22 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
     assert update.status_code == 200
     assert update.json()["title"] == "Chapter Plan Revised"
 
+    latest_before_extract = client.get(
+        f"/api/v1/stories/{story_id}/features/latest", headers=headers
+    )
+    assert latest_before_extract.status_code == 404
+
+    extracted = client.post(f"/api/v1/stories/{story_id}/features/extract", headers=headers)
+    assert extracted.status_code == 200
+    extracted_payload = extracted.json()
+    assert extracted_payload["story_id"] == story_id
+    assert extracted_payload["schema_version"] == "story_features.v1"
+    assert extracted_payload["chapter_features"]
+
+    latest = client.get(f"/api/v1/stories/{story_id}/features/latest", headers=headers)
+    assert latest.status_code == 200
+    assert latest.json()["run_id"] == extracted_payload["run_id"]
+
 
 def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     client = TestClient(create_app(db_path=tmp_path / "stories.db"))
@@ -136,8 +153,12 @@ def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
         headers=bob_headers,
         json={"title": "Hijack", "blueprint": _sample_blueprint()},
     )
+    bob_extract = client.post(f"/api/v1/stories/{story_id}/features/extract", headers=bob_headers)
+    bob_latest = client.get(f"/api/v1/stories/{story_id}/features/latest", headers=bob_headers)
     assert bob_get.status_code == 404
     assert bob_put.status_code == 404
+    assert bob_extract.status_code == 404
+    assert bob_latest.status_code == 404
 
 
 def test_register_and_login_failure_paths(tmp_path: Path) -> None:
@@ -205,3 +226,21 @@ def test_story_create_rejects_invalid_blueprint_invariants(tmp_path: Path) -> No
         json={"title": "Broken Blueprint", "blueprint": invalid_blueprint},
     )
     assert response.status_code == 422
+
+
+def test_feature_extract_rejects_story_without_chapters(tmp_path: Path) -> None:
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    headers = _auth_headers(client, "alice@example.com")
+
+    empty_chapters_blueprint = _sample_blueprint()
+    empty_chapters_blueprint["chapters"] = []
+    created = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "No Chapters", "blueprint": empty_chapters_blueprint},
+    )
+    assert created.status_code == 201
+    story_id = created.json()["story_id"]
+
+    extracted = client.post(f"/api/v1/stories/{story_id}/features/extract", headers=headers)
+    assert extracted.status_code == 422

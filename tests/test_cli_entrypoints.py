@@ -6,9 +6,18 @@ from pathlib import Path
 
 import pytest
 
+from story_gen.adapters.sqlite_feature_store import SQLiteFeatureStore
+from story_gen.adapters.sqlite_story_store import SQLiteStoryStore
 from story_gen.api.contracts import StoryBlueprint
 from story_gen.cli import api as api_cli
-from story_gen.cli import app, blueprint, reference_pipeline, story_collector, youtube_downloader
+from story_gen.cli import (
+    app,
+    blueprint,
+    features,
+    reference_pipeline,
+    story_collector,
+    youtube_downloader,
+)
 from story_gen.cli.reference_pipeline import PipelineArgs
 from story_gen.cli.story_collector import StoryCollectorArgs
 from story_gen.cli.youtube_downloader import VideoStoryArgs
@@ -104,3 +113,52 @@ def test_blueprint_cli_validates_and_rewrites_json(tmp_path: Path) -> None:
     blueprint.main(["--input", str(path)])
     reparsed = StoryBlueprint.model_validate_json(path.read_text(encoding="utf-8"))
     assert reparsed.premise == "Premise"
+
+
+def test_features_cli_extracts_and_persists_rows(tmp_path: Path) -> None:
+    db_path = tmp_path / "stories.db"
+    story_store = SQLiteStoryStore(db_path=db_path)
+    user = story_store.create_user(
+        email="alice@example.com",
+        display_name="Alice",
+        password_hash="hash",
+    )
+    assert user is not None
+    blueprint_payload = StoryBlueprint.model_validate(
+        {
+            "premise": "Premise",
+            "themes": [{"key": "memory", "statement": "x", "priority": 1}],
+            "characters": [{"key": "rhea", "role": "investigator", "motivation": "find"}],
+            "chapters": [
+                {
+                    "key": "ch01",
+                    "title": "Chapter 1",
+                    "objective": "Introduce contradiction.",
+                    "required_themes": ["memory"],
+                    "participating_characters": ["rhea"],
+                    "prerequisites": [],
+                    "draft_text": "Sample text. Another sentence.",
+                }
+            ],
+            "canon_rules": [],
+        }
+    )
+    story = story_store.create_story(
+        owner_id=user.user_id,
+        title="Story",
+        blueprint_json=blueprint_payload.model_dump_json(),
+    )
+
+    features.main(
+        [
+            "--db-path",
+            str(db_path),
+            "--story-id",
+            story.story_id,
+            "--owner-id",
+            user.user_id,
+        ]
+    )
+    feature_store = SQLiteFeatureStore(db_path=db_path)
+    latest = feature_store.get_latest_feature_result(owner_id=user.user_id, story_id=story.story_id)
+    assert latest is not None

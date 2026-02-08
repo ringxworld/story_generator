@@ -9,6 +9,7 @@ import httpx
 from story_gen.api.contracts import (
     StoryBlueprint,
     StoryCreateRequest,
+    StoryFeatureRunResponse,
     StoryResponse,
     StoryUpdateRequest,
     load_blueprint_json,
@@ -91,6 +92,24 @@ class StoryApiClient:
         )
         response.raise_for_status()
         return StoryResponse.model_validate(response.json())
+
+    def extract_features(self, *, session: AuthSession, story_id: str) -> StoryFeatureRunResponse:
+        response = httpx.post(
+            f"{session.api_base_url}/api/v1/stories/{story_id}/features/extract",
+            headers={"Authorization": f"Bearer {session.access_token}"},
+            timeout=60.0,
+        )
+        response.raise_for_status()
+        return StoryFeatureRunResponse.model_validate(response.json())
+
+    def latest_features(self, *, session: AuthSession, story_id: str) -> StoryFeatureRunResponse:
+        response = httpx.get(
+            f"{session.api_base_url}/api/v1/stories/{story_id}/features/latest",
+            headers={"Authorization": f"Bearer {session.access_token}"},
+            timeout=30.0,
+        )
+        response.raise_for_status()
+        return StoryFeatureRunResponse.model_validate(response.json())
 
 
 __all__ = [

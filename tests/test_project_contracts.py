@@ -23,6 +23,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "cpp-cppcheck:" in makefile
     assert "collect-story:" in makefile
     assert "video-story:" in makefile
+    assert "features:" in makefile
     assert "import-check:" in makefile
     assert "quality: lock-check import-check" in makefile
 
@@ -97,6 +98,7 @@ def test_pyproject_exposes_story_collection_entrypoints() -> None:
     assert 'story-video = "story_gen.cli.youtube_downloader:main"' in pyproject
     assert 'story-api = "story_gen.cli.api:main"' in pyproject
     assert 'story-blueprint = "story_gen.cli.blueprint:main"' in pyproject
+    assert 'story-features = "story_gen.cli.features:main"' in pyproject
 
 
 def test_mkdocs_configuration_exists() -> None:
@@ -107,6 +109,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "Deployment:" in config
     assert "Studio:" in config
     assert "Droplet Stack:" in config
+    assert "Feature Pipeline:" in config
     assert "Architecture:" in config
     assert "ADR:" in config
 
@@ -161,9 +164,15 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0002-nlp-stack-and-analysis-contract-scaffold.md").exists()
     assert (ROOT / "docs" / "adr" / "0003-pages-static-hosting-and-local-sqlite-api.md").exists()
     assert (ROOT / "docs" / "adr" / "0004-fastapi-backend-react-studio-and-token-auth.md").exists()
-    assert (ROOT / "docs" / "adr" / "0005-digitalocean-droplet-and-s3-compatible-storage-plan.md").exists()
+    assert (
+        ROOT / "docs" / "adr" / "0005-digitalocean-droplet-and-s3-compatible-storage-plan.md"
+    ).exists()
+    assert (
+        ROOT / "docs" / "adr" / "0006-story-first-feature-extraction-and-schema-enforcement.md"
+    ).exists()
     assert (ROOT / "docs" / "studio.md").exists()
     assert (ROOT / "docs" / "droplet_stack.md").exists()
+    assert (ROOT / "docs" / "feature_pipeline.md").exists()
 
 
 def test_analysis_contract_scaffold_exists_and_is_valid_json() -> None:

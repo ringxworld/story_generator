@@ -10,7 +10,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test coverage quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint web-install web-dev web-typecheck web-test web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test coverage quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features web-install web-dev web-typecheck web-test web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -38,6 +38,7 @@ help:
 	@echo "  make video-story          - download VIDEO_URL audio and optional transcript"
 	@echo "  make api                  - run local API stub server"
 	@echo "  make blueprint            - validate/normalize a blueprint JSON file"
+	@echo "  make features             - extract persisted chapter features for one story"
 	@echo "  make web-install          - install frontend dependencies"
 	@echo "  make web-dev              - run React+TS frontend dev server"
 	@echo "  make web-typecheck        - run frontend TypeScript checks"
@@ -122,6 +123,9 @@ api:
 
 blueprint:
 	$(RUN) story-blueprint --input work/story_blueprint.json
+
+features:
+	$(RUN) story-features --story-id $$STORY_ID --owner-id $$OWNER_ID
 
 web-install:
 	npm install --prefix web

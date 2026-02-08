@@ -7,10 +7,10 @@ This file defines the stable shape of the repository and import boundaries.
 - `src/story_gen/api/`
   - Public Python API layer and HTTP surfaces.
 - `src/story_gen/core/`
-  - Internal pure business logic and domain orchestration.
+  - Internal pure business logic, domain orchestration, and deterministic feature extraction.
 - `src/story_gen/adapters/`
   - Side effects: filesystem, network, subprocesses, model loading.
-  - Local persistence adapters (for example SQLite story storage).
+  - Local persistence adapters (for example SQLite story/feature storage).
 - `src/story_gen/native/`
   - Python-facing boundary for compiled/native integrations.
 - `src/story_gen/cli/`
