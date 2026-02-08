@@ -9,6 +9,8 @@ def _read(path: str) -> str:
 
 def test_makefile_contains_quality_and_native_targets() -> None:
     makefile = _read("Makefile")
+    assert "hooks-install:" in makefile
+    assert "hooks-run:" in makefile
     assert "quality:" in makefile
     assert "deploy: quality build-site" in makefile
     assert "cpp-configure:" in makefile
@@ -22,6 +24,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
 
 def test_ci_workflow_includes_code_quality_steps() -> None:
     workflow = _read(".github/workflows/ci.yml")
+    assert "Pre-commit hooks (all files)" in workflow
     assert "uv lock --check" in workflow
     assert "uv run ruff check ." in workflow
     assert "uv run ruff format --check ." in workflow
@@ -58,3 +61,4 @@ def test_native_cmake_scaffold_present() -> None:
 def test_native_quality_config_files_exist() -> None:
     assert (ROOT / ".clang-format").exists()
     assert (ROOT / ".clang-tidy").exists()
+    assert (ROOT / ".pre-commit-config.yaml").exists()

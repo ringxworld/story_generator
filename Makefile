@@ -7,11 +7,13 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync lock-check lint fix format format-check typecheck test quality check story build-site reference reference-translate cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check lint fix format format-check typecheck test quality check story build-site reference reference-translate cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
 	@echo "  make sync                 - install/update dependencies with uv"
+	@echo "  make hooks-install        - install git pre-commit and pre-push hooks"
+	@echo "  make hooks-run            - run pre-commit on all files"
 	@echo "  make lock-check           - verify uv.lock matches pyproject constraints"
 	@echo "  make lint                 - run ruff checks"
 	@echo "  make fix                  - auto-fix lint issues and format code"
@@ -37,6 +39,12 @@ help:
 
 sync:
 	$(UV) sync --all-groups
+
+hooks-install:
+	$(RUN) pre-commit install --hook-type pre-commit --hook-type pre-push
+
+hooks-run:
+	$(RUN) pre-commit run --all-files
 
 lock-check:
 	$(UV) lock --check

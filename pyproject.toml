@@ -19,6 +19,7 @@ story-reference = "story_gen.reference_pipeline:cli_main"
 
 [dependency-groups]
 dev = [
+  "pre-commit>=4.1.0",
   "mypy>=1.14.0",
   "pytest>=8.3.4",
   "ruff>=0.9.6",

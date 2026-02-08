@@ -1,0 +1,33 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  - repo: local
+    hooks:
+      - id: ruff-check-fix
+        name: ruff check --fix
+        entry: uv run ruff check --fix
+        language: system
+        types_or: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types_or: [python]
+      - id: cxx-format-check
+        name: clang-format --dry-run --Werror
+        entry: clang-format --dry-run --Werror
+        language: system
+        files: ^cpp/.*\.(cpp|hpp|h)$
+      - id: py-quality-pre-push
+        name: python quality checks (pre-push)
+        entry: uv run python -m story_gen.pre_push_checks
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

@@ -23,6 +23,14 @@ jobs:
       - name: Sync dependencies
         run: uv sync --all-groups
 
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Pre-commit hooks (all files)
+        run: uv run pre-commit run --all-files
+
       - name: Lockfile check
         run: uv lock --check
 

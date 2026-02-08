@@ -24,6 +24,8 @@ Build `story_gen` as a disciplined story-engineering project:
 Use `Makefile` targets instead of ad-hoc commands whenever possible:
 
 - `make quality` -> lockfile check + lint + format-check + mypy + pytest
+- `make hooks-install` -> install local pre-commit/pre-push gates
+- `make hooks-run` -> run all configured hooks
 - `make fix` -> auto-fix lint + format
 - `make test` -> pytest
 - `make build-site` -> build static site
@@ -43,6 +45,11 @@ Any meaningful code change should pass:
 3. `uv run ruff format --check .`
 4. `uv run mypy`
 5. `uv run pytest`
+
+Local commit/push guardrails should be enabled via pre-commit:
+
+- `pre-commit` stage: formatting/lint safeguards
+- `pre-push` stage: `uv lock --check`, `mypy`, `pytest`
 
 ## Typing Standards
 
