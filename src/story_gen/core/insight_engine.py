@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from story_gen.core.pipeline_contracts import validate_insight_input, validate_insight_output
 from story_gen.core.story_schema import (
+    STORY_STAGE_ORDER,
     ConfidenceScore,
     Insight,
     ProvenanceRecord,
     StoryBeat,
+    StoryStage,
     ThemeSignal,
     stable_id,
 )
@@ -18,12 +20,7 @@ def generate_insights(*, beats: list[StoryBeat], themes: list[ThemeSignal]) -> l
     validate_insight_input(beats, themes)
     insights: list[Insight] = []
 
-    stage_groups: dict[str, list[StoryBeat]] = {
-        "setup": [],
-        "escalation": [],
-        "climax": [],
-        "resolution": [],
-    }
+    stage_groups: dict[StoryStage, list[StoryBeat]] = {stage: [] for stage in STORY_STAGE_ORDER}
     for beat in beats:
         stage_groups[beat.stage].append(beat)
 
@@ -48,7 +45,7 @@ def generate_insights(*, beats: list[StoryBeat], themes: list[ThemeSignal]) -> l
         )
     )
 
-    for stage in ("setup", "escalation", "climax", "resolution"):
+    for stage in STORY_STAGE_ORDER:
         stage_beats = stage_groups[stage]
         if not stage_beats:
             continue

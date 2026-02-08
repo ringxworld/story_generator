@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
 
 from story_gen.core.pipeline_contracts import validate_timeline_input, validate_timeline_output
 from story_gen.core.story_schema import (
@@ -11,11 +10,10 @@ from story_gen.core.story_schema import (
     ExtractedEvent,
     ProvenanceRecord,
     StoryBeat,
+    StoryStage,
     TimelinePoint,
     stable_id,
 )
-
-StageName = Literal["setup", "escalation", "climax", "resolution"]
 
 
 @dataclass(frozen=True)
@@ -88,7 +86,8 @@ def compose_timeline(
     return ComposedTimeline(actual_time=actual_time, narrative_order=narrative_order)
 
 
-def _stage_for_order(order: int, total: int) -> StageName:
+def _stage_for_order(order: int, total: int) -> StoryStage:
+    # TODO(#1006): Derive event stage from beat linkage instead of order-ratio heuristic.
     if total <= 1:
         return "setup"
     ratio = order / total

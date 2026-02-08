@@ -5,7 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from html import escape
 
-from story_gen.core.story_schema import Insight, StoryDocument, ThemeSignal, TimelinePoint
+from story_gen.core.story_schema import (
+    Insight,
+    StoryDocument,
+    StoryStage,
+    ThemeSignal,
+    TimelinePoint,
+)
 from story_gen.core.theme_arc_tracking import ArcSignal, ConflictShift, EmotionSignal
 
 
@@ -35,7 +41,7 @@ class ThemeHeatmapCell:
     """Heatmap cell for one theme/stage pair."""
 
     theme: str
-    stage: str
+    stage: StoryStage
     intensity: float
 
 
@@ -44,7 +50,7 @@ class ArcChartPoint:
     """Arc chart point for character/conflict/emotion panels."""
 
     lane: str
-    stage: str
+    stage: StoryStage
     value: float
     label: str
 
@@ -67,7 +73,7 @@ class GraphNode:
     id: str
     label: str
     group: str
-    stage: str | None
+    stage: StoryStage | None
 
 
 @dataclass(frozen=True)
@@ -174,31 +180,29 @@ def _build_overview(document: StoryDocument) -> DashboardOverviewCard:
 def _build_timeline_lanes(
     actual: list[TimelinePoint], narrative: list[TimelinePoint]
 ) -> list[TimelineLaneView]:
+    actual_items = _project_timeline_items(actual)
+    narrative_items = _project_timeline_items(narrative)
     return [
         TimelineLaneView(
             lane="actual_time",
-            items=[
-                {
-                    "id": point.point_id,
-                    "label": point.label,
-                    "order": point.narrative_order,
-                    "time": point.actual_time_utc,
-                }
-                for point in actual
-            ],
+            items=actual_items,
         ),
         TimelineLaneView(
             lane="narrative_order",
-            items=[
-                {
-                    "id": point.point_id,
-                    "label": point.label,
-                    "order": point.narrative_order,
-                    "time": point.actual_time_utc,
-                }
-                for point in narrative
-            ],
+            items=narrative_items,
         ),
+    ]
+
+
+def _project_timeline_items(points: list[TimelinePoint]) -> list[dict[str, str | int | None]]:
+    return [
+        {
+            "id": point.point_id,
+            "label": point.label,
+            "order": point.narrative_order,
+            "time": point.actual_time_utc,
+        }
+        for point in points
     ]
 
 
@@ -296,6 +300,7 @@ def _build_graph(
 
     theme_ids = [theme.theme_id for theme in document.theme_signals]
     beat_ids = [beat.beat_id for beat in document.story_beats]
+    # TODO(#1007): Replace dense theme->beat linking with evidence-driven graph edges.
     for theme_id in theme_ids:
         for beat_id in beat_ids:
             edges.append(

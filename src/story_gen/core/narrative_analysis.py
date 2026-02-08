@@ -2,23 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Literal
-
 from story_gen.core.pipeline_contracts import validate_beat_input, validate_beat_output
 from story_gen.core.story_schema import (
+    STORY_STAGE_ORDER,
     ConfidenceScore,
     ExtractedEvent,
     ProvenanceRecord,
     StoryBeat,
+    StoryStage,
     stable_id,
-)
-
-StageName = Literal["setup", "escalation", "climax", "resolution"]
-_STAGES: tuple[StageName, StageName, StageName, StageName] = (
-    "setup",
-    "escalation",
-    "climax",
-    "resolution",
 )
 
 
@@ -48,7 +40,7 @@ def detect_story_beats(*, events: list[ExtractedEvent]) -> list[StoryBeat]:
     return beats
 
 
-def _stage_for_position(*, position: int, total: int) -> StageName:
+def _stage_for_position(*, position: int, total: int) -> StoryStage:
     if total <= 3:
         if position == 1:
             return "setup"
@@ -57,9 +49,9 @@ def _stage_for_position(*, position: int, total: int) -> StageName:
         return "climax"
     quarter = max(1, total // 4)
     if position <= quarter:
-        return _STAGES[0]
+        return STORY_STAGE_ORDER[0]
     if position <= quarter * 2:
-        return _STAGES[1]
+        return STORY_STAGE_ORDER[1]
     if position <= quarter * 3:
-        return _STAGES[2]
-    return _STAGES[3]
+        return STORY_STAGE_ORDER[2]
+    return STORY_STAGE_ORDER[3]

@@ -5,12 +5,19 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime
 from hashlib import sha256
-from typing import Final, Literal
+from typing import Final, Literal, TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 STORY_SCHEMA_VERSION: Final[Literal["story_analysis.v1"]] = "story_analysis.v1"
 _ID_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{1,119}$")
+StoryStage: TypeAlias = Literal["setup", "escalation", "climax", "resolution"]
+STORY_STAGE_ORDER: Final[tuple[StoryStage, StoryStage, StoryStage, StoryStage]] = (
+    "setup",
+    "escalation",
+    "climax",
+    "resolution",
+)
 
 
 def utc_now_iso() -> str:
@@ -98,7 +105,7 @@ class StoryBeat(SchemaModel):
     """Narrative beat mapped to a story stage."""
 
     beat_id: str = Field(min_length=3, max_length=140)
-    stage: Literal["setup", "escalation", "climax", "resolution"]
+    stage: StoryStage
     order_index: int = Field(ge=1)
     summary: str = Field(min_length=1, max_length=4000)
     timestamp_utc: str | None = None
@@ -112,7 +119,7 @@ class ThemeSignal(SchemaModel):
 
     theme_id: str = Field(min_length=3, max_length=140)
     label: str = Field(min_length=1, max_length=200)
-    stage: Literal["setup", "escalation", "climax", "resolution"]
+    stage: StoryStage
     strength: float = Field(ge=0.0, le=1.0)
     direction: Literal["emerging", "strengthening", "steady", "fading"]
     evidence_segment_ids: list[str] = Field(min_length=1)
@@ -141,7 +148,7 @@ class TimelinePoint(SchemaModel):
     label: str = Field(min_length=1, max_length=1000)
     narrative_order: int = Field(ge=1)
     actual_time_utc: str | None = None
-    stage: Literal["setup", "escalation", "climax", "resolution"]
+    stage: StoryStage
     confidence: ConfidenceScore
     provenance: ProvenanceRecord
 
@@ -153,7 +160,7 @@ class Insight(SchemaModel):
     granularity: Literal["macro", "meso", "micro"]
     title: str = Field(min_length=1, max_length=240)
     content: str = Field(min_length=1, max_length=8000)
-    stage: Literal["setup", "escalation", "climax", "resolution"] | None = None
+    stage: StoryStage | None = None
     beat_id: str | None = None
     evidence_segment_ids: list[str] = Field(min_length=1)
     confidence: ConfidenceScore

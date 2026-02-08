@@ -8,15 +8,18 @@ from typing import Literal
 
 from story_gen.core.pipeline_contracts import validate_theme_input, validate_theme_output
 from story_gen.core.story_schema import (
+    STORY_STAGE_ORDER,
     ConfidenceScore,
     EntityMention,
     ProvenanceRecord,
     StoryBeat,
+    StoryStage,
     ThemeSignal,
     stable_id,
 )
 
 _THEME_KEYWORDS: dict[str, tuple[str, ...]] = {
+    # TODO(#1001): Replace keyword-based tagging with model-backed theme extraction.
     "memory": ("memory", "remember", "archive", "history"),
     "conflict": ("fight", "conflict", "war", "battle"),
     "identity": ("identity", "name", "self", "origin"),
@@ -34,7 +37,7 @@ class ArcSignal:
 
     entity_id: str
     entity_name: str
-    stage: str
+    stage: StoryStage
     state: str
     delta: float
 
@@ -43,9 +46,9 @@ class ArcSignal:
 class ConflictShift:
     """Conflict shift signal used by dashboard read model."""
 
-    stage: str
-    from_state: str
-    to_state: str
+    stage: StoryStage
+    from_state: StoryStage
+    to_state: StoryStage
     intensity_delta: float
 
 
@@ -53,7 +56,7 @@ class ConflictShift:
 class EmotionSignal:
     """Emotion signal per stage."""
 
-    stage: str
+    stage: StoryStage
     tone: str
     score: float
 
@@ -123,7 +126,7 @@ def _build_arcs(beats: list[StoryBeat], entities: list[EntityMention]) -> list[A
     arcs: list[ArcSignal] = []
     for entity in ordered:
         prev = 0.0
-        for stage in ("setup", "escalation", "climax", "resolution"):
+        for stage in STORY_STAGE_ORDER:
             stage_value = stage_counter.get(stage, 0) / max(len(beats), 1)
             delta = round(stage_value - prev, 3)
             state = "active" if stage_value > 0 else "inactive"
@@ -141,17 +144,16 @@ def _build_arcs(beats: list[StoryBeat], entities: list[EntityMention]) -> list[A
 
 
 def _build_conflicts(beats: list[StoryBeat]) -> list[ConflictShift]:
-    stage_scores: dict[str, float] = {}
-    for stage in ("setup", "escalation", "climax", "resolution"):
+    stage_scores: dict[StoryStage, float] = {}
+    for stage in STORY_STAGE_ORDER:
         stage_text = " ".join(beat.summary.lower() for beat in beats if beat.stage == stage)
         score = sum(1 for token in _NEGATIVE_WORDS if token in stage_text)
         stage_scores[stage] = float(score)
 
     shifts: list[ConflictShift] = []
-    ordered_stages = ("setup", "escalation", "climax", "resolution")
-    for idx in range(1, len(ordered_stages)):
-        prev_stage = ordered_stages[idx - 1]
-        stage = ordered_stages[idx]
+    for idx in range(1, len(STORY_STAGE_ORDER)):
+        prev_stage = STORY_STAGE_ORDER[idx - 1]
+        stage = STORY_STAGE_ORDER[idx]
         delta = round(stage_scores[stage] - stage_scores[prev_stage], 3)
         shifts.append(
             ConflictShift(
@@ -166,7 +168,7 @@ def _build_conflicts(beats: list[StoryBeat]) -> list[ConflictShift]:
 
 def _build_emotions(beats: list[StoryBeat]) -> list[EmotionSignal]:
     signals: list[EmotionSignal] = []
-    for stage in ("setup", "escalation", "climax", "resolution"):
+    for stage in STORY_STAGE_ORDER:
         stage_text = " ".join(beat.summary.lower() for beat in beats if beat.stage == stage)
         positive = sum(1 for token in _POSITIVE_WORDS if token in stage_text)
         negative = sum(1 for token in _NEGATIVE_WORDS if token in stage_text)
