@@ -9,8 +9,7 @@
 namespace {
 
 struct Metrics {
-  Metrics()
-      : bytes(0), codepoints(0), lines(0), non_empty_lines(0), dialogue_lines(0) {}
+  Metrics() : bytes(0), codepoints(0), lines(0), non_empty_lines(0), dialogue_lines(0) {}
 
   std::size_t bytes;
   std::size_t codepoints;
@@ -19,10 +18,8 @@ struct Metrics {
   std::size_t dialogue_lines;
 };
 
-bool DecodeNextCodepoint(
-    const std::string& text,
-    std::size_t* index,
-    std::uint32_t* out_codepoint) {
+bool DecodeNextCodepoint(const std::string& text, std::size_t* index,
+                         std::uint32_t* out_codepoint) {
   if (*index >= text.size()) {
     return false;
   }
@@ -53,8 +50,7 @@ bool DecodeNextCodepoint(
     if (!require_continuation(*index + 1)) {
       return fail_as_single();
     }
-    const std::uint32_t value =
-        ((first & 0x1F) << 6) | (bytes[*index + 1] & 0x3F);
+    const std::uint32_t value = ((first & 0x1F) << 6) | (bytes[*index + 1] & 0x3F);
     *index += 2;
     *out_codepoint = value;
     return true;
@@ -64,9 +60,8 @@ bool DecodeNextCodepoint(
     if (!require_continuation(*index + 1) || !require_continuation(*index + 2)) {
       return fail_as_single();
     }
-    const std::uint32_t value = ((first & 0x0F) << 12) |
-                                ((bytes[*index + 1] & 0x3F) << 6) |
-                                (bytes[*index + 2] & 0x3F);
+    const std::uint32_t value =
+        ((first & 0x0F) << 12) | ((bytes[*index + 1] & 0x3F) << 6) | (bytes[*index + 2] & 0x3F);
     *index += 3;
     *out_codepoint = value;
     return true;
@@ -77,10 +72,8 @@ bool DecodeNextCodepoint(
         !require_continuation(*index + 3)) {
       return fail_as_single();
     }
-    const std::uint32_t value = ((first & 0x07) << 18) |
-                                ((bytes[*index + 1] & 0x3F) << 12) |
-                                ((bytes[*index + 2] & 0x3F) << 6) |
-                                (bytes[*index + 3] & 0x3F);
+    const std::uint32_t value = ((first & 0x07) << 18) | ((bytes[*index + 1] & 0x3F) << 12) |
+                                ((bytes[*index + 2] & 0x3F) << 6) | (bytes[*index + 3] & 0x3F);
     *index += 4;
     *out_codepoint = value;
     return true;
@@ -164,8 +157,7 @@ double DialogueDensity(const Metrics& metrics) {
   if (metrics.non_empty_lines == 0) {
     return 0.0;
   }
-  return static_cast<double>(metrics.dialogue_lines) /
-         static_cast<double>(metrics.non_empty_lines);
+  return static_cast<double>(metrics.dialogue_lines) / static_cast<double>(metrics.non_empty_lines);
 }
 
 std::string ReadFileUtf8(const std::string& path) {
@@ -210,7 +202,7 @@ std::string DemoText() {
          "Final narration line.\n";
 }
 
-}  // namespace
+} // namespace
 
 int main(int argc, char** argv) {
   std::string input_path;

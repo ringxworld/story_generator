@@ -50,7 +50,7 @@ sync:
 	$(UV) sync --all-groups
 
 hooks-install:
-	$(RUN) pre-commit install --hook-type pre-commit --hook-type pre-push
+	$(RUN) pre-commit install --install-hooks --hook-type pre-commit --hook-type pre-push
 
 hooks-run:
 	$(RUN) pre-commit run --all-files
@@ -123,10 +123,10 @@ cpp-demo: cpp-build
 	ctest --test-dir $(CPP_BUILD_DIR) -C $(CPP_CONFIG) -R chapter_metrics_demo --output-on-failure
 
 cpp-format:
-	clang-format -i cpp/*.cpp
+	$(RUN) clang-format -i cpp/*.cpp
 
 cpp-format-check:
-	clang-format --dry-run --Werror cpp/*.cpp
+	$(RUN) clang-format --dry-run --Werror cpp/*.cpp
 
 cpp-cppcheck:
 	cppcheck --enable=warning,style,performance,portability --error-exitcode=2 cpp

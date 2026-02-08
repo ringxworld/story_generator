@@ -2,7 +2,10 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
+      - id: check-added-large-files
       - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
       - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: mixed-line-ending
@@ -20,9 +23,14 @@ repos:
         entry: uv run ruff format
         language: system
         types_or: [python]
+      - id: cxx-format-fix
+        name: clang-format -i
+        entry: uv run clang-format -i
+        language: system
+        files: ^cpp/.*\.(cpp|hpp|h)$
       - id: cxx-format-check
         name: clang-format --dry-run --Werror
-        entry: clang-format --dry-run --Werror
+        entry: uv run clang-format --dry-run --Werror
         language: system
         files: ^cpp/.*\.(cpp|hpp|h)$
       - id: py-quality-pre-push

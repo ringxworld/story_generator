@@ -77,6 +77,13 @@ Expect CI to reject changes when:
 - sanitizer jobs fail
 - architecture boundaries are violated
 
+Recommended GitHub repository protection:
+
+- protect `main` with a ruleset/branch protection
+- require passing status checks (`CI`)
+- require pull request before merge
+- restrict direct pushes to `main`
+
 ## Entropy Prevention
 
 - No `utils` modules

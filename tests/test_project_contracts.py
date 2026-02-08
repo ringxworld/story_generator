@@ -72,6 +72,16 @@ def test_native_quality_config_files_exist() -> None:
     assert (ROOT / "LICENSE").exists()
 
 
+def test_precommit_enforces_commit_and_push_quality() -> None:
+    precommit = _read(".pre-commit-config.yaml")
+    assert "check-added-large-files" in precommit
+    assert "check-toml" in precommit
+    assert "check-yaml" in precommit
+    assert "cxx-format-fix" in precommit
+    assert "cxx-format-check" in precommit
+    assert "py-quality-pre-push" in precommit
+
+
 def test_pyproject_exposes_story_collection_entrypoints() -> None:
     pyproject = _read("pyproject.toml")
     assert 'story-reference = "story_gen.cli.reference_pipeline:main"' in pyproject
@@ -108,6 +118,12 @@ def test_argparse_boundaries_for_story_tools() -> None:
     assert "import argparse" in collect_cli
     assert "import argparse" in reference_cli
     assert "import argparse" in video_cli
+
+
+def test_pre_push_checks_include_docs_and_cpp_format() -> None:
+    checks = _read("src/story_gen/pre_push_checks.py")
+    assert '"uv", "run", "mkdocs", "build", "--strict"' in checks
+    assert '"clang-format", "--dry-run", "--Werror"' in checks
 
 
 def test_architecture_docs_and_adr_scaffold_exist() -> None:

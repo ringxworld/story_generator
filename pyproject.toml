@@ -25,6 +25,7 @@ story-api = "story_gen.cli.api:main"
 
 [dependency-groups]
 dev = [
+  "clang-format>=20.1.0",
   "pre-commit>=4.1.0",
   "mypy>=1.14.0",
   "mkdocs>=1.6.1",
