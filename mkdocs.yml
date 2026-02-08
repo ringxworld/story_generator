@@ -17,6 +17,7 @@ nav:
   - API: api.md
   - Deployment: deployment.md
   - Studio: studio.md
+  - Droplet Stack: droplet_stack.md
   - ADR:
       - Index: adr/README.md
       - Template: adr/0000-template.md
@@ -24,6 +25,7 @@ nav:
       - 0002 NLP Stack and Contracts: adr/0002-nlp-stack-and-analysis-contract-scaffold.md
       - 0003 Pages and SQLite API: adr/0003-pages-static-hosting-and-local-sqlite-api.md
       - 0004 FastAPI + React + Auth: adr/0004-fastapi-backend-react-studio-and-token-auth.md
+      - 0005 DigitalOcean + S3-Compatible Storage: adr/0005-digitalocean-droplet-and-s3-compatible-storage-plan.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

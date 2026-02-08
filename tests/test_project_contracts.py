@@ -106,6 +106,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "API:" in config
     assert "Deployment:" in config
     assert "Studio:" in config
+    assert "Droplet Stack:" in config
     assert "Architecture:" in config
     assert "ADR:" in config
 
@@ -160,7 +161,9 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0002-nlp-stack-and-analysis-contract-scaffold.md").exists()
     assert (ROOT / "docs" / "adr" / "0003-pages-static-hosting-and-local-sqlite-api.md").exists()
     assert (ROOT / "docs" / "adr" / "0004-fastapi-backend-react-studio-and-token-auth.md").exists()
+    assert (ROOT / "docs" / "adr" / "0005-digitalocean-droplet-and-s3-compatible-storage-plan.md").exists()
     assert (ROOT / "docs" / "studio.md").exists()
+    assert (ROOT / "docs" / "droplet_stack.md").exists()
 
 
 def test_analysis_contract_scaffold_exists_and_is_valid_json() -> None:
@@ -199,6 +202,10 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "src" / "story_gen" / "native").is_dir()
     assert (ROOT / "cpp" / "include").is_dir()
     assert (ROOT / "web").is_dir()
+    assert (ROOT / "ops").is_dir()
+    assert (ROOT / "ops" / "docker-compose.droplet.yml").exists()
+    assert (ROOT / "ops" / "Caddyfile").exists()
+    assert (ROOT / "ops" / ".env.example").exists()
 
 
 def test_no_utils_module_names() -> None:

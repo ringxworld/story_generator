@@ -38,6 +38,7 @@ Live project pages:
 - Reference ingestion + analysis workflow: `docs/reference_pipeline.md`
 - Native acceleration path (C++/CMake): `docs/native_cpp.md`
 - Deployment split (Pages + API): `docs/deployment.md`
+- Planned DigitalOcean deployment baseline: `docs/droplet_stack.md`
 - React + TypeScript story studio: `docs/studio.md`
 - Full-series text collection: `src/story_gen/cli/story_collector.py`
 - Video-story transcript ingestion: `src/story_gen/cli/youtube_downloader.py`
