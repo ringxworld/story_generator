@@ -6,8 +6,8 @@ from typing import Literal, Mapping, cast
 import httpx
 import pytest
 
-from story_gen.cli.reference import _pipeline_args_from_namespace
-from story_gen.cli.reference import main as reference_cli_main
+from story_gen.cli.reference_pipeline import _pipeline_args_from_namespace
+from story_gen.cli.reference_pipeline import main as reference_cli_main
 from story_gen.reference_pipeline import (
     EpisodeRecord,
     LibreTranslateTranslator,
@@ -187,7 +187,7 @@ def test_cli_main_normalizes_optional_args(monkeypatch: pytest.MonkeyPatch) -> N
     def fake_run_pipeline(args: PipelineArgs) -> None:
         captured["args"] = args
 
-    monkeypatch.setattr("story_gen.cli.reference.run_pipeline", fake_run_pipeline)
+    monkeypatch.setattr("story_gen.cli.reference_pipeline.run_pipeline", fake_run_pipeline)
 
     reference_cli_main(
         [

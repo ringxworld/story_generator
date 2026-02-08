@@ -18,9 +18,9 @@ dependencies = [
 
 [project.scripts]
 story-gen = "story_gen.cli:main"
-story-reference = "story_gen.cli.reference:main"
-story-collect = "story_gen.cli.collect:main"
-story-video = "story_gen.cli.video:main"
+story-reference = "story_gen.cli.reference_pipeline:main"
+story-collect = "story_gen.cli.story_collector:main"
+story-video = "story_gen.cli.youtube_downloader:main"
 story-api = "story_gen.cli.api:main"
 
 [dependency-groups]

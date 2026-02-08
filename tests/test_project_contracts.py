@@ -70,9 +70,9 @@ def test_native_quality_config_files_exist() -> None:
 
 def test_pyproject_exposes_story_collection_entrypoints() -> None:
     pyproject = _read("pyproject.toml")
-    assert 'story-reference = "story_gen.cli.reference:main"' in pyproject
-    assert 'story-collect = "story_gen.cli.collect:main"' in pyproject
-    assert 'story-video = "story_gen.cli.video:main"' in pyproject
+    assert 'story-reference = "story_gen.cli.reference_pipeline:main"' in pyproject
+    assert 'story-collect = "story_gen.cli.story_collector:main"' in pyproject
+    assert 'story-video = "story_gen.cli.youtube_downloader:main"' in pyproject
     assert 'story-api = "story_gen.cli.api:main"' in pyproject
 
 
@@ -93,9 +93,9 @@ def test_argparse_boundaries_for_story_tools() -> None:
     collect_core = _read("src/story_gen/story_collector.py")
     reference_core = _read("src/story_gen/reference_pipeline.py")
     video_core = _read("src/story_gen/youtube_downloader.py")
-    collect_cli = _read("src/story_gen/cli/collect.py")
-    reference_cli = _read("src/story_gen/cli/reference.py")
-    video_cli = _read("src/story_gen/cli/video.py")
+    collect_cli = _read("src/story_gen/cli/story_collector.py")
+    reference_cli = _read("src/story_gen/cli/reference_pipeline.py")
+    video_cli = _read("src/story_gen/cli/youtube_downloader.py")
     assert "import argparse" not in collect_core
     assert "import argparse" not in reference_core
     assert "import argparse" not in video_core

@@ -6,7 +6,7 @@ from typing import Literal
 
 import pytest
 
-from story_gen.cli.collect import _args_from_namespace
+from story_gen.cli.story_collector import _args_from_namespace
 from story_gen.story_collector import (
     StoryCollectorArgs,
     _index_page_url,
