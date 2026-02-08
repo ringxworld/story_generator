@@ -1,4 +1,12 @@
-import type { AuthTokenResponse, StoryBlueprint, StoryResponse, UserResponse } from "./types";
+import type {
+  AuthTokenResponse,
+  EssayBlueprint,
+  EssayEvaluationResponse,
+  EssayResponse,
+  StoryBlueprint,
+  StoryResponse,
+  UserResponse,
+} from "./types";
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -66,4 +74,45 @@ export const updateStory = async (
     method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
     body: JSON.stringify({ title, blueprint }),
+  });
+
+export const listEssays = async (token: string): Promise<EssayResponse[]> =>
+  requestJson<EssayResponse[]>("/api/v1/essays", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const createEssay = async (
+  token: string,
+  title: string,
+  blueprint: EssayBlueprint,
+  draftText: string,
+): Promise<EssayResponse> =>
+  requestJson<EssayResponse>("/api/v1/essays", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ title, blueprint, draft_text: draftText }),
+  });
+
+export const updateEssay = async (
+  token: string,
+  essayId: string,
+  title: string,
+  blueprint: EssayBlueprint,
+  draftText: string,
+): Promise<EssayResponse> =>
+  requestJson<EssayResponse>(`/api/v1/essays/${essayId}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ title, blueprint, draft_text: draftText }),
+  });
+
+export const evaluateEssay = async (
+  token: string,
+  essayId: string,
+  draftText?: string,
+): Promise<EssayEvaluationResponse> =>
+  requestJson<EssayEvaluationResponse>(`/api/v1/essays/${essayId}/evaluate`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ draft_text: draftText }),
   });

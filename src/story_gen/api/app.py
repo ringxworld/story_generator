@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
+from story_gen.adapters.sqlite_essay_store import SQLiteEssayStore, StoredEssay
 from story_gen.adapters.sqlite_feature_store import SQLiteFeatureStore, StoredFeatureRun
 from story_gen.adapters.sqlite_story_store import SQLiteStoryStore, StoredStory, StoredUser
 from story_gen.api.contracts import (
@@ -22,6 +23,14 @@ from story_gen.api.contracts import (
     AuthRegisterRequest,
     AuthTokenResponse,
     ChapterBlock,
+    EssayBlueprint,
+    EssayCreateRequest,
+    EssayEvaluateRequest,
+    EssayEvaluationResponse,
+    EssayQualityCheckResponse,
+    EssayResponse,
+    EssaySectionRequirement,
+    EssayUpdateRequest,
     StoryBlueprint,
     StoryCreateRequest,
     StoryFeatureRowResponse,
@@ -29,6 +38,12 @@ from story_gen.api.contracts import (
     StoryResponse,
     StoryUpdateRequest,
     UserResponse,
+)
+from story_gen.core.essay_quality import (
+    EssayDraftInput,
+    EssayPolicySpec,
+    EssaySectionSpec,
+    evaluate_essay_quality,
 )
 from story_gen.core.story_feature_pipeline import (
     ChapterFeatureInput,
@@ -66,6 +81,9 @@ class ApiRootResponse(BaseModel):
             "/api/v1/stories/{story_id}",
             "/api/v1/stories/{story_id}/features/extract",
             "/api/v1/stories/{story_id}/features/latest",
+            "/api/v1/essays",
+            "/api/v1/essays/{essay_id}",
+            "/api/v1/essays/{essay_id}/evaluate",
         ]
     )
 
@@ -137,6 +155,42 @@ def _story_response(story: StoredStory) -> StoryResponse:
     )
 
 
+def _essay_response(essay: StoredEssay) -> EssayResponse:
+    return EssayResponse(
+        essay_id=essay.essay_id,
+        owner_id=essay.owner_id,
+        title=essay.title,
+        blueprint=EssayBlueprint.model_validate_json(essay.blueprint_json),
+        draft_text=essay.draft_text,
+        created_at_utc=essay.created_at_utc,
+        updated_at_utc=essay.updated_at_utc,
+    )
+
+
+def _section_spec(section: EssaySectionRequirement) -> EssaySectionSpec:
+    return EssaySectionSpec(
+        key=section.key,
+        purpose=section.purpose,
+        min_paragraphs=section.min_paragraphs,
+        required_terms=tuple(section.required_terms),
+    )
+
+
+def _policy_spec(blueprint: EssayBlueprint) -> EssayPolicySpec:
+    return EssayPolicySpec(
+        thesis_statement=blueprint.policy.thesis_statement,
+        audience=blueprint.policy.audience,
+        tone=blueprint.policy.tone,
+        min_words=blueprint.policy.min_words,
+        max_words=blueprint.policy.max_words,
+        required_sections=tuple(
+            _section_spec(section) for section in blueprint.policy.required_sections
+        ),
+        banned_phrases=tuple(blueprint.policy.banned_phrases),
+        required_citations=blueprint.policy.required_citations,
+    )
+
+
 def _chapter_input_from_blueprint(chapter: ChapterBlock) -> ChapterFeatureInput:
     source_text = chapter.draft_text or chapter.objective
     return ChapterFeatureInput(
@@ -180,11 +234,12 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     effective_db_path = _resolve_db_path(db_path)
     store = SQLiteStoryStore(db_path=effective_db_path)
     feature_store = SQLiteFeatureStore(db_path=effective_db_path)
+    essay_store = SQLiteEssayStore(db_path=effective_db_path)
     bearer = HTTPBearer(auto_error=False)
 
     app = FastAPI(
         title="story_gen API",
-        version="0.2.0",
+        version="0.3.0",
         description=(
             "Local preview API for story blueprint editing and persistence. "
             "Designed for local/dev runtimes and future backend hosting."
@@ -345,6 +400,97 @@ def create_app(db_path: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Feature run not found")
         run, result = latest
         return _feature_run_response(run=run, result=result)
+
+    @app.get("/api/v1/essays", response_model=list[EssayResponse], tags=["essays"])
+    def list_essays(
+        limit: int = Query(default=100, ge=1, le=500),
+        user: StoredUser = Depends(current_user),
+    ) -> list[EssayResponse]:
+        return [
+            _essay_response(essay)
+            for essay in essay_store.list_essays(owner_id=user.user_id, limit=limit)
+        ]
+
+    @app.post("/api/v1/essays", response_model=EssayResponse, tags=["essays"], status_code=201)
+    def create_essay(
+        payload: EssayCreateRequest,
+        user: StoredUser = Depends(current_user),
+    ) -> EssayResponse:
+        essay = essay_store.create_essay(
+            owner_id=user.user_id,
+            title=payload.title.strip(),
+            blueprint_json=payload.blueprint.model_dump_json(),
+            draft_text=payload.draft_text,
+        )
+        return _essay_response(essay)
+
+    @app.get("/api/v1/essays/{essay_id}", response_model=EssayResponse, tags=["essays"])
+    def get_essay(essay_id: str, user: StoredUser = Depends(current_user)) -> EssayResponse:
+        essay = essay_store.get_essay(essay_id=essay_id)
+        if essay is None or essay.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Essay not found")
+        return _essay_response(essay)
+
+    @app.put("/api/v1/essays/{essay_id}", response_model=EssayResponse, tags=["essays"])
+    def update_essay(
+        essay_id: str,
+        payload: EssayUpdateRequest,
+        user: StoredUser = Depends(current_user),
+    ) -> EssayResponse:
+        existing = essay_store.get_essay(essay_id=essay_id)
+        if existing is None or existing.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Essay not found")
+        updated = essay_store.update_essay(
+            essay_id=essay_id,
+            title=payload.title.strip(),
+            blueprint_json=payload.blueprint.model_dump_json(),
+            draft_text=payload.draft_text,
+        )
+        if updated is None:
+            raise HTTPException(status_code=404, detail="Essay not found")
+        return _essay_response(updated)
+
+    @app.post(
+        "/api/v1/essays/{essay_id}/evaluate",
+        response_model=EssayEvaluationResponse,
+        tags=["essays"],
+    )
+    def evaluate_essay(
+        essay_id: str,
+        payload: EssayEvaluateRequest,
+        user: StoredUser = Depends(current_user),
+    ) -> EssayEvaluationResponse:
+        essay = essay_store.get_essay(essay_id=essay_id)
+        if essay is None or essay.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Essay not found")
+
+        blueprint = EssayBlueprint.model_validate_json(essay.blueprint_json)
+        draft_text = payload.draft_text if payload.draft_text is not None else essay.draft_text
+        result = evaluate_essay_quality(
+            EssayDraftInput(
+                title=essay.title,
+                prompt=blueprint.prompt,
+                draft_text=draft_text,
+                policy=_policy_spec(blueprint),
+            )
+        )
+        return EssayEvaluationResponse(
+            essay_id=essay.essay_id,
+            owner_id=essay.owner_id,
+            passed=result.passed,
+            score=result.score,
+            word_count=result.word_count,
+            citation_count=result.citation_count,
+            required_citations=blueprint.policy.required_citations,
+            checks=[
+                EssayQualityCheckResponse(
+                    code=check.code,
+                    severity=check.severity,
+                    message=check.message,
+                )
+                for check in result.checks
+            ],
+        )
 
     return app
 

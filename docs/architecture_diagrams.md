@@ -12,6 +12,7 @@ flowchart LR
     Py[Python CLI + API Client]
     API[FastAPI Service]
     Core[Core Feature Pipeline]
+    EssayCore[Core Essay Evaluator]
     DB[(SQLite / Postgres)]
     Obj[(MinIO / S3 Compatible Storage)]
     Pages[GitHub Pages]
@@ -21,6 +22,7 @@ flowchart LR
     Web --> API
     Py --> API
     API --> Core
+    API --> EssayCore
     API --> DB
     API --> Obj
     Pages --> Writer
@@ -38,11 +40,13 @@ flowchart TB
 
     subgraph Core_Layer[src/story_gen/core]
       SFP[story_feature_pipeline.py]
+      EQ[essay_quality.py]
     end
 
     subgraph Adapter_Layer[src/story_gen/adapters]
       StoryStore[sqlite_story_store.py]
       FeatureStore[sqlite_feature_store.py]
+      EssayStore[sqlite_essay_store.py]
     end
 
     subgraph CLI_Layer[src/story_gen/cli]
@@ -54,12 +58,33 @@ flowchart TB
     App --> Contracts
     App --> StoryStore
     App --> FeatureStore
+    App --> EssayStore
     App --> SFP
+    App --> EQ
     PyIf --> Contracts
     CLIFeatures --> StoryStore
     CLIFeatures --> FeatureStore
     CLIFeatures --> SFP
     CLIBlueprint --> Contracts
+```
+
+## 3b. Essay mode evaluation flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant W as Web/Python Client
+    participant A as FastAPI
+    participant E as Essay Store
+    participant C as Core Essay Evaluator
+
+    U->>W: Request essay evaluation
+    W->>A: POST /essays/{id}/evaluate
+    A->>E: Load owner-scoped essay + blueprint
+    E-->>A: Essay workspace
+    A->>C: evaluate_essay_quality(policy, draft)
+    C-->>A: score + checks
+    A-->>W: EssayEvaluationResponse
 ```
 
 ## 3. Story-first feature extraction flow

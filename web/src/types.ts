@@ -51,3 +51,54 @@ export type AuthTokenResponse = {
   token_type: string;
   expires_at_utc: string;
 };
+
+export type EssaySectionRequirement = {
+  key: string;
+  purpose: string;
+  min_paragraphs: number;
+  required_terms: string[];
+};
+
+export type EssayPolicy = {
+  thesis_statement: string;
+  audience: string;
+  tone: string;
+  min_words: number;
+  max_words: number;
+  required_sections: EssaySectionRequirement[];
+  banned_phrases: string[];
+  required_citations: number;
+};
+
+export type EssayBlueprint = {
+  prompt: string;
+  policy: EssayPolicy;
+  rubric: string[];
+};
+
+export type EssayResponse = {
+  essay_id: string;
+  owner_id: string;
+  title: string;
+  blueprint: EssayBlueprint;
+  draft_text: string;
+  created_at_utc: string;
+  updated_at_utc: string;
+};
+
+export type EssayQualityCheckResponse = {
+  code: string;
+  severity: "error" | "warning";
+  message: string;
+};
+
+export type EssayEvaluationResponse = {
+  essay_id: string;
+  owner_id: string;
+  passed: boolean;
+  score: number;
+  word_count: number;
+  citation_count: number;
+  required_citations: number;
+  checks: EssayQualityCheckResponse[];
+};

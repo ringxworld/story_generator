@@ -9,6 +9,7 @@
 ## Current direction
 
 - Build a durable story model around chapters, themes, and characters.
+- Add a separate "good essay mode" with explicit policy constraints and draft checks.
 - Learn craft patterns from reference analysis without redistributing source texts.
 - Keep automation strict so rapid iteration does not degrade architecture.
 

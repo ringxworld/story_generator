@@ -5,8 +5,16 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    field_validator,
+    model_validator,
+)
 
 KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,119}$")
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -252,6 +260,129 @@ class StoryFeatureRunResponse(ContractModel):
     chapter_features: list[StoryFeatureRowResponse]
 
 
+class EssaySectionRequirement(ContractModel):
+    """Expected section contract for a structured essay."""
+
+    key: str = Field(min_length=1, max_length=120)
+    purpose: str = Field(min_length=1, max_length=1000)
+    min_paragraphs: int = Field(default=1, ge=1, le=10)
+    required_terms: list[str] = Field(default_factory=list)
+
+    @field_validator("key")
+    @classmethod
+    def _validate_key(cls, value: str) -> str:
+        return _normalize_key(value, field_name="Essay section key")
+
+    @field_validator("required_terms")
+    @classmethod
+    def _normalize_required_terms(cls, values: list[str]) -> list[str]:
+        normalized = [value.strip() for value in values if value.strip()]
+        return list(dict.fromkeys(normalized))
+
+
+class EssayPolicy(ContractModel):
+    """Quality policy enforcing draft shape for essay mode."""
+
+    thesis_statement: str = Field(min_length=1, max_length=1000)
+    audience: str = Field(min_length=1, max_length=300)
+    tone: str = Field(min_length=1, max_length=200)
+    min_words: int = Field(default=600, ge=100, le=10000)
+    max_words: int = Field(default=1200, ge=150, le=20000)
+    required_sections: list[EssaySectionRequirement] = Field(
+        default_factory=lambda: [
+            EssaySectionRequirement(key="introduction", purpose="Frame thesis", min_paragraphs=1),
+            EssaySectionRequirement(key="analysis", purpose="Develop argument", min_paragraphs=2),
+            EssaySectionRequirement(key="conclusion", purpose="Synthesize claim", min_paragraphs=1),
+        ]
+    )
+    banned_phrases: list[str] = Field(default_factory=list)
+    required_citations: int = Field(default=0, ge=0, le=100)
+
+    @field_validator("banned_phrases")
+    @classmethod
+    def _normalize_banned_phrases(cls, values: list[str]) -> list[str]:
+        normalized = [value.strip() for value in values if value.strip()]
+        return list(dict.fromkeys(normalized))
+
+    @model_validator(mode="after")
+    def _validate_policy(self) -> EssayPolicy:
+        if self.min_words >= self.max_words:
+            raise ValueError("Essay policy requires min_words < max_words.")
+        keys = [section.key for section in self.required_sections]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Essay required section keys must be unique.")
+        return self
+
+
+class EssayBlueprint(ContractModel):
+    """Portable essay-mode contract for deterministic quality checks."""
+
+    prompt: str = Field(min_length=1, max_length=8000)
+    policy: EssayPolicy
+    rubric: list[str] = Field(default_factory=list)
+
+    @field_validator("rubric")
+    @classmethod
+    def _normalize_rubric(cls, values: list[str]) -> list[str]:
+        normalized = [value.strip() for value in values if value.strip()]
+        return list(dict.fromkeys(normalized))
+
+
+class EssayCreateRequest(ContractModel):
+    """Create one essay workspace for the authenticated user."""
+
+    title: str = Field(min_length=1, max_length=300)
+    blueprint: EssayBlueprint
+    draft_text: str = Field(default="", max_length=120000)
+
+
+class EssayUpdateRequest(ContractModel):
+    """Update one essay workspace."""
+
+    title: str = Field(min_length=1, max_length=300)
+    blueprint: EssayBlueprint
+    draft_text: str = Field(default="", max_length=120000)
+
+
+class EssayResponse(ContractModel):
+    """Essay payload returned by API."""
+
+    essay_id: str
+    owner_id: str
+    title: str
+    blueprint: EssayBlueprint
+    draft_text: str
+    created_at_utc: str
+    updated_at_utc: str
+
+
+class EssayEvaluateRequest(ContractModel):
+    """Evaluate persisted essay with optional override draft text."""
+
+    draft_text: str | None = Field(default=None, max_length=120000)
+
+
+class EssayQualityCheckResponse(ContractModel):
+    """One quality finding from essay evaluation."""
+
+    code: str
+    severity: Literal["error", "warning"]
+    message: str
+
+
+class EssayEvaluationResponse(ContractModel):
+    """Evaluation output for one essay draft."""
+
+    essay_id: str
+    owner_id: str
+    passed: bool
+    score: float = Field(ge=0.0, le=100.0)
+    word_count: int = Field(ge=0)
+    citation_count: int = Field(ge=0)
+    required_citations: int = Field(ge=0)
+    checks: list[EssayQualityCheckResponse]
+
+
 class AuthRegisterRequest(ContractModel):
     """Register a user account for local/dev story editing."""
 
@@ -319,3 +450,14 @@ def save_blueprint_json(path: Path, blueprint: StoryBlueprint) -> None:
 def load_blueprint_json(path: Path) -> StoryBlueprint:
     """Load and validate blueprint JSON from disk."""
     return StoryBlueprint.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def save_essay_blueprint_json(path: Path, blueprint: EssayBlueprint) -> None:
+    """Persist essay blueprint as readable JSON for Python-first workflows."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(blueprint.model_dump_json(indent=2) + "\n", encoding="utf-8")
+
+
+def load_essay_blueprint_json(path: Path) -> EssayBlueprint:
+    """Load and validate essay blueprint JSON from disk."""
+    return EssayBlueprint.model_validate_json(path.read_text(encoding="utf-8"))

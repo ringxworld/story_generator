@@ -36,6 +36,42 @@ def _sample_blueprint() -> dict[str, Any]:
     }
 
 
+def _sample_essay_blueprint() -> dict[str, Any]:
+    return {
+        "prompt": "Argue for constraint-first drafting.",
+        "policy": {
+            "thesis_statement": "Constraint-first drafting improves coherence.",
+            "audience": "technical readers",
+            "tone": "analytical",
+            "min_words": 100,
+            "max_words": 900,
+            "required_sections": [
+                {
+                    "key": "introduction",
+                    "purpose": "Frame claim",
+                    "min_paragraphs": 1,
+                    "required_terms": [],
+                },
+                {
+                    "key": "analysis",
+                    "purpose": "Defend claim",
+                    "min_paragraphs": 1,
+                    "required_terms": [],
+                },
+                {
+                    "key": "conclusion",
+                    "purpose": "Synthesize claim",
+                    "min_paragraphs": 1,
+                    "required_terms": [],
+                },
+            ],
+            "banned_phrases": ["as an ai language model"],
+            "required_citations": 1,
+        },
+        "rubric": ["clear thesis", "evidence per claim"],
+    }
+
+
 def _auth_headers(client: TestClient, email: str) -> dict[str, str]:
     register = client.post(
         "/api/v1/auth/register",
@@ -67,6 +103,8 @@ def test_api_root_reports_auth_and_story_endpoints() -> None:
     assert "/api/v1/auth/register" in payload["endpoints"]
     assert "/api/v1/stories" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/features/extract" in payload["endpoints"]
+    assert "/api/v1/essays" in payload["endpoints"]
+    assert "/api/v1/essays/{essay_id}/evaluate" in payload["endpoints"]
 
 
 def test_api_includes_cors_headers_for_local_studio_origin(tmp_path: Path) -> None:
@@ -159,6 +197,100 @@ def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     assert bob_put.status_code == 404
     assert bob_extract.status_code == 404
     assert bob_latest.status_code == 404
+
+
+def test_essay_crud_and_evaluation_lifecycle(tmp_path: Path) -> None:
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    headers = _auth_headers(client, "alice@example.com")
+
+    create = client.post(
+        "/api/v1/essays",
+        headers=headers,
+        json={
+            "title": "Constraint Drafting",
+            "blueprint": _sample_essay_blueprint(),
+            "draft_text": (
+                "introduction: Constraint-first drafting improves coherence.\n\n"
+                "analysis: according to [1], explicit checks reduce drift.\n\n"
+                "conclusion: constraints preserve intent."
+            ),
+        },
+    )
+    assert create.status_code == 201
+    essay_id = create.json()["essay_id"]
+
+    listed = client.get("/api/v1/essays", headers=headers)
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+
+    fetched = client.get(f"/api/v1/essays/{essay_id}", headers=headers)
+    assert fetched.status_code == 200
+    assert fetched.json()["title"] == "Constraint Drafting"
+
+    updated = client.put(
+        f"/api/v1/essays/{essay_id}",
+        headers=headers,
+        json={
+            "title": "Constraint Drafting Revised",
+            "blueprint": _sample_essay_blueprint(),
+            "draft_text": (
+                "introduction: Constraint-first drafting improves coherence.\n\n"
+                "analysis: according to [1], explicit checks reduce drift.\n\n"
+                "conclusion: constraints preserve intent and maintain quality."
+            ),
+        },
+    )
+    assert updated.status_code == 200
+    assert updated.json()["title"] == "Constraint Drafting Revised"
+
+    evaluated = client.post(
+        f"/api/v1/essays/{essay_id}/evaluate",
+        headers=headers,
+        json={},
+    )
+    assert evaluated.status_code == 200
+    payload = evaluated.json()
+    assert payload["essay_id"] == essay_id
+    assert payload["required_citations"] == 1
+    assert payload["word_count"] > 0
+    assert isinstance(payload["checks"], list)
+
+
+def test_essay_access_is_isolated_by_owner(tmp_path: Path) -> None:
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    alice_headers = _auth_headers(client, "alice@example.com")
+    bob_headers = _auth_headers(client, "bob@example.com")
+
+    created = client.post(
+        "/api/v1/essays",
+        headers=alice_headers,
+        json={
+            "title": "Alice Essay",
+            "blueprint": _sample_essay_blueprint(),
+            "draft_text": "introduction: hello",
+        },
+    )
+    assert created.status_code == 201
+    essay_id = created.json()["essay_id"]
+
+    bob_get = client.get(f"/api/v1/essays/{essay_id}", headers=bob_headers)
+    bob_put = client.put(
+        f"/api/v1/essays/{essay_id}",
+        headers=bob_headers,
+        json={
+            "title": "Hijack",
+            "blueprint": _sample_essay_blueprint(),
+            "draft_text": "x",
+        },
+    )
+    bob_evaluate = client.post(
+        f"/api/v1/essays/{essay_id}/evaluate",
+        headers=bob_headers,
+        json={},
+    )
+    assert bob_get.status_code == 404
+    assert bob_put.status_code == 404
+    assert bob_evaluate.status_code == 404
 
 
 def test_register_and_login_failure_paths(tmp_path: Path) -> None:

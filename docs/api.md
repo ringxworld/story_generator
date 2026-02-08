@@ -38,6 +38,16 @@ uv run story-api --db-path work/local/story_gen.db
   - Runs story-first chapter feature extraction and persists a new run.
 - `GET /api/v1/stories/{story_id}/features/latest`
   - Returns latest persisted extraction result for that story.
+- `GET /api/v1/essays?limit=<n>`
+  - Lists essays for the authenticated owner.
+- `POST /api/v1/essays`
+  - Creates one essay workspace with `EssayBlueprint` and optional draft text.
+- `GET /api/v1/essays/{essay_id}`
+  - Reads one owner-scoped essay.
+- `PUT /api/v1/essays/{essay_id}`
+  - Updates title/blueprint/draft for one owner-scoped essay.
+- `POST /api/v1/essays/{essay_id}/evaluate`
+  - Runs deterministic quality checks for "good essay mode" and returns pass/fail findings.
 
 ## Notes
 

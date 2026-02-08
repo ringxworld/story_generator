@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 import App from "./App";
 import * as api from "./api";
-import type { StoryBlueprint, StoryResponse } from "./types";
+import type { EssayBlueprint, EssayEvaluationResponse, EssayResponse, StoryBlueprint, StoryResponse } from "./types";
 
 vi.mock("./api", () => ({
   apiBaseUrl: "http://127.0.0.1:8000",
@@ -12,6 +12,10 @@ vi.mock("./api", () => ({
   listStories: vi.fn(),
   createStory: vi.fn(),
   updateStory: vi.fn(),
+  listEssays: vi.fn(),
+  createEssay: vi.fn(),
+  updateEssay: vi.fn(),
+  evaluateEssay: vi.fn(),
 }));
 
 const mockedApi = vi.mocked(api);
@@ -51,11 +55,55 @@ const sampleStory: StoryResponse = {
   updated_at_utc: "2026-01-01T00:00:00Z",
 };
 
+const sampleEssayBlueprint: EssayBlueprint = {
+  prompt: "Write a coherent argument.",
+  policy: {
+    thesis_statement: "Constraint-first drafting improves coherence.",
+    audience: "technical readers",
+    tone: "analytical",
+    min_words: 300,
+    max_words: 900,
+    required_sections: [
+      {
+        key: "introduction",
+        purpose: "Frame claim",
+        min_paragraphs: 1,
+        required_terms: [],
+      },
+    ],
+    banned_phrases: ["as an ai language model"],
+    required_citations: 1,
+  },
+  rubric: ["clear thesis"],
+};
+
+const sampleEssay: EssayResponse = {
+  essay_id: "essay-1",
+  owner_id: "user-1",
+  title: "Constraint Drafting",
+  blueprint: sampleEssayBlueprint,
+  draft_text: "introduction: according to [1], constraints preserve coherence.",
+  created_at_utc: "2026-01-01T00:00:00Z",
+  updated_at_utc: "2026-01-01T00:00:00Z",
+};
+
+const sampleEvaluation: EssayEvaluationResponse = {
+  essay_id: "essay-1",
+  owner_id: "user-1",
+  passed: true,
+  score: 100,
+  word_count: 320,
+  citation_count: 1,
+  required_citations: 1,
+  checks: [],
+};
+
 describe("App", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
     mockedApi.listStories.mockResolvedValue([]);
+    mockedApi.listEssays.mockResolvedValue([]);
   });
 
   it("renders studio heading and auth section", () => {
@@ -63,6 +111,7 @@ describe("App", () => {
     expect(screen.getByText("story_gen studio")).toBeInTheDocument();
     expect(screen.getByText("Auth")).toBeInTheDocument();
     expect(screen.getByText("Story Blueprints")).toBeInTheDocument();
+    expect(screen.getByText("Good Essay Mode")).toBeInTheDocument();
   });
 
   it("shows a guardrail message when saving without auth", async () => {
@@ -230,5 +279,59 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByText("Login failed: invalid credentials")).toBeInTheDocument();
     });
+  });
+
+  it("shows essay auth guardrail when saving without auth", async () => {
+    render(<App />);
+
+    fireEvent.change(screen.getByLabelText("Essay title"), { target: { value: "Constraint Drafting" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create Essay" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in before saving essays.")).toBeInTheDocument();
+    });
+  });
+
+  it("creates and evaluates an essay after login", async () => {
+    mockedApi.login.mockResolvedValue({
+      access_token: "token-abc",
+      token_type: "bearer",
+      expires_at_utc: "2026-01-01T01:00:00Z",
+    });
+    mockedApi.me.mockResolvedValue({
+      user_id: "user-1",
+      email: "writer@example.com",
+      display_name: "Writer",
+      created_at_utc: "2026-01-01T00:00:00Z",
+    });
+    mockedApi.createEssay.mockResolvedValue(sampleEssay);
+    mockedApi.listEssays.mockResolvedValue([sampleEssay]);
+    mockedApi.evaluateEssay.mockResolvedValue(sampleEvaluation);
+
+    render(<App />);
+
+    fireEvent.change(screen.getAllByLabelText("Email")[1], { target: { value: "writer@example.com" } });
+    fireEvent.change(screen.getAllByLabelText("Password")[1], { target: { value: "secret123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Signed in as Writer.")).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Essay title"), { target: { value: "Constraint Drafting" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create Essay" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Created essay: Constraint Drafting")).toBeInTheDocument();
+    });
+    expect(mockedApi.createEssay).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Constraint Drafting" }));
+    fireEvent.click(screen.getByRole("button", { name: "Evaluate Essay" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Essay passed checks with score 100.0.")).toBeInTheDocument();
+    });
+    expect(mockedApi.evaluateEssay).toHaveBeenCalledWith("token-abc", "essay-1", expect.any(String));
   });
 });

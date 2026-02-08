@@ -7,10 +7,10 @@ This file defines the stable shape of the repository and import boundaries.
 - `src/story_gen/api/`
   - Public Python API layer and HTTP surfaces.
 - `src/story_gen/core/`
-  - Internal pure business logic, domain orchestration, and deterministic feature extraction.
+  - Internal pure business logic, domain orchestration, and deterministic evaluation/extraction.
 - `src/story_gen/adapters/`
   - Side effects: filesystem, network, subprocesses, model loading.
-  - Local persistence adapters (for example SQLite story/feature storage).
+  - Local persistence adapters (for example SQLite story/feature/essay storage).
 - `src/story_gen/native/`
   - Python-facing boundary for compiled/native integrations.
 - `src/story_gen/cli/`
@@ -24,7 +24,7 @@ This file defines the stable shape of the repository and import boundaries.
 - `work/contracts/`
   - Versioned analysis artifact contracts (A-H) for corpus and drift workflows.
 - `web/`
-  - React + TypeScript story blueprint studio.
+  - React + TypeScript studio for story and essay product lanes.
 
 ## Allowed Import Graph
 
@@ -48,6 +48,7 @@ Stable public Python surfaces are:
 
 - `story_gen.api.*`
 - declared console scripts in `pyproject.toml`
+- typed essay and story contracts in `story_gen.api.contracts`
 
 New public surfaces require:
 

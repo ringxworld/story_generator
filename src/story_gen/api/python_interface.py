@@ -7,13 +7,21 @@ from dataclasses import dataclass
 import httpx
 
 from story_gen.api.contracts import (
+    EssayBlueprint,
+    EssayCreateRequest,
+    EssayEvaluateRequest,
+    EssayEvaluationResponse,
+    EssayResponse,
+    EssayUpdateRequest,
     StoryBlueprint,
     StoryCreateRequest,
     StoryFeatureRunResponse,
     StoryResponse,
     StoryUpdateRequest,
     load_blueprint_json,
+    load_essay_blueprint_json,
     save_blueprint_json,
+    save_essay_blueprint_json,
 )
 
 
@@ -102,6 +110,60 @@ class StoryApiClient:
         response.raise_for_status()
         return StoryFeatureRunResponse.model_validate(response.json())
 
+    def create_essay(
+        self,
+        *,
+        session: AuthSession,
+        title: str,
+        blueprint: EssayBlueprint,
+        draft_text: str = "",
+    ) -> EssayResponse:
+        request = EssayCreateRequest(title=title, blueprint=blueprint, draft_text=draft_text)
+        response = httpx.post(
+            f"{session.api_base_url}/api/v1/essays",
+            json=request.model_dump(mode="json"),
+            headers={"Authorization": f"Bearer {session.access_token}"},
+            timeout=30.0,
+        )
+        response.raise_for_status()
+        return EssayResponse.model_validate(response.json())
+
+    def update_essay(
+        self,
+        *,
+        session: AuthSession,
+        essay_id: str,
+        title: str,
+        blueprint: EssayBlueprint,
+        draft_text: str,
+    ) -> EssayResponse:
+        request = EssayUpdateRequest(title=title, blueprint=blueprint, draft_text=draft_text)
+        response = httpx.put(
+            f"{session.api_base_url}/api/v1/essays/{essay_id}",
+            json=request.model_dump(mode="json"),
+            headers={"Authorization": f"Bearer {session.access_token}"},
+            timeout=30.0,
+        )
+        response.raise_for_status()
+        return EssayResponse.model_validate(response.json())
+
+    def evaluate_essay(
+        self,
+        *,
+        session: AuthSession,
+        essay_id: str,
+        draft_text: str | None = None,
+    ) -> EssayEvaluationResponse:
+        request = EssayEvaluateRequest(draft_text=draft_text)
+        response = httpx.post(
+            f"{session.api_base_url}/api/v1/essays/{essay_id}/evaluate",
+            json=request.model_dump(mode="json"),
+            headers={"Authorization": f"Bearer {session.access_token}"},
+            timeout=60.0,
+        )
+        response.raise_for_status()
+        return EssayEvaluationResponse.model_validate(response.json())
+
     def latest_features(self, *, session: AuthSession, story_id: str) -> StoryFeatureRunResponse:
         response = httpx.get(
             f"{session.api_base_url}/api/v1/stories/{story_id}/features/latest",
@@ -114,8 +176,11 @@ class StoryApiClient:
 
 __all__ = [
     "AuthSession",
+    "EssayBlueprint",
     "StoryApiClient",
     "StoryBlueprint",
     "load_blueprint_json",
+    "load_essay_blueprint_json",
     "save_blueprint_json",
+    "save_essay_blueprint_json",
 ]

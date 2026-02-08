@@ -120,6 +120,12 @@ ul {
   padding: 0.5rem 0.6rem;
 }
 
+.inline-actions {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 800px) {
   .story-grid {
     grid-template-columns: 1fr;

@@ -111,6 +111,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "nav:" in config
     assert "Architecture Diagrams:" in config
     assert "API:" in config
+    assert "Good Essay Mode:" in config
     assert "Deployment:" in config
     assert "Studio:" in config
     assert "Droplet Stack:" in config
@@ -188,7 +189,9 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
         ROOT / "docs" / "adr" / "0006-story-first-feature-extraction-and-schema-enforcement.md"
     ).exists()
     assert (ROOT / "docs" / "adr" / "0007-frontend-coverage-gate.md").exists()
+    assert (ROOT / "docs" / "adr" / "0008-good-essay-mode-product-surface.md").exists()
     assert (ROOT / "docs" / "studio.md").exists()
+    assert (ROOT / "docs" / "essay_mode.md").exists()
     assert (ROOT / "docs" / "droplet_stack.md").exists()
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
     assert (ROOT / "docs" / "architecture_diagrams.md").exists()

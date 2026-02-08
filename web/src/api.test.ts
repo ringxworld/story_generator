@@ -1,13 +1,17 @@
 import {
   apiBaseUrl,
+  createEssay,
   createStory,
+  evaluateEssay,
+  listEssays,
   listStories,
   login,
   me,
   register,
+  updateEssay,
   updateStory,
 } from "./api";
-import type { StoryBlueprint } from "./types";
+import type { EssayBlueprint, StoryBlueprint } from "./types";
 
 const asResponse = (value: Partial<Response>): Response => value as Response;
 
@@ -198,6 +202,118 @@ describe("api client", () => {
         headers: expect.objectContaining({
           Authorization: "Bearer token-abc",
         }),
+      }),
+    );
+  });
+
+  it("creates, updates, lists, and evaluates essays", async () => {
+    const essayBlueprint: EssayBlueprint = {
+      prompt: "Write with constraints.",
+      policy: {
+        thesis_statement: "Constraints reduce drift.",
+        audience: "technical readers",
+        tone: "analytical",
+        min_words: 300,
+        max_words: 900,
+        required_sections: [
+          {
+            key: "introduction",
+            purpose: "Frame claim",
+            min_paragraphs: 1,
+            required_terms: [],
+          },
+        ],
+        banned_phrases: [],
+        required_citations: 1,
+      },
+      rubric: ["clear thesis"],
+    };
+
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        asResponse({
+          ok: true,
+          json: async () => ({
+            essay_id: "e-1",
+            owner_id: "u-1",
+            title: "Essay",
+            blueprint: essayBlueprint,
+            draft_text: "introduction: according to [1]...",
+            created_at_utc: "2026-01-01T00:00:00Z",
+            updated_at_utc: "2026-01-01T00:00:00Z",
+          }),
+        }),
+      )
+      .mockResolvedValueOnce(
+        asResponse({
+          ok: true,
+          json: async () => ({
+            essay_id: "e-1",
+            owner_id: "u-1",
+            title: "Essay v2",
+            blueprint: essayBlueprint,
+            draft_text: "introduction: according to [1]...",
+            created_at_utc: "2026-01-01T00:00:00Z",
+            updated_at_utc: "2026-01-01T02:00:00Z",
+          }),
+        }),
+      )
+      .mockResolvedValueOnce(
+        asResponse({
+          ok: true,
+          json: async () => [],
+        }),
+      )
+      .mockResolvedValueOnce(
+        asResponse({
+          ok: true,
+          json: async () => ({
+            essay_id: "e-1",
+            owner_id: "u-1",
+            passed: true,
+            score: 92.5,
+            word_count: 440,
+            citation_count: 2,
+            required_citations: 1,
+            checks: [],
+          }),
+        }),
+      );
+
+    await createEssay("token-abc", "Essay", essayBlueprint, "draft");
+    await updateEssay("token-abc", "e-1", "Essay v2", essayBlueprint, "draft");
+    await listEssays("token-abc");
+    await evaluateEssay("token-abc", "e-1", "draft");
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      `${apiBaseUrl}/api/v1/essays`,
+      expect.objectContaining({
+        method: "POST",
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      `${apiBaseUrl}/api/v1/essays/e-1`,
+      expect.objectContaining({
+        method: "PUT",
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      `${apiBaseUrl}/api/v1/essays`,
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer token-abc",
+        }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      4,
+      `${apiBaseUrl}/api/v1/essays/e-1/evaluate`,
+      expect.objectContaining({
+        method: "POST",
       }),
     );
   });
