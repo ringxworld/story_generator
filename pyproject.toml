@@ -22,6 +22,7 @@ story-reference = "story_gen.cli.reference_pipeline:main"
 story-collect = "story_gen.cli.story_collector:main"
 story-video = "story_gen.cli.youtube_downloader:main"
 story-api = "story_gen.cli.api:main"
+story-blueprint = "story_gen.cli.blueprint:main"
 
 [dependency-groups]
 dev = [

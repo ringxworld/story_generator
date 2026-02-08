@@ -42,6 +42,9 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "Install native quality tools" in workflow
     assert "C++ format check" in workflow
     assert "Cppcheck" in workflow
+    assert "Frontend typecheck" in workflow
+    assert "Frontend tests" in workflow
+    assert "Frontend build" in workflow
 
 
 def test_deploy_workflow_requires_ci_success() -> None:
@@ -93,6 +96,7 @@ def test_pyproject_exposes_story_collection_entrypoints() -> None:
     assert 'story-collect = "story_gen.cli.story_collector:main"' in pyproject
     assert 'story-video = "story_gen.cli.youtube_downloader:main"' in pyproject
     assert 'story-api = "story_gen.cli.api:main"' in pyproject
+    assert 'story-blueprint = "story_gen.cli.blueprint:main"' in pyproject
 
 
 def test_mkdocs_configuration_exists() -> None:
@@ -101,6 +105,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "nav:" in config
     assert "API:" in config
     assert "Deployment:" in config
+    assert "Studio:" in config
     assert "Architecture:" in config
     assert "ADR:" in config
 
@@ -141,6 +146,9 @@ def test_pre_push_checks_include_docs_and_cpp_format() -> None:
     checks = _read("src/story_gen/pre_push_checks.py")
     assert '"uv", "run", "python", "tools/check_imports.py"' in checks
     assert '"uv", "run", "mkdocs", "build", "--strict"' in checks
+    assert '"npm", "run", "--prefix", "web", "typecheck"' in checks
+    assert '"npm", "run", "--prefix", "web", "test"' in checks
+    assert '"npm", "run", "--prefix", "web", "build"' in checks
     assert '"uv", "run", "clang-format", "--dry-run", "--Werror"' in checks
 
 
@@ -151,6 +159,8 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0000-template.md").exists()
     assert (ROOT / "docs" / "adr" / "0002-nlp-stack-and-analysis-contract-scaffold.md").exists()
     assert (ROOT / "docs" / "adr" / "0003-pages-static-hosting-and-local-sqlite-api.md").exists()
+    assert (ROOT / "docs" / "adr" / "0004-fastapi-backend-react-studio-and-token-auth.md").exists()
+    assert (ROOT / "docs" / "studio.md").exists()
 
 
 def test_analysis_contract_scaffold_exists_and_is_valid_json() -> None:
@@ -188,6 +198,7 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "src" / "story_gen" / "adapters").is_dir()
     assert (ROOT / "src" / "story_gen" / "native").is_dir()
     assert (ROOT / "cpp" / "include").is_dir()
+    assert (ROOT / "web").is_dir()
 
 
 def test_no_utils_module_names() -> None:

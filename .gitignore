@@ -11,3 +11,6 @@ site/
 work_tmp_*.html
 build/
 CMakeUserPresets.json
+web/node_modules/
+web/dist/
+web/coverage/

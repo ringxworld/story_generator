@@ -16,12 +16,14 @@ nav:
   - Architecture: architecture.md
   - API: api.md
   - Deployment: deployment.md
+  - Studio: studio.md
   - ADR:
       - Index: adr/README.md
       - Template: adr/0000-template.md
       - 0001 Repository Guardrails: adr/0001-repository-guardrails.md
       - 0002 NLP Stack and Contracts: adr/0002-nlp-stack-and-analysis-contract-scaffold.md
       - 0003 Pages and SQLite API: adr/0003-pages-static-hosting-and-local-sqlite-api.md
+      - 0004 FastAPI + React + Auth: adr/0004-fastapi-backend-react-studio-and-token-auth.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

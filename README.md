@@ -38,9 +38,11 @@ Live project pages:
 - Reference ingestion + analysis workflow: `docs/reference_pipeline.md`
 - Native acceleration path (C++/CMake): `docs/native_cpp.md`
 - Deployment split (Pages + API): `docs/deployment.md`
+- React + TypeScript story studio: `docs/studio.md`
 - Full-series text collection: `src/story_gen/cli/story_collector.py`
 - Video-story transcript ingestion: `src/story_gen/cli/youtube_downloader.py`
 - HTTP API local-preview boundary: `src/story_gen/api/app.py`
+- Python blueprint interface: `src/story_gen/api/python_interface.py`
 
 ## Governance
 

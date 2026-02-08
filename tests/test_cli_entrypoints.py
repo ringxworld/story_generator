@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import os
 import runpy
+from pathlib import Path
 
 import pytest
 
+from story_gen.api.contracts import StoryBlueprint
 from story_gen.cli import api as api_cli
-from story_gen.cli import app, reference_pipeline, story_collector, youtube_downloader
+from story_gen.cli import app, blueprint, reference_pipeline, story_collector, youtube_downloader
 from story_gen.cli.reference_pipeline import PipelineArgs
 from story_gen.cli.story_collector import StoryCollectorArgs
 from story_gen.cli.youtube_downloader import VideoStoryArgs
@@ -87,3 +89,18 @@ def test_api_cli_sets_db_path_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("story_gen.cli.api.uvicorn.run", lambda *args, **kwargs: None)
     api_cli.main(["--db-path", "work/local/custom.db"])
     assert os.environ["STORY_GEN_DB_PATH"] == "work/local/custom.db"
+
+
+def test_blueprint_cli_validates_and_rewrites_json(tmp_path: Path) -> None:
+    path = tmp_path / "blueprint.json"
+    raw = StoryBlueprint(
+        premise="Premise",
+        themes=[],
+        characters=[],
+        chapters=[],
+        canon_rules=[],
+    )
+    path.write_text(raw.model_dump_json(), encoding="utf-8")
+    blueprint.main(["--input", str(path)])
+    reparsed = StoryBlueprint.model_validate_json(path.read_text(encoding="utf-8"))
+    assert reparsed.premise == "Premise"

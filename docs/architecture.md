@@ -23,6 +23,8 @@ This file defines the stable shape of the repository and import boundaries.
   - Architecture decision records.
 - `work/contracts/`
   - Versioned analysis artifact contracts (A-H) for corpus and drift workflows.
+- `web/`
+  - React + TypeScript story blueprint studio.
 
 ## Allowed Import Graph
 
@@ -38,6 +40,7 @@ Disallowed:
 
 - `core` importing `api`, `adapters`, or `native`
 - compiled extension imports outside `native`
+- front-end logic importing server runtime code directly (contract-only via HTTP/JSON)
 
 ## Stable Public API
 

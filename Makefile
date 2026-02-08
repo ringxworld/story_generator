@@ -10,7 +10,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test coverage quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test coverage quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint web-install web-dev web-typecheck web-test web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -37,6 +37,12 @@ help:
 	@echo "  make collect-story        - collect full text for STORY_SERIES_CODE"
 	@echo "  make video-story          - download VIDEO_URL audio and optional transcript"
 	@echo "  make api                  - run local API stub server"
+	@echo "  make blueprint            - validate/normalize a blueprint JSON file"
+	@echo "  make web-install          - install frontend dependencies"
+	@echo "  make web-dev              - run React+TS frontend dev server"
+	@echo "  make web-typecheck        - run frontend TypeScript checks"
+	@echo "  make web-test             - run frontend tests"
+	@echo "  make web-build            - build frontend production bundle"
 	@echo "  make cpp-configure        - configure C++ tooling with CMake"
 	@echo "  make cpp-build            - build C++ tools"
 	@echo "  make cpp-test             - run C++ tests (ctest)"
@@ -113,6 +119,24 @@ video-story:
 
 api:
 	$(RUN) story-api
+
+blueprint:
+	$(RUN) story-blueprint --input work/story_blueprint.json
+
+web-install:
+	npm install --prefix web
+
+web-dev:
+	npm run --prefix web dev
+
+web-typecheck:
+	npm run --prefix web typecheck
+
+web-test:
+	npm run --prefix web test
+
+web-build:
+	npm run --prefix web build
 
 cpp-configure:
 	cmake -S . -B $(CPP_BUILD_DIR)

@@ -30,8 +30,13 @@ def test_pre_push_checks_runs_expected_commands_in_order(
         ["uv", "run", "pytest"],
         ["uv", "run", "mkdocs", "build", "--strict"],
     ]
-    assert executed[7][:5] == ["uv", "run", "clang-format", "--dry-run", "--Werror"]
-    assert any("chapter_metrics.cpp" in part for part in executed[7])
+    assert ["npm", "run", "--prefix", "web", "typecheck"] in executed
+    assert ["npm", "run", "--prefix", "web", "test"] in executed
+    assert ["npm", "run", "--prefix", "web", "build"] in executed
+    clang_commands = [command for command in executed if "clang-format" in command]
+    assert len(clang_commands) == 1
+    assert clang_commands[0][:5] == ["uv", "run", "clang-format", "--dry-run", "--Werror"]
+    assert any("chapter_metrics.cpp" in part for part in clang_commands[0])
 
 
 def test_pre_push_checks_stops_on_command_failure(
@@ -76,3 +81,26 @@ def test_pre_push_checks_skips_clang_when_no_cpp_sources(
     pre_push_checks.main()
 
     assert all("clang-format" not in command for command in executed)
+
+
+def test_pre_push_checks_skips_web_when_package_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    executed: list[list[str]] = []
+
+    def fake_run(command: list[str], check: bool) -> subprocess.CompletedProcess[str]:
+        assert check is False
+        executed.append(command)
+        return subprocess.CompletedProcess(args=command, returncode=0)
+
+    original_exists = Path.exists
+
+    def fake_exists(path: Path) -> bool:
+        if str(path).replace("\\", "/").endswith("web/package.json"):
+            return False
+        return original_exists(path)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(Path, "exists", fake_exists)
+    pre_push_checks.main()
+    assert all(command[:3] != ["npm", "run", "--prefix"] for command in executed)

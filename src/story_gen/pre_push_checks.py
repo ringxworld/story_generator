@@ -22,6 +22,11 @@ def main() -> None:
     run(["uv", "run", "mypy"])
     run(["uv", "run", "pytest"])
     run(["uv", "run", "mkdocs", "build", "--strict"])
+    web_package = Path("web") / "package.json"
+    if web_package.exists():
+        run(["npm", "run", "--prefix", "web", "typecheck"])
+        run(["npm", "run", "--prefix", "web", "test"])
+        run(["npm", "run", "--prefix", "web", "build"])
     cpp_sources = [str(path) for path in sorted((Path("cpp")).glob("*.cpp"))]
     if cpp_sources:
         run(["uv", "run", "clang-format", "--dry-run", "--Werror", *cpp_sources])
