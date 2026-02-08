@@ -10,7 +10,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features web-install web-dev web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features web-install web-dev web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -25,6 +25,7 @@ help:
 	@echo "  make format-check         - verify formatting without changing files"
 	@echo "  make typecheck            - run mypy"
 	@echo "  make test                 - run pytest with coverage gate"
+	@echo "  make e2e                  - run process-level end-to-end API tests"
 	@echo "  make coverage             - run pytest with coverage gate"
 	@echo "  make quality              - lock-check + lint + format-check + typecheck + tests"
 	@echo "  make frontend-quality     - frontend typecheck + coverage + build"
@@ -90,6 +91,9 @@ typecheck:
 
 test:
 	$(RUN) pytest
+
+e2e:
+	$(RUN) pytest tests/test_e2e_stack.py
 
 coverage: test
 

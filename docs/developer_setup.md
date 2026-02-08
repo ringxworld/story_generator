@@ -107,6 +107,7 @@ Run tests only:
 
 ```bash
 make test
+make e2e
 make web-test
 ```
 

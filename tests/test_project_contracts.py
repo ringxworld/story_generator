@@ -24,6 +24,8 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "collect-story:" in makefile
     assert "video-story:" in makefile
     assert "features:" in makefile
+    assert "e2e:" in makefile
+    assert "pytest tests/test_e2e_stack.py" in makefile
     assert "import-check:" in makefile
     assert "quality: lock-check import-check" in makefile
     assert "frontend-quality:" in makefile
