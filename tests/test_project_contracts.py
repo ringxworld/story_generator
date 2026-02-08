@@ -110,18 +110,15 @@ def test_pyproject_enforces_pytest_coverage_gate() -> None:
 
 
 def test_argparse_boundaries_for_story_tools() -> None:
-    collect_core = _read("src/story_gen/story_collector.py")
-    reference_core = _read("src/story_gen/reference_pipeline.py")
-    video_core = _read("src/story_gen/youtube_downloader.py")
     collect_cli = _read("src/story_gen/cli/story_collector.py")
     reference_cli = _read("src/story_gen/cli/reference_pipeline.py")
     video_cli = _read("src/story_gen/cli/youtube_downloader.py")
-    assert "import argparse" not in collect_core
-    assert "import argparse" not in reference_core
-    assert "import argparse" not in video_core
     assert "import argparse" in collect_cli
     assert "import argparse" in reference_cli
     assert "import argparse" in video_cli
+    assert not (ROOT / "src" / "story_gen" / "story_collector.py").exists()
+    assert not (ROOT / "src" / "story_gen" / "reference_pipeline.py").exists()
+    assert not (ROOT / "src" / "story_gen" / "youtube_downloader.py").exists()
 
 
 def test_pre_push_checks_include_docs_and_cpp_format() -> None:
