@@ -21,7 +21,8 @@ def test_pre_push_checks_runs_expected_commands_in_order(
     monkeypatch.setattr(subprocess, "run", fake_run)
     pre_push_checks.main()
 
-    assert executed[:7] == [
+    assert executed[:8] == [
+        ["uv", "run", "pre-commit", "run", "--all-files"],
         ["uv", "lock", "--check"],
         ["uv", "run", "python", "tools/check_imports.py"],
         ["uv", "run", "ruff", "check", "."],
@@ -59,6 +60,7 @@ def test_pre_push_checks_stops_on_command_failure(
 
     assert raised.value.code == 1
     assert executed == [
+        ["uv", "run", "pre-commit", "run", "--all-files"],
         ["uv", "lock", "--check"],
         ["uv", "run", "python", "tools/check_imports.py"],
         ["uv", "run", "ruff", "check", "."],

@@ -15,6 +15,7 @@ def run(command: list[str]) -> None:
 
 def main() -> None:
     """Mirror CI checks locally before code leaves the machine."""
+    run(["uv", "run", "pre-commit", "run", "--all-files"])
     run(["uv", "lock", "--check"])
     run(["uv", "run", "python", "tools/check_imports.py"])
     run(["uv", "run", "ruff", "check", "."])
