@@ -24,6 +24,15 @@ cmake -S . -B build/cpp
 cmake --build build/cpp --config Release
 ```
 
+## Native quality checks
+
+```bash
+clang-format --dry-run --Werror cpp/*.cpp
+cppcheck --enable=warning,style,performance,portability --error-exitcode=2 cpp
+```
+
+CMake also auto-enables `clang-tidy` and `cppcheck` if those tools are installed.
+
 ## Run demo
 
 ```bash
@@ -53,3 +62,6 @@ cat chapter.txt | chapter_metrics
 - `make cpp-build`
 - `make cpp-test`
 - `make cpp-demo`
+- `make cpp-format`
+- `make cpp-format-check`
+- `make cpp-cppcheck`

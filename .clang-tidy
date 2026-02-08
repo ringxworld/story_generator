@@ -1,0 +1,15 @@
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  performance-*,
+  portability-*,
+  readability-braces-around-statements
+WarningsAsErrors: >
+  bugprone-*,
+  clang-analyzer-*
+HeaderFilterRegex: '^cpp/.*'
+FormatStyle: file
+CheckOptions:
+  - key: readability-braces-around-statements.ShortStatementLines
+    value: '0'

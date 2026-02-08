@@ -7,7 +7,7 @@ CPP_CONFIG ?= Release
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync lock-check lint fix format format-check typecheck test quality check story build-site reference reference-translate cpp-configure cpp-build cpp-test cpp-demo deploy clean
+.PHONY: help sync lock-check lint fix format format-check typecheck test quality check story build-site reference reference-translate cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -29,6 +29,9 @@ help:
 	@echo "  make cpp-build            - build C++ tools"
 	@echo "  make cpp-test             - run C++ tests (ctest)"
 	@echo "  make cpp-demo             - run chapter_metrics demo output"
+	@echo "  make cpp-format           - format C++ files with clang-format"
+	@echo "  make cpp-format-check     - verify C++ formatting"
+	@echo "  make cpp-cppcheck         - run cppcheck on C++ sources"
 	@echo "  make deploy               - run checks, build site, and push main"
 	@echo "  make clean                - remove local caches and generated site/"
 
@@ -84,6 +87,15 @@ cpp-test: cpp-build
 
 cpp-demo: cpp-build
 	ctest --test-dir $(CPP_BUILD_DIR) -C $(CPP_CONFIG) -R chapter_metrics_demo --output-on-failure
+
+cpp-format:
+	clang-format -i cpp/*.cpp
+
+cpp-format-check:
+	clang-format --dry-run --Werror cpp/*.cpp
+
+cpp-cppcheck:
+	cppcheck --enable=warning,style,performance,portability --error-exitcode=2 cpp
 
 deploy: quality build-site
 	git push origin main

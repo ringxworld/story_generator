@@ -45,6 +45,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install native quality tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format clang-tidy cppcheck
+
+      - name: C++ format check
+        run: clang-format --dry-run --Werror cpp/*.cpp
+
+      - name: Cppcheck
+        run: cppcheck --enable=warning,style,performance,portability --error-exitcode=2 cpp
+
       - name: Configure CMake
         run: cmake -S . -B build/cpp
 

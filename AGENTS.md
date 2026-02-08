@@ -67,12 +67,14 @@ Any meaningful code change should pass:
 
 ## Native C++ Guardrails
 
-- Use C++20 and keep native tools focused on measurable hotspots.
+- Use C++11+ and keep native tools focused on measurable hotspots.
 - Keep Python as orchestrator; native binaries should be composable via CLI.
 - If compiler toolchain is available, validate native changes with:
   1. `make cpp-configure`
   2. `make cpp-build`
   3. `make cpp-test`
+  4. `make cpp-format-check`
+  5. `make cpp-cppcheck`
 
 ## Documentation Maintenance
 

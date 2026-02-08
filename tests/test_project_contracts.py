@@ -15,6 +15,9 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "cpp-build:" in makefile
     assert "cpp-test:" in makefile
     assert "cpp-demo:" in makefile
+    assert "cpp-format:" in makefile
+    assert "cpp-format-check:" in makefile
+    assert "cpp-cppcheck:" in makefile
 
 
 def test_ci_workflow_includes_code_quality_steps() -> None:
@@ -26,6 +29,9 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "uv run pytest" in workflow
     assert "Configure CMake" in workflow
     assert "Run native tests" in workflow
+    assert "Install native quality tools" in workflow
+    assert "C++ format check" in workflow
+    assert "Cppcheck" in workflow
 
 
 def test_deploy_workflow_requires_ci_success() -> None:
@@ -42,6 +48,13 @@ def test_native_cmake_scaffold_present() -> None:
     cpp_cmake = _read("cpp/CMakeLists.txt")
     cpp_source = _read("cpp/chapter_metrics.cpp")
     assert "add_subdirectory(cpp)" in root_cmake
+    assert "CMAKE_CXX_CLANG_TIDY" in root_cmake
+    assert "CMAKE_CXX_CPPCHECK" in root_cmake
     assert "add_executable(chapter_metrics" in cpp_cmake
     assert "chapter_metrics_demo" in cpp_cmake
     assert "PrintMetricsJson" in cpp_source
+
+
+def test_native_quality_config_files_exist() -> None:
+    assert (ROOT / ".clang-format").exists()
+    assert (ROOT / ".clang-tidy").exists()
