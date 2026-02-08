@@ -20,7 +20,10 @@ def test_pre_push_checks_runs_expected_commands_in_order(
         return subprocess.CompletedProcess(args=command, returncode=0)
 
     monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr("story_gen.pre_push_checks.shutil.which", lambda _: "uv")
+    monkeypatch.setattr(
+        "story_gen.pre_push_checks.shutil.which",
+        lambda tool: "uv" if tool == "uv" else "docker",
+    )
     pre_push_checks.main()
 
     assert executed[0][:4] == [
@@ -52,6 +55,15 @@ def test_pre_push_checks_runs_expected_commands_in_order(
     assert len(clang_commands) == 1
     assert clang_commands[0][3:5] == ["--dry-run", "--Werror"]
     assert any("chapter_metrics.cpp" in part for part in clang_commands[0])
+    assert [
+        "docker",
+        "build",
+        "-f",
+        "docker/ci.Dockerfile",
+        "-t",
+        "story-gen-ci-prepush",
+        ".",
+    ] in executed
 
 
 def test_pre_push_checks_stops_on_command_failure(
@@ -73,7 +85,10 @@ def test_pre_push_checks_stops_on_command_failure(
         )
 
     monkeypatch.setattr(subprocess, "run", fake_run)
-    monkeypatch.setattr("story_gen.pre_push_checks.shutil.which", lambda _: "uv")
+    monkeypatch.setattr(
+        "story_gen.pre_push_checks.shutil.which",
+        lambda tool: "uv" if tool == "uv" else "docker",
+    )
 
     with pytest.raises(SystemExit) as raised:
         pre_push_checks.main()
@@ -97,7 +112,10 @@ def test_pre_push_checks_skips_clang_when_no_cpp_sources(
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(Path, "glob", lambda self, pattern: iter(()))
-    monkeypatch.setattr("story_gen.pre_push_checks.shutil.which", lambda _: "uv")
+    monkeypatch.setattr(
+        "story_gen.pre_push_checks.shutil.which",
+        lambda tool: "uv" if tool == "uv" else "docker",
+    )
 
     pre_push_checks.main()
 
@@ -123,7 +141,10 @@ def test_pre_push_checks_skips_web_when_package_missing(
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     monkeypatch.setattr(Path, "exists", fake_exists)
-    monkeypatch.setattr("story_gen.pre_push_checks.shutil.which", lambda _: "uv")
+    monkeypatch.setattr(
+        "story_gen.pre_push_checks.shutil.which",
+        lambda tool: "uv" if tool == "uv" else "docker",
+    )
     pre_push_checks.main()
     assert all(command[:3] != ["npm", "run", "--prefix"] for command in executed)
 
@@ -139,4 +160,21 @@ def test_pre_push_checks_requires_uv_for_lock_check(
     monkeypatch.setattr("story_gen.pre_push_checks.shutil.which", lambda _: None)
 
     with pytest.raises(SystemExit, match="uv executable not found in PATH"):
+        pre_push_checks.main()
+
+
+def test_pre_push_checks_requires_docker_for_ci_image_validation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda command, check: subprocess.CompletedProcess(args=command, returncode=0),
+    )
+    monkeypatch.setattr(
+        "story_gen.pre_push_checks.shutil.which",
+        lambda tool: "uv" if tool == "uv" else None,
+    )
+
+    with pytest.raises(SystemExit, match="docker executable not found in PATH"):
         pre_push_checks.main()

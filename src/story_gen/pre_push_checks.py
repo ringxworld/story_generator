@@ -44,6 +44,20 @@ def main() -> None:
     cpp_sources = [str(path) for path in sorted((Path("cpp")).glob("*.cpp"))]
     if cpp_sources:
         run_tool("clang-format", "--dry-run", "--Werror", *cpp_sources)
+    docker_executable = shutil.which("docker")
+    if docker_executable is None:
+        raise SystemExit("docker executable not found in PATH")
+    run(
+        [
+            docker_executable,
+            "build",
+            "-f",
+            "docker/ci.Dockerfile",
+            "-t",
+            "story-gen-ci-prepush",
+            ".",
+        ]
+    )
 
 
 if __name__ == "__main__":

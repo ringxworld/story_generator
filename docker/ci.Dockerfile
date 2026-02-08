@@ -7,6 +7,8 @@ RUN apt-get update \
         python3 \
         python3-pip \
         python3-venv \
+        curl \
+        ca-certificates \
         make \
         cmake \
         g++ \
@@ -16,7 +18,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -sf /usr/bin/python3 /usr/local/bin/python
-RUN pip3 install --no-cache-dir uv
+ENV PATH="/root/.local/bin:${PATH}"
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN uv --version
 
 WORKDIR /workspace
 
