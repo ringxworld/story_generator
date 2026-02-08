@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from story_gen.cli.youtube_downloader import _args_from_namespace
-from story_gen.youtube_downloader import (
+from story_gen.cli.youtube_downloader import (
     VideoStoryArgs,
+    _args_from_namespace,
     build_whisper_command,
     build_ytdlp_command,
     ensure_binary,
@@ -93,9 +93,9 @@ def test_run_video_story_pipeline_with_transcript(
     def fake_run_streaming(command: list[str]) -> None:
         invoked.append(command)
 
-    monkeypatch.setattr("story_gen.youtube_downloader.ensure_binary", lambda _name: None)
-    monkeypatch.setattr("story_gen.youtube_downloader.run_streaming", fake_run_streaming)
-    monkeypatch.setattr("story_gen.youtube_downloader.newest_file", lambda _path: audio_file)
+    monkeypatch.setattr("story_gen.cli.youtube_downloader.ensure_binary", lambda _name: None)
+    monkeypatch.setattr("story_gen.cli.youtube_downloader.run_streaming", fake_run_streaming)
+    monkeypatch.setattr("story_gen.cli.youtube_downloader.newest_file", lambda _path: audio_file)
 
     result = run_video_story_pipeline(args)
     assert result.output_dir == output_dir
@@ -105,7 +105,7 @@ def test_run_video_story_pipeline_with_transcript(
 
 
 def test_ensure_binary_raises_when_missing(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("story_gen.youtube_downloader.shutil.which", lambda _name: None)
+    monkeypatch.setattr("story_gen.cli.youtube_downloader.shutil.which", lambda _name: None)
     with pytest.raises(RuntimeError, match="Missing required binary"):
         ensure_binary("yt-dlp")
 
@@ -119,7 +119,7 @@ def test_run_streaming_raises_on_non_zero_exit(monkeypatch: pytest.MonkeyPatch) 
             return 2
 
     monkeypatch.setattr(
-        "story_gen.youtube_downloader.subprocess.Popen",
+        "story_gen.cli.youtube_downloader.subprocess.Popen",
         lambda *args, **kwargs: _FakeProcess(),
     )
 

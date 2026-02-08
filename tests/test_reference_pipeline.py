@@ -6,20 +6,20 @@ from typing import Literal, Mapping, cast
 import httpx
 import pytest
 
-from story_gen.cli.reference_pipeline import _pipeline_args_from_namespace
-from story_gen.cli.reference_pipeline import main as reference_cli_main
-from story_gen.reference_pipeline import (
+from story_gen.cli.reference_pipeline import (
     EpisodeRecord,
     LibreTranslateTranslator,
     PipelineArgs,
     _chunk_text,
     _episode_record_from_loaded,
+    _pipeline_args_from_namespace,
     _translated_text_from_loaded,
     build_analysis,
     parse_episode_page,
     parse_index_page,
     run_pipeline,
 )
+from story_gen.cli.reference_pipeline import main as reference_cli_main
 
 
 def test_parse_index_page_extracts_episode_and_last_page() -> None:
@@ -274,7 +274,9 @@ def test_run_pipeline_creates_expected_output_files(
     </body></html>
     """
     fake_client = _FakeClient(get_map={base_url: index_html, episode_url: episode_html})
-    monkeypatch.setattr("story_gen.reference_pipeline.httpx.Client", lambda **kwargs: fake_client)
+    monkeypatch.setattr(
+        "story_gen.cli.reference_pipeline.httpx.Client", lambda **kwargs: fake_client
+    )
 
     args = _base_args(tmp_path, base_url=base_url)
     run_pipeline(args)
@@ -307,7 +309,9 @@ def test_run_pipeline_prefers_cached_raw_data(
     </body></html>
     """
     fake_client = _FakeClient(get_map={base_url: index_html})
-    monkeypatch.setattr("story_gen.reference_pipeline.httpx.Client", lambda **kwargs: fake_client)
+    monkeypatch.setattr(
+        "story_gen.cli.reference_pipeline.httpx.Client", lambda **kwargs: fake_client
+    )
 
     args = _base_args(tmp_path, base_url=base_url)
     output_root = tmp_path / "work" / "reference_data" / "fixture"
@@ -368,8 +372,10 @@ def test_run_pipeline_with_libretranslate_writes_translation(
         get_map={base_url: index_html, episode_url: episode_html},
         post_map={post_url: {"translatedText": "Translated line one."}},
     )
-    monkeypatch.setattr("story_gen.reference_pipeline.httpx.Client", lambda **kwargs: fake_client)
-    monkeypatch.setattr("story_gen.reference_pipeline.time.sleep", lambda _x: None)
+    monkeypatch.setattr(
+        "story_gen.cli.reference_pipeline.httpx.Client", lambda **kwargs: fake_client
+    )
+    monkeypatch.setattr("story_gen.cli.reference_pipeline.time.sleep", lambda _x: None)
 
     args = PipelineArgs(
         **{

@@ -6,9 +6,9 @@ import pytest
 
 from story_gen.cli import api as api_cli
 from story_gen.cli import app, reference_pipeline, story_collector, youtube_downloader
-from story_gen.reference_pipeline import PipelineArgs
-from story_gen.story_collector import StoryCollectorArgs
-from story_gen.youtube_downloader import VideoStoryArgs
+from story_gen.cli.reference_pipeline import PipelineArgs
+from story_gen.cli.story_collector import StoryCollectorArgs
+from story_gen.cli.youtube_downloader import VideoStoryArgs
 
 
 def test_cli_app_main_prints_scaffold(capsys: pytest.CaptureFixture[str]) -> None:

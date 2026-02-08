@@ -6,9 +6,9 @@ from typing import Literal
 
 import pytest
 
-from story_gen.cli.story_collector import _args_from_namespace
-from story_gen.story_collector import (
+from story_gen.cli.story_collector import (
     StoryCollectorArgs,
+    _args_from_namespace,
     _index_page_url,
     collect_chapter_links,
     run_story_collection,
@@ -76,8 +76,8 @@ def test_story_collection_writes_outputs(
     </body></html>
     """
     fake_client = _FakeClient({index_url: index_html, chapter_url: chapter_html})
-    monkeypatch.setattr("story_gen.story_collector.httpx.Client", lambda **kwargs: fake_client)
-    monkeypatch.setattr("story_gen.story_collector.time.sleep", lambda _x: None)
+    monkeypatch.setattr("story_gen.cli.story_collector.httpx.Client", lambda **kwargs: fake_client)
+    monkeypatch.setattr("story_gen.cli.story_collector.time.sleep", lambda _x: None)
 
     args = StoryCollectorArgs(
         base_url=base_url,
@@ -150,7 +150,7 @@ def test_collect_chapter_links_honors_range_and_limit(
     </body></html>
     """
     fake_client = _FakeClient({index_url: index_html})
-    monkeypatch.setattr("story_gen.story_collector.httpx.Client", lambda **kwargs: fake_client)
+    monkeypatch.setattr("story_gen.cli.story_collector.httpx.Client", lambda **kwargs: fake_client)
 
     args = StoryCollectorArgs(
         base_url=base_url,
