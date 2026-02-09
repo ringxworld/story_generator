@@ -21,6 +21,11 @@ from story_gen.cli import (
 from story_gen.cli.reference_pipeline import PipelineArgs
 from story_gen.cli.story_collector import StoryCollectorArgs
 from story_gen.cli.youtube_downloader import VideoStoryArgs
+from story_gen.core.story_feature_pipeline import (
+    FEATURE_SCHEMA_VERSION,
+    ChapterFeatureRow,
+    StoryFeatureExtractionResult,
+)
 
 
 def test_cli_app_main_prints_scaffold(capsys: pytest.CaptureFixture[str]) -> None:
@@ -159,6 +164,85 @@ def test_features_cli_extracts_and_persists_rows(tmp_path: Path) -> None:
             user.user_id,
         ]
     )
+    feature_store = SQLiteFeatureStore(db_path=db_path)
+    latest = feature_store.get_latest_feature_result(owner_id=user.user_id, story_id=story.story_id)
+    assert latest is not None
+
+
+def test_features_cli_supports_native_engine(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db_path = tmp_path / "stories.db"
+    story_store = SQLiteStoryStore(db_path=db_path)
+    user = story_store.create_user(
+        email="alice@example.com",
+        display_name="Alice",
+        password_hash="hash",
+    )
+    assert user is not None
+    blueprint_payload = StoryBlueprint.model_validate(
+        {
+            "premise": "Premise",
+            "themes": [{"key": "memory", "statement": "x", "priority": 1}],
+            "characters": [{"key": "rhea", "role": "investigator", "motivation": "find"}],
+            "chapters": [
+                {
+                    "key": "ch01",
+                    "title": "Chapter 1",
+                    "objective": "Introduce contradiction.",
+                    "required_themes": ["memory"],
+                    "participating_characters": ["rhea"],
+                    "prerequisites": [],
+                    "draft_text": "Sample text. Another sentence.",
+                }
+            ],
+            "canon_rules": [],
+        }
+    )
+    story = story_store.create_story(
+        owner_id=user.user_id,
+        title="Story",
+        blueprint_json=blueprint_payload.model_dump_json(),
+    )
+
+    def fake_native_extract(
+        *, story_id: str, chapters: list[object]
+    ) -> StoryFeatureExtractionResult:
+        del chapters
+        return StoryFeatureExtractionResult(
+            schema_version=FEATURE_SCHEMA_VERSION,
+            story_id=story_id,
+            extracted_at_utc="2026-01-01T00:00:00+00:00",
+            chapter_features=[
+                ChapterFeatureRow(
+                    schema_version=FEATURE_SCHEMA_VERSION,
+                    story_id=story_id,
+                    chapter_key="ch01",
+                    chapter_index=1,
+                    source_length_chars=30,
+                    sentence_count=2,
+                    token_count=4,
+                    avg_sentence_length=2.0,
+                    dialogue_line_ratio=0.0,
+                    top_keywords=["sample"],
+                )
+            ],
+        )
+
+    monkeypatch.setattr("story_gen.cli.features.extract_story_features_native", fake_native_extract)
+    features.main(
+        [
+            "--db-path",
+            str(db_path),
+            "--story-id",
+            story.story_id,
+            "--owner-id",
+            user.user_id,
+            "--engine",
+            "native",
+        ]
+    )
+
     feature_store = SQLiteFeatureStore(db_path=db_path)
     latest = feature_store.get_latest_feature_result(owner_id=user.user_id, story_id=story.story_id)
     assert latest is not None

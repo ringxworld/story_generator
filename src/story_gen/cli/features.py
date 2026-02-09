@@ -9,6 +9,7 @@ from story_gen.adapters.sqlite_feature_store import SQLiteFeatureStore
 from story_gen.adapters.sqlite_story_store import SQLiteStoryStore
 from story_gen.api.contracts import StoryBlueprint
 from story_gen.core.story_feature_pipeline import ChapterFeatureInput, extract_story_features
+from story_gen.native import NativeFeatureMetricsError, extract_story_features_native
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -17,6 +18,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--db-path", default="work/local/story_gen.db")
     parser.add_argument("--story-id", required=True)
     parser.add_argument("--owner-id", required=True)
+    parser.add_argument(
+        "--engine",
+        choices=["python", "native"],
+        default="python",
+        help="Feature extraction engine (default: python).",
+    )
     return parser
 
 
@@ -43,11 +50,18 @@ def main(argv: list[str] | None = None) -> None:
         )
         for chapter in blueprint.chapters
     ]
-    result = extract_story_features(story_id=story.story_id, chapters=chapter_inputs)
+    if str(parsed.engine) == "native":
+        try:
+            result = extract_story_features_native(story_id=story.story_id, chapters=chapter_inputs)
+        except NativeFeatureMetricsError as exc:
+            raise SystemExit(f"Native feature extraction failed: {exc}") from exc
+    else:
+        result = extract_story_features(story_id=story.story_id, chapters=chapter_inputs)
     run = feature_store.write_feature_result(owner_id=story.owner_id, result=result)
 
     print(f"Feature run id: {run.run_id}")
     print(f"Story id: {run.story_id}")
+    print(f"Engine: {parsed.engine}")
     print(f"Schema version: {run.schema_version}")
     print(f"Chapters extracted: {len(result.chapter_features)}")
 
