@@ -60,6 +60,9 @@ jobs:
       - name: Pytest (coverage gate)
         run: uv run pytest
 
+      - name: Pipeline canary
+        run: uv run story-pipeline-canary --strict
+
       - name: Docs build
         run: uv run mkdocs build --strict
 

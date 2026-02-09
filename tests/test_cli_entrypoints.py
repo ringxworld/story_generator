@@ -16,6 +16,7 @@ from story_gen.cli import (
     blueprint,
     dashboard_export,
     features,
+    pipeline_canary,
     reference_pipeline,
     story_collector,
     youtube_downloader,
@@ -106,6 +107,17 @@ def test_api_cli_sets_db_path_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("story_gen.cli.api.uvicorn.run", lambda *args, **kwargs: None)
     api_cli.main(["--db-path", "work/local/custom.db"])
     assert os.environ["STORY_GEN_DB_PATH"] == "work/local/custom.db"
+
+
+def test_pipeline_canary_cli_reports_stage_successes(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    pipeline_canary.main(["--strict"])
+    captured = capsys.readouterr()
+    assert '"status": "ok"' in captured.out
+    assert '"stage": "ingestion"' in captured.out
+    assert '"stage": "timeline"' in captured.out
+    assert '"stage": "insights"' in captured.out
 
 
 def test_blueprint_cli_validates_and_rewrites_json(tmp_path: Path) -> None:

@@ -14,12 +14,14 @@ class EvaluationMetrics:
     confidence_floor: float
     hallucination_risk: float
     translation_quality: float
+    timeline_consistency: float
 
 
 def evaluate_quality_gate(
     *,
     segments: list[RawSegment],
     insights: list[Insight],
+    timeline_consistency: float = 1.0,
     confidence_threshold: float = 0.55,
 ) -> tuple[QualityGate, EvaluationMetrics]:
     """Evaluate analysis quality before dashboard exposure."""
@@ -31,10 +33,12 @@ def evaluate_quality_gate(
     confidence_floor = min(insight.confidence.score for insight in insights)
     hallucination_risk = _hallucination_risk(segments=segments, insights=insights)
     translation_quality = _translation_quality(segments)
+    timeline_consistency = max(0.0, min(1.0, timeline_consistency))
     passed = (
         confidence_floor >= confidence_threshold
         and hallucination_risk <= 0.45
         and translation_quality >= 0.5
+        and timeline_consistency >= 0.55
     )
     reasons: list[str] = []
     if confidence_floor < confidence_threshold:
@@ -43,11 +47,14 @@ def evaluate_quality_gate(
         reasons.append("hallucination_risk_high")
     if translation_quality < 0.5:
         reasons.append("translation_quality_low")
+    if timeline_consistency < 0.55:
+        reasons.append("timeline_consistency_low")
 
     metrics = EvaluationMetrics(
         confidence_floor=round(confidence_floor, 3),
         hallucination_risk=round(hallucination_risk, 3),
         translation_quality=round(translation_quality, 3),
+        timeline_consistency=round(timeline_consistency, 3),
     )
     gate = QualityGate(
         passed=passed,

@@ -92,11 +92,11 @@ def _timeline_projection(*, dashboard: dict[str, object], story_id: str) -> list
         ) from exc
     converted: list[TimelineLaneView] = []
     for lane in lanes:
-        items: list[dict[str, str | int | None]] = []
+        items: list[dict[str, object]] = []
         for item in lane.items:
-            normalized: dict[str, str | int | None] = {}
+            normalized: dict[str, object] = {}
             for key, value in item.items():
-                if isinstance(value, (str, int)) or value is None:
+                if isinstance(value, (str, int, float, bool, list, dict)) or value is None:
                     normalized[str(key)] = value
                 else:
                     normalized[str(key)] = str(value)

@@ -36,6 +36,7 @@ def main() -> None:
     run_tool("ruff", "format", "--check", ".")
     run_tool("mypy")
     run_tool("pytest")
+    run([uv_executable, "run", "story-pipeline-canary", "--strict"])
     run_tool("mkdocs", "build", "--strict")
     web_package = Path("web") / "package.json"
     if web_package.exists():

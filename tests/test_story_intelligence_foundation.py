@@ -50,6 +50,43 @@ def test_ingestion_normalizes_and_chunks_deterministically() -> None:
     assert first.normalized_text == "First paragraph.\n\nSecond paragraph with spaces."
 
 
+def test_ingestion_document_adapter_normalizes_markers_and_form_feed() -> None:
+    request = IngestionRequest(
+        source_type="document",
+        source_text="# Chapter 1\n\n- First finding.\f\n2) Second finding.",
+        idempotency_key="story-doc",
+    )
+    artifact = ingest_story_text(request)
+    assert "Chapter 1" in artifact.normalized_text
+    assert "First finding." in artifact.normalized_text
+    assert "Second finding." in artifact.normalized_text
+    assert artifact.issues == []
+
+
+def test_ingestion_transcript_adapter_records_malformed_lines_but_continues() -> None:
+    request = IngestionRequest(
+        source_type="transcript",
+        source_text="[00:01] Narrator: Start\n[00:02]\n::: ??? :::\n[00:03] Rhea: End",
+        idempotency_key="story-tr",
+    )
+    artifact = ingest_story_text(request)
+    assert len(artifact.segments) >= 1
+    assert artifact.metrics.malformed_items >= 1
+    assert any(issue.code == "transcript_line_empty_content" for issue in artifact.issues)
+
+
+def test_ingestion_unknown_source_type_falls_back_to_text_with_warning() -> None:
+    artifact = ingest_story_text(
+        IngestionRequest(
+            source_type="custom-source",
+            source_text="Custom content",
+            idempotency_key="story-custom",
+        )
+    )
+    assert artifact.source_type == "text"
+    assert any(issue.code == "source_type_unsupported" for issue in artifact.issues)
+
+
 def test_language_detection_and_translation_attach_alignment() -> None:
     segment = RawSegment(
         segment_id="seg_testone",

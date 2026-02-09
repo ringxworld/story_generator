@@ -16,6 +16,7 @@ from story_gen.core.story_schema import (
     TimelinePoint,
 )
 from story_gen.core.theme_arc_tracking import ArcSignal, ConflictShift, EmotionSignal
+from story_gen.core.timeline_composer import TimelineConflict
 
 
 @dataclass(frozen=True)
@@ -36,7 +37,7 @@ class TimelineLaneView:
     """Timeline lane projection."""
 
     lane: str
-    items: list[dict[str, str | int | None]]
+    items: list[dict[str, object]]
 
 
 @dataclass(frozen=True)
@@ -112,10 +113,13 @@ def build_dashboard_read_model(
     emotions: list[EmotionSignal],
     timeline_actual: list[TimelinePoint],
     timeline_narrative: list[TimelinePoint],
+    timeline_conflicts: list[TimelineConflict] | None = None,
 ) -> DashboardReadModel:
     """Project canonical artifacts into dashboard-oriented read models."""
     overview = _build_overview(document)
-    timeline_lanes = _build_timeline_lanes(timeline_actual, timeline_narrative)
+    timeline_lanes = _build_timeline_lanes(
+        timeline_actual, timeline_narrative, timeline_conflicts or []
+    )
     theme_heatmap = _build_theme_heatmap(document.theme_signals)
     arc_points = _build_arc_points(arcs, conflicts, emotions)
     drilldown = _build_drilldown(
@@ -666,11 +670,21 @@ def _build_overview(document: StoryDocument) -> DashboardOverviewCard:
 
 
 def _build_timeline_lanes(
-    actual: list[TimelinePoint], narrative: list[TimelinePoint]
+    actual: list[TimelinePoint],
+    narrative: list[TimelinePoint],
+    conflicts: list[TimelineConflict],
 ) -> list[TimelineLaneView]:
-    actual_items = _project_timeline_items(actual)
-    narrative_items = _project_timeline_items(narrative)
-    return [
+    conflict_codes_by_source: dict[str, list[str]] = {}
+    for conflict in conflicts:
+        for source_id in conflict.source_ids:
+            conflict_codes_by_source.setdefault(source_id, []).append(conflict.code)
+    actual_items = _project_timeline_items(
+        actual, conflict_codes_by_source=conflict_codes_by_source
+    )
+    narrative_items = _project_timeline_items(
+        narrative, conflict_codes_by_source=conflict_codes_by_source
+    )
+    lanes = [
         TimelineLaneView(
             lane="actual_time",
             items=actual_items,
@@ -680,15 +694,40 @@ def _build_timeline_lanes(
             items=narrative_items,
         ),
     ]
+    if conflicts:
+        lanes.append(
+            TimelineLaneView(
+                lane="timeline_diagnostics",
+                items=[
+                    {
+                        "id": conflict.conflict_id,
+                        "label": conflict.message,
+                        "order": index,
+                        "time": None,
+                        "severity": conflict.severity,
+                        "code": conflict.code,
+                        "source_ids": list(conflict.source_ids),
+                    }
+                    for index, conflict in enumerate(conflicts, start=1)
+                ],
+            )
+        )
+    return lanes
 
 
-def _project_timeline_items(points: list[TimelinePoint]) -> list[dict[str, str | int | None]]:
+def _project_timeline_items(
+    points: list[TimelinePoint],
+    *,
+    conflict_codes_by_source: dict[str, list[str]],
+) -> list[dict[str, object]]:
     return [
         {
             "id": point.point_id,
             "label": point.label,
             "order": point.narrative_order,
             "time": point.actual_time_utc,
+            "discrepancy_flags": sorted(set(conflict_codes_by_source.get(point.source_id, []))),
+            "time_inferred": "inferred" in point.confidence.method,
         }
         for point in points
     ]
