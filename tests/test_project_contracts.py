@@ -356,6 +356,9 @@ def test_policy_docs_require_failure_path_testing_rules() -> None:
     assert "Tests must cover both success and failure paths" in contributing
     assert "Do not delete or weaken tests to make CI pass" in contributing
     assert "Do not remove tests to satisfy gates" in agents
+    assert "## 10. Human PR Status Comments" in agents
+    assert "Use this order: `current state`, `why`, `next step`." in agents
+    assert "Keep comments short (3 to 6 lines)." in agents
 
 
 def test_boundary_package_scaffolds_exist() -> None:
