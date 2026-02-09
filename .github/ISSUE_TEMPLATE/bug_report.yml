@@ -4,6 +4,13 @@ title: "[bug] "
 labels:
   - bug
 body:
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
   - type: textarea
     id: summary
     attributes:

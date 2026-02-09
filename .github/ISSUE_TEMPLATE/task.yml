@@ -1,9 +1,14 @@
-name: Engineering task
-description: Track a bounded engineering task.
+name: Engineering task (internal)
+description: Internal execution tracker. External task issues are auto-closed by intake policy.
 title: "[task] "
 labels:
   - chore
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Internal-only template for maintainers.
+        External contributors should use `Bug report` or `Feature request`.
   - type: input
     id: owner
     attributes:
