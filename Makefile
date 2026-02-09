@@ -19,7 +19,7 @@ ISSUE_SUMMARY_FILE ?=.github/ISSUE_CLOSE_SUMMARY_TEMPLATE.md
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-up-detached attach docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck wiki-sync wiki-sync-push contracts-export project-sync project-audit label-audit issue-close pr-open pr-checks pr-merge pr-auto deploy clean clean-deep
+.PHONY: help sync hooks-install hooks-run lock-check import-check contracts-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-up-detached attach docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck wiki-sync wiki-sync-push contracts-export project-sync project-audit label-audit issue-close pr-open pr-checks pr-merge pr-auto deploy clean clean-deep
 
 help:
 	@echo "story_gen targets:"
@@ -28,6 +28,7 @@ help:
 	@echo "  make hooks-run            - run pre-commit on all files"
 	@echo "  make lock-check           - verify uv.lock matches pyproject constraints"
 	@echo "  make import-check         - enforce Python import layer boundaries"
+	@echo "  make contracts-check      - validate contract registry + stage contract drift"
 	@echo "  make lint                 - run ruff checks"
 	@echo "  make fix                  - auto-fix lint issues and format code"
 	@echo "  make format               - format code with ruff"
@@ -107,6 +108,9 @@ lock-check:
 import-check:
 	$(RUN) python tools/check_imports.py
 
+contracts-check:
+	$(RUN) python tools/check_contract_drift.py
+
 lint:
 	$(RUN) ruff check .
 
@@ -131,7 +135,7 @@ e2e:
 
 coverage: test
 
-quality: lock-check import-check lint format-check typecheck test
+quality: lock-check import-check contracts-check lint format-check typecheck test
 
 frontend-quality: web-typecheck web-coverage web-build
 

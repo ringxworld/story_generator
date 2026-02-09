@@ -8,8 +8,8 @@ from typing import cast
 
 from pydantic import ValidationError
 
-from story_gen.adapters.sqlite_story_analysis_store import SQLiteStoryAnalysisStore
 from story_gen.adapters.sqlite_story_store import SQLiteStoryStore
+from story_gen.adapters.story_analysis_store_factory import create_story_analysis_store
 from story_gen.api.contracts import (
     DashboardGraphEdgeResponse,
     DashboardGraphNodeResponse,
@@ -146,7 +146,7 @@ def main(argv: list[str] | None = None) -> None:
     export_format = str(parsed.format)
 
     story_store = SQLiteStoryStore(db_path=db_path)
-    analysis_store = SQLiteStoryAnalysisStore(db_path=db_path)
+    analysis_store = create_story_analysis_store(db_path=db_path)
     story = story_store.get_story(story_id=story_id)
     if story is None:
         raise SystemExit(f"Story not found: {story_id}")

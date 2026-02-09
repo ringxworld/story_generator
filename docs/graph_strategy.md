@@ -36,5 +36,11 @@ Current recommendation:
 
 Current recommendation:
 
-- keep SQLite for alpha and deterministic contract validation
-- introduce a graph-store adapter only when query workload proves it is needed
+- keep SQLite as default for alpha and deterministic contract validation
+- run decision benchmarks with `tools/storage_decision_benchmark.py`
+- use document-first scaling path before graph-native infrastructure
+- introduce graph-store backend only when traversal SLOs justify extra ops cost
+
+Measured decision matrix:
+
+- `docs/storage_decision_matrix.md`

@@ -14,6 +14,7 @@ This file defines the stable shape of the repository and import boundaries.
   - Side effects: filesystem, network, subprocesses, model loading.
   - Local persistence adapters (for example SQLite story/feature/essay storage).
   - Local analysis persistence adapter for story intelligence runs and dashboard payloads.
+  - Configurable analysis-store factory with prototype Mongo/graph adapters behind feature flags.
 - `src/story_gen/native/`
   - Python-facing boundary for compiled/native integrations.
 - `src/story_gen/cli/`
@@ -87,6 +88,18 @@ Schema and stage-level pipeline contracts are tracked in:
 - `src/story_gen/api/contract_registry.py`
 - `work/contracts/story_pipeline_contract_registry.v1.json`
 - `src/story_gen/core/pipeline_contracts.py`
+
+## Analysis Storage Configuration
+
+Analysis persistence backend is selected by configuration without API contract changes:
+
+- `STORY_GEN_ANALYSIS_BACKEND=sqlite` (default)
+- `STORY_GEN_ANALYSIS_BACKEND=mongo-prototype` with `STORY_GEN_ENABLE_MONGO_ADAPTER=1`
+- `STORY_GEN_ANALYSIS_BACKEND=graph-prototype` with `STORY_GEN_ENABLE_GRAPH_ADAPTER=1`
+
+Contract drift checks remain mandatory regardless of backend:
+
+- `uv run python tools/check_contract_drift.py`
 
 ## Schema Versioning Policy
 

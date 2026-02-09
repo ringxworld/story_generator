@@ -24,6 +24,7 @@ make contracts-export
 4. Run checks:
 
 ```bash
+uv run python tools/check_contract_drift.py
 uv run pytest tests/test_contract_registry.py
 uv run pytest tests/test_story_analysis_pipeline.py
 ```
