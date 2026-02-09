@@ -17,6 +17,7 @@ from story_gen.cli import (
     dashboard_export,
     features,
     pipeline_canary,
+    qa_evaluation,
     reference_pipeline,
     story_collector,
     youtube_downloader,
@@ -118,6 +119,17 @@ def test_pipeline_canary_cli_reports_stage_successes(
     assert '"stage": "ingestion"' in captured.out
     assert '"stage": "timeline"' in captured.out
     assert '"stage": "insights"' in captured.out
+
+
+def test_qa_evaluation_cli_reports_status(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    output = tmp_path / "qa-eval.json"
+    qa_evaluation.main(["--strict", "--output", str(output)])
+    captured = capsys.readouterr()
+    assert '"status": "passed"' in captured.out
+    assert output.exists()
 
 
 def test_blueprint_cli_validates_and_rewrites_json(tmp_path: Path) -> None:
