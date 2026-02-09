@@ -28,3 +28,4 @@ make wiki-sync-push
 - Wiki: `https://github.com/ringxworld/story_generator/wiki`
 - Product demo (Pages): `https://ringxworld.github.io/story_generator/`
 - Hosted docs (Pages): `https://ringxworld.github.io/story_generator/docs/`
+- Hosted Python API reference (Pages): `https://ringxworld.github.io/story_generator/pydoc/`

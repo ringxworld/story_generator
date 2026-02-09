@@ -48,6 +48,10 @@ jobs:
       - name: Build docs snapshot
         run: uv run mkdocs build --strict --site-dir docs_site
 
+      - name: Build Python API reference snapshot
+        run: |
+          uv run python tools/build_python_api_docs.py --output-dir pydoc_site
+
       - name: Build product demo snapshot
         env:
           VITE_OFFLINE_DEMO: "true"
@@ -61,6 +65,8 @@ jobs:
           cp -R web/dist/. site/studio/
           mkdir -p site/docs
           cp -R docs_site/. site/docs/
+          mkdir -p site/pydoc
+          cp -R pydoc_site/. site/pydoc/
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
