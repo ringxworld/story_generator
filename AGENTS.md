@@ -201,3 +201,12 @@ Decision policy when evidence is insufficient:
 - Reopen the issue when core acceptance criteria are still unmet.
 - Create a linked follow-up issue when the original outcome is mostly valid but verifiability or hardening is missing.
 - Record the verification result in a comment using concrete artifacts (PR URLs, commands run, current state observed).
+
+## 16. Dependabot Handling
+
+Treat Dependabot PRs as first-class maintenance work:
+
+- Always triage Dependabot PRs when they arrive; do not leave them unattended.
+- Prefer automated merge for safe semver bumps (patch/minor) after required checks pass.
+- Require manual review for major/ambiguous updates before merge.
+- If a Dependabot PR fails checks, identify whether the failure is dependency-driven and add/adjust tests to guard the compatibility gap before merge.
