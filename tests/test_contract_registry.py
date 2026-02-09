@@ -21,6 +21,9 @@ def test_contract_registry_snapshot_has_required_core_entries() -> None:
     assert "essay.blueprint" in schema_ids
     assert "story.analysis.request" in schema_ids
     assert "story.analysis.run_summary" in schema_ids
+    assert "dashboard.v1.overview" in schema_ids
+    assert "dashboard.v1.timeline_lane" in schema_ids
+    assert "dashboard.v1.theme_heatmap" in schema_ids
     assert "pipeline.story_document" in schema_ids
     assert "pipeline.timeline_point" in schema_ids
     assert "pipeline.insight" in schema_ids

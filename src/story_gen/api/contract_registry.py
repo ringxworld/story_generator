@@ -100,6 +100,14 @@ def _schema_contracts() -> list[SchemaContractRecord]:
             description="Dashboard macro overview response contract.",
         ),
         SchemaContractRecord(
+            contract_id="dashboard.v1.overview",
+            schema_version=DASHBOARD_SCHEMA_VERSION,
+            model_path="story_gen.api.contracts.DashboardOverviewResponse",
+            category="response",
+            owner="api",
+            description="Versioned dashboard v1 overview response contract.",
+        ),
+        SchemaContractRecord(
             contract_id="dashboard.timeline_lane",
             schema_version=DASHBOARD_SCHEMA_VERSION,
             model_path="story_gen.api.contracts.DashboardTimelineLaneResponse",
@@ -108,12 +116,28 @@ def _schema_contracts() -> list[SchemaContractRecord]:
             description="Timeline lane response contract.",
         ),
         SchemaContractRecord(
+            contract_id="dashboard.v1.timeline_lane",
+            schema_version=DASHBOARD_SCHEMA_VERSION,
+            model_path="story_gen.api.contracts.DashboardTimelineLaneResponse",
+            category="response",
+            owner="api",
+            description="Versioned dashboard v1 timeline lane response contract.",
+        ),
+        SchemaContractRecord(
             contract_id="dashboard.theme_heatmap",
             schema_version=DASHBOARD_SCHEMA_VERSION,
             model_path="story_gen.api.contracts.DashboardThemeHeatmapCellResponse",
             category="response",
             owner="api",
             description="Theme heatmap response contract.",
+        ),
+        SchemaContractRecord(
+            contract_id="dashboard.v1.theme_heatmap",
+            schema_version=DASHBOARD_SCHEMA_VERSION,
+            model_path="story_gen.api.contracts.DashboardThemeHeatmapCellResponse",
+            category="response",
+            owner="api",
+            description="Versioned dashboard v1 theme heatmap response contract.",
         ),
         SchemaContractRecord(
             contract_id="dashboard.arc_point",

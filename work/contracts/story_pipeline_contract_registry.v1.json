@@ -135,6 +135,14 @@
     },
     {
       "category": "response",
+      "contract_id": "dashboard.v1.overview",
+      "description": "Versioned dashboard v1 overview response contract.",
+      "model_path": "story_gen.api.contracts.DashboardOverviewResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
       "contract_id": "dashboard.timeline_lane",
       "description": "Timeline lane response contract.",
       "model_path": "story_gen.api.contracts.DashboardTimelineLaneResponse",
@@ -143,8 +151,24 @@
     },
     {
       "category": "response",
+      "contract_id": "dashboard.v1.timeline_lane",
+      "description": "Versioned dashboard v1 timeline lane response contract.",
+      "model_path": "story_gen.api.contracts.DashboardTimelineLaneResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
       "contract_id": "dashboard.theme_heatmap",
       "description": "Theme heatmap response contract.",
+      "model_path": "story_gen.api.contracts.DashboardThemeHeatmapCellResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.v1.theme_heatmap",
+      "description": "Versioned dashboard v1 theme heatmap response contract.",
       "model_path": "story_gen.api.contracts.DashboardThemeHeatmapCellResponse",
       "owner": "api",
       "schema_version": "dashboard_read_model.v1"
