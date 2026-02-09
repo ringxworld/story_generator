@@ -203,6 +203,7 @@ def test_pyproject_exposes_story_collection_entrypoints() -> None:
     assert 'story-api = "story_gen.cli.api:main"' in pyproject
     assert 'story-blueprint = "story_gen.cli.blueprint:main"' in pyproject
     assert 'story-features = "story_gen.cli.features:main"' in pyproject
+    assert 'story-dashboard-export = "story_gen.cli.dashboard_export:main"' in pyproject
 
 
 def test_mkdocs_configuration_exists() -> None:
@@ -240,7 +241,8 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0018 Wiki Docs + Product-First Pages:" in config
     assert "0020 Pages Hosted MkDocs Snapshot:" in config
     assert "0021 Pages Hosted Python API Reference:" in config
-    assert "0022 Dashboard Read-Model v1 Endpoints:" in config
+    assert "0022 Dashboard PNG Export Surface:" in config
+    assert "0023 Dashboard Read-Model v1 Endpoints:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -346,6 +348,8 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0019-contract-registry-and-pipeline-governance.md").exists()
     assert (ROOT / "docs" / "contracts_registry.md").exists()
     assert (ROOT / "docs" / "adr" / "0018-wiki-docs-and-product-first-pages.md").exists()
+    assert (ROOT / "docs" / "adr" / "0022-dashboard-png-export-surface.md").exists()
+    assert (ROOT / "docs" / "adr" / "0023-dashboard-read-model-v1-endpoints.md").exists()
     assert (ROOT / "docs" / "story_bundle.md").exists()
     assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "graph_strategy.md").exists()
@@ -359,7 +363,6 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
     assert (ROOT / "docs" / "architecture_diagrams.md").exists()
     assert (ROOT / "docs" / "javascripts" / "mermaid.js").exists()
-    assert (ROOT / "docs" / "adr" / "0022-dashboard-read-model-v1-endpoints.md").exists()
     architecture = _read("docs/architecture.md")
     adr_0019 = _read("docs/adr/0019-contract-registry-and-pipeline-governance.md")
     assert "## Schema Versioning Policy" in architecture

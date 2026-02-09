@@ -198,6 +198,14 @@
       "schema_version": "dashboard_read_model.v1"
     },
     {
+      "category": "response",
+      "contract_id": "dashboard.graph_export_png",
+      "description": "Graph export contract used for deterministic PNG output.",
+      "model_path": "story_gen.api.contracts.DashboardGraphPngExportResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
       "category": "artifact",
       "contract_id": "pipeline.raw_segment",
       "description": "Normalized and optional translated source segment artifact.",

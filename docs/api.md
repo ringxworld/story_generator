@@ -62,6 +62,8 @@ uv run story-api --db-path work/local/story_gen.db
   - Returns graph nodes/edges for interactive rendering.
 - `GET /api/v1/stories/{story_id}/dashboard/graph/export.svg`
   - Returns SVG export payload for graph image use.
+- `GET /api/v1/stories/{story_id}/dashboard/graph/export.png`
+  - Returns deterministic PNG export payload (`png_base64`) for graph image use.
 - `GET /api/v1/essays?limit=<n>`
   - Lists essays for the authenticated owner.
 - `POST /api/v1/essays`
@@ -116,3 +118,16 @@ Auth flow in Swagger UI:
 - GitHub Pages is static hosting only, so it can serve docs/front-end but not this Python API.
 - Python users can work with the same contracts via `story_gen.api` and `story-blueprint`.
 - Override allowed CORS origins with `STORY_GEN_CORS_ORIGINS` (comma-separated).
+
+## Dashboard export CLI
+
+Export the latest owner-scoped dashboard graph from SQLite:
+
+```bash
+uv run story-dashboard-export \
+  --db-path work/local/story_gen.db \
+  --story-id <story-id> \
+  --owner-id <owner-id> \
+  --format png \
+  --output work/exports/<story-id>-graph.png
+```

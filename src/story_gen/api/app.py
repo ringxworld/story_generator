@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import logging
@@ -11,7 +12,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,6 +37,7 @@ from story_gen.api.contracts import (
     DashboardGraphEdgeResponse,
     DashboardGraphExportResponse,
     DashboardGraphNodeResponse,
+    DashboardGraphPngExportResponse,
     DashboardGraphResponse,
     DashboardOverviewResponse,
     DashboardThemeHeatmapCellResponse,
@@ -59,6 +61,7 @@ from story_gen.api.contracts import (
     StoryUpdateRequest,
     UserResponse,
 )
+from story_gen.core.dashboard_views import GraphEdge, GraphNode, export_graph_png
 from story_gen.core.essay_quality import (
     EssayDraftInput,
     EssayPolicySpec,
@@ -71,7 +74,7 @@ from story_gen.core.story_feature_pipeline import (
     StoryFeatureExtractionResult,
     extract_story_features,
 )
-from story_gen.core.story_schema import StoryDocument
+from story_gen.core.story_schema import StoryDocument, StoryStage
 
 DEFAULT_DB_PATH = Path("work/local/story_gen.db")
 TOKEN_TTL_HOURS = 24
@@ -117,6 +120,7 @@ class ApiRootResponse(BaseModel):
             "/api/v1/stories/{story_id}/dashboard/drilldown/{item_id}",
             "/api/v1/stories/{story_id}/dashboard/graph",
             "/api/v1/stories/{story_id}/dashboard/graph/export.svg",
+            "/api/v1/stories/{story_id}/dashboard/graph/export.png",
             "/api/v1/essays",
             "/api/v1/essays/{essay_id}",
             "/api/v1/essays/{essay_id}/evaluate",
@@ -854,6 +858,58 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, _, graph_svg = latest
         return DashboardGraphExportResponse(svg=graph_svg)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/graph/export.png",
+        response_model=DashboardGraphPngExportResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_graph_export_png(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardGraphPngExportResponse:
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
+        _, _, dashboard, _ = latest
+        node_payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="graph_nodes",
+            story_id=story.story_id,
+            expected="array",
+        )
+        edge_payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="graph_edges",
+            story_id=story.story_id,
+            expected="array",
+        )
+        nodes = [DashboardGraphNodeResponse.model_validate(item) for item in node_payload]
+        edges = [DashboardGraphEdgeResponse.model_validate(item) for item in edge_payload]
+        png_bytes = export_graph_png(
+            nodes=[
+                GraphNode(
+                    id=node.id,
+                    label=node.label,
+                    group=node.group,
+                    stage=cast(StoryStage | None, node.stage),
+                    layout_x=node.layout_x,
+                    layout_y=node.layout_y,
+                )
+                for node in nodes
+            ],
+            edges=[
+                GraphEdge(
+                    source=edge.source,
+                    target=edge.target,
+                    relation=edge.relation,
+                    weight=edge.weight,
+                )
+                for edge in edges
+            ],
+        )
+        return DashboardGraphPngExportResponse(
+            png_base64=base64.b64encode(png_bytes).decode("ascii")
+        )
 
     @app.get("/api/v1/essays", response_model=list[EssayResponse], tags=["essays"])
     def list_essays(

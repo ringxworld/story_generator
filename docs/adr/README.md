@@ -20,4 +20,5 @@ Latest ADR:
 
 - `0020-pages-hosted-mkdocs-snapshot.md`
 - `0021-pages-hosted-python-api-reference.md`
-- `0022-dashboard-read-model-v1-endpoints.md`
+- `0022-dashboard-png-export-surface.md`
+- `0023-dashboard-read-model-v1-endpoints.md`

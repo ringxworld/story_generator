@@ -124,6 +124,7 @@ def test_api_root_reports_auth_and_story_endpoints() -> None:
     assert "/api/v1/stories/{story_id}/dashboard/v1/overview" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/v1/timeline" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/graph/export.png" in payload["endpoints"]
     assert "/api/v1/essays" in payload["endpoints"]
     assert "/api/v1/essays/{essay_id}/evaluate" in payload["endpoints"]
 
@@ -258,7 +259,21 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
         f"/api/v1/stories/{story_id}/dashboard/graph/export.svg", headers=headers
     )
     assert graph_export.status_code == 200
+    assert graph_export.json()["format"] == "svg"
     assert graph_export.json()["svg"].startswith("<svg")
+    graph_export_png = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/graph/export.png", headers=headers
+    )
+    assert graph_export_png.status_code == 200
+    png_payload = graph_export_png.json()
+    assert png_payload["format"] == "png"
+    assert isinstance(png_payload["png_base64"], str)
+    assert png_payload["png_base64"]
+    graph_export_png_second = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/graph/export.png", headers=headers
+    )
+    assert graph_export_png_second.status_code == 200
+    assert graph_export_png_second.json()["png_base64"] == png_payload["png_base64"]
 
     drilldown = client.get(
         f"/api/v1/stories/{story_id}/dashboard/drilldown/missing-item",

@@ -1,4 +1,4 @@
-# ADR 0022: Dashboard Read-Model v1 Endpoints
+# ADR 0023: Dashboard Read-Model v1 Endpoints
 
 ## Status
 
