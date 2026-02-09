@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactElement } from "react";
 
 import type {
   DashboardArcPointResponse,
@@ -94,7 +94,7 @@ const formatLane = (lane: string): string => {
   return `${spaced.charAt(0).toUpperCase()}${spaced.slice(1)}`;
 };
 
-export const OfflineDemoStudio = (): JSX.Element => {
+export const OfflineDemoStudio = (): ReactElement => {
   const brandMarkUrl = `${import.meta.env.BASE_URL}brand/story-gen-mark.svg`;
   const { theme, toggleTheme } = useThemeMode();
   const [selectedNodeId, setSelectedNodeId] = useState<string>(graph.nodes[0]?.id ?? "");
