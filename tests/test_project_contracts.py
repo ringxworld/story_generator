@@ -97,6 +97,8 @@ def test_deploy_workflow_requires_ci_success() -> None:
     assert "uv sync --group dev" in workflow
     assert "Build docs snapshot" in workflow
     assert "uv run mkdocs build --strict --site-dir docs_site" in workflow
+    assert "Build Python API reference snapshot" in workflow
+    assert "uv run python tools/build_python_api_docs.py --output-dir pydoc_site" in workflow
     assert "Setup Node" in workflow
     assert "Build product demo snapshot" in workflow
     assert "VITE_BASE_PATH: /${{ github.event.repository.name }}/" in workflow
@@ -105,6 +107,8 @@ def test_deploy_workflow_requires_ci_success() -> None:
     assert "site/studio" in workflow
     assert "site/docs" in workflow
     assert "cp -R docs_site/. site/docs/" in workflow
+    assert "site/pydoc" in workflow
+    assert "cp -R pydoc_site/. site/pydoc/" in workflow
 
 
 def test_native_cmake_scaffold_present() -> None:
@@ -194,6 +198,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "Architecture Diagrams:" in config
     assert "Contracts Registry:" in config
     assert "API:" in config
+    assert "Python API Reference:" in config
     assert "Developer Setup:" in config
     assert "Good Essay Mode:" in config
     assert "Deployment:" in config
@@ -220,6 +225,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0019 Contract Registry and Pipeline Governance:" in config
     assert "0018 Wiki Docs + Product-First Pages:" in config
     assert "0020 Pages Hosted MkDocs Snapshot:" in config
+    assert "0021 Pages Hosted Python API Reference:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -314,6 +320,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0015-dark-mode-default-and-toggle.md").exists()
     assert (ROOT / "docs" / "adr" / "0016-native-feature-metrics-acceleration-path.md").exists()
     assert (ROOT / "docs" / "adr" / "0017-story-bundle-binary-format.md").exists()
+    assert (ROOT / "docs" / "adr" / "0021-pages-hosted-python-api-reference.md").exists()
     assert (ROOT / "docs" / "adr" / "0019-contract-registry-and-pipeline-governance.md").exists()
     assert (ROOT / "docs" / "contracts_registry.md").exists()
     assert (ROOT / "docs" / "adr" / "0018-wiki-docs-and-product-first-pages.md").exists()
@@ -324,6 +331,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "developer_setup.md").exists()
     assert (ROOT / "docs" / "github_collaboration.md").exists()
     assert (ROOT / "docs" / "wiki_docs.md").exists()
+    assert (ROOT / "docs" / "python_api_reference.md").exists()
     assert (ROOT / "docs" / "essay_mode.md").exists()
     assert (ROOT / "docs" / "droplet_stack.md").exists()
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
@@ -343,8 +351,22 @@ def test_api_docs_reference_swagger_and_openapi_endpoints() -> None:
     assert "http://127.0.0.1:8000/docs" in api_docs
     assert "http://127.0.0.1:8000/redoc" in api_docs
     assert "http://127.0.0.1:8000/openapi.json" in api_docs
+    assert "https://ringxworld.github.io/story_generator/pydoc/" in api_docs
     assert "Authorize" in api_docs
     assert "http://127.0.0.1:8000/redoc" in setup_docs
+
+
+def test_pyproject_dev_group_includes_python_api_docs_generator() -> None:
+    pyproject = _read("pyproject.toml")
+    assert '"pdoc>=' in pyproject
+
+
+def test_python_api_docs_builder_script_exists() -> None:
+    builder = _read("tools/build_python_api_docs.py")
+    assert "def _discover_modules" in builder
+    assert "python tools/build_python_api_docs.py --output-dir pydoc_site" in _read(
+        ".github/workflows/deploy-pages.yml"
+    )
 
 
 def test_analysis_contract_scaffold_exists_and_is_valid_json() -> None:
