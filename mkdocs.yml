@@ -72,6 +72,7 @@ nav:
       - 0021 Pages Hosted Python API Reference: adr/0021-pages-hosted-python-api-reference.md
       - 0022 Dashboard PNG Export Surface: adr/0022-dashboard-png-export-surface.md
       - 0023 Dashboard Read-Model v1 Endpoints: adr/0023-dashboard-read-model-v1-endpoints.md
+      - 0024 Dashboard Timeline and Heatmap Export Surfaces: adr/0024-dashboard-timeline-and-heatmap-export-surfaces.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

@@ -206,6 +206,38 @@
       "schema_version": "dashboard_read_model.v1"
     },
     {
+      "category": "response",
+      "contract_id": "dashboard.timeline_export",
+      "description": "Timeline export contract used for static SVG output.",
+      "model_path": "story_gen.api.contracts.DashboardSvgExportResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.timeline_export_png",
+      "description": "Timeline export contract used for deterministic PNG output.",
+      "model_path": "story_gen.api.contracts.DashboardPngExportResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.theme_heatmap_export",
+      "description": "Theme heatmap export contract used for static SVG output.",
+      "model_path": "story_gen.api.contracts.DashboardSvgExportResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.theme_heatmap_export_png",
+      "description": "Theme heatmap export contract used for deterministic PNG output.",
+      "model_path": "story_gen.api.contracts.DashboardPngExportResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
       "category": "artifact",
       "contract_id": "pipeline.raw_segment",
       "description": "Normalized and optional translated source segment artifact.",

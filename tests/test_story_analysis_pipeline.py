@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from story_gen.core.dashboard_views import export_graph_png
+from story_gen.core.dashboard_views import (
+    export_graph_png,
+    export_theme_heatmap_png,
+    export_theme_heatmap_svg,
+    export_timeline_png,
+    export_timeline_svg,
+)
 from story_gen.core.story_analysis_pipeline import run_story_analysis
 
 
@@ -87,6 +93,27 @@ def test_pipeline_graph_png_export_is_deterministic() -> None:
     )
     assert first.startswith(b"\x89PNG\r\n\x1a\n")
     assert first == second
+
+
+def test_pipeline_timeline_and_heatmap_exports_are_deterministic() -> None:
+    result = run_story_analysis(story_id="story-layout-views", source_text=_sample_story())
+    timeline_svg_first = export_timeline_svg(lanes=result.dashboard.timeline_lanes)
+    timeline_svg_second = export_timeline_svg(lanes=result.dashboard.timeline_lanes)
+    timeline_png_first = export_timeline_png(lanes=result.dashboard.timeline_lanes)
+    timeline_png_second = export_timeline_png(lanes=result.dashboard.timeline_lanes)
+    heatmap_svg_first = export_theme_heatmap_svg(cells=result.dashboard.theme_heatmap)
+    heatmap_svg_second = export_theme_heatmap_svg(cells=result.dashboard.theme_heatmap)
+    heatmap_png_first = export_theme_heatmap_png(cells=result.dashboard.theme_heatmap)
+    heatmap_png_second = export_theme_heatmap_png(cells=result.dashboard.theme_heatmap)
+
+    assert timeline_svg_first.startswith("<svg")
+    assert timeline_svg_first == timeline_svg_second
+    assert timeline_png_first.startswith(b"\x89PNG\r\n\x1a\n")
+    assert timeline_png_first == timeline_png_second
+    assert heatmap_svg_first.startswith("<svg")
+    assert heatmap_svg_first == heatmap_svg_second
+    assert heatmap_png_first.startswith(b"\x89PNG\r\n\x1a\n")
+    assert heatmap_png_first == heatmap_png_second
 
 
 def test_pipeline_preserves_dashboard_heatmap_and_arc_shapes() -> None:

@@ -123,7 +123,11 @@ def test_api_root_reports_auth_and_story_endpoints() -> None:
     assert "/api/v1/stories/{story_id}/dashboard/overview" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/v1/overview" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/v1/timeline" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/timeline/export.svg" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/timeline/export.png" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/graph/export.png" in payload["endpoints"]
     assert "/api/v1/essays" in payload["endpoints"]
     assert "/api/v1/essays/{essay_id}/evaluate" in payload["endpoints"]
@@ -233,6 +237,24 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
     )
     assert versioned_timeline.status_code == 200
     assert versioned_timeline.json() == timeline.json()
+    timeline_export = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/timeline/export.svg", headers=headers
+    )
+    assert timeline_export.status_code == 200
+    assert timeline_export.json()["format"] == "svg"
+    assert timeline_export.json()["svg"].startswith("<svg")
+    timeline_export_png = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/timeline/export.png", headers=headers
+    )
+    assert timeline_export_png.status_code == 200
+    timeline_png_payload = timeline_export_png.json()
+    assert timeline_png_payload["format"] == "png"
+    assert timeline_png_payload["png_base64"]
+    timeline_export_png_second = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/timeline/export.png", headers=headers
+    )
+    assert timeline_export_png_second.status_code == 200
+    assert timeline_export_png_second.json()["png_base64"] == timeline_png_payload["png_base64"]
 
     heatmap = client.get(f"/api/v1/stories/{story_id}/dashboard/themes/heatmap", headers=headers)
     assert heatmap.status_code == 200
@@ -242,6 +264,24 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
     )
     assert versioned_heatmap.status_code == 200
     assert versioned_heatmap.json() == heatmap.json()
+    heatmap_export = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg", headers=headers
+    )
+    assert heatmap_export.status_code == 200
+    assert heatmap_export.json()["format"] == "svg"
+    assert heatmap_export.json()["svg"].startswith("<svg")
+    heatmap_export_png = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png", headers=headers
+    )
+    assert heatmap_export_png.status_code == 200
+    heatmap_png_payload = heatmap_export_png.json()
+    assert heatmap_png_payload["format"] == "png"
+    assert heatmap_png_payload["png_base64"]
+    heatmap_export_png_second = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png", headers=headers
+    )
+    assert heatmap_export_png_second.status_code == 200
+    assert heatmap_export_png_second.json()["png_base64"] == heatmap_png_payload["png_base64"]
 
     arcs = client.get(f"/api/v1/stories/{story_id}/dashboard/arcs", headers=headers)
     assert arcs.status_code == 200
@@ -313,6 +353,12 @@ def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     bob_versioned_dashboard = client.get(
         f"/api/v1/stories/{story_id}/dashboard/v1/overview", headers=bob_headers
     )
+    bob_timeline_export = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/timeline/export.svg", headers=bob_headers
+    )
+    bob_heatmap_export = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png", headers=bob_headers
+    )
     assert bob_get.status_code == 404
     assert bob_put.status_code == 404
     assert bob_extract.status_code == 404
@@ -321,6 +367,8 @@ def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     assert bob_analysis_latest.status_code == 404
     assert bob_dashboard.status_code == 404
     assert bob_versioned_dashboard.status_code == 404
+    assert bob_timeline_export.status_code == 404
+    assert bob_heatmap_export.status_code == 404
 
 
 def test_story_analysis_accepts_custom_source_text(tmp_path: Path) -> None:
@@ -610,8 +658,67 @@ def test_dashboard_payload_shape_error_records_anomaly(tmp_path: Path) -> None:
     )
     assert versioned_bad_response.status_code == 500
     assert versioned_bad_response.json()["detail"] == "Invalid dashboard overview payload"
+    timeline_export_bad = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/timeline/export.svg",
+        headers=headers,
+    )
+    assert timeline_export_bad.status_code == 500
+    assert timeline_export_bad.json()["detail"] == "Invalid dashboard timeline_lanes payload"
+    heatmap_export_bad = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png",
+        headers=headers,
+    )
+    assert heatmap_export_bad.status_code == 500
+    assert heatmap_export_bad.json()["detail"] == "Invalid dashboard theme_heatmap payload"
 
     anomalies = SQLiteAnomalyStore(db_path=db_path).list_recent(limit=20)
     payload_errors = [event for event in anomalies if event.code == "invalid_payload_shape"]
     assert payload_errors
-    assert "overview" in payload_errors[0].metadata_json
+    assert any("overview" in event.metadata_json for event in payload_errors)
+
+
+def test_dashboard_heatmap_export_rejects_unknown_stage_value(tmp_path: Path) -> None:
+    import sqlite3
+
+    db_path = tmp_path / "stories.db"
+    client = TestClient(create_app(db_path=db_path))
+    headers = _auth_headers(client, "alice@example.com")
+    created = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Dashboard Heatmap Corruption", "blueprint": _sample_blueprint()},
+    )
+    assert created.status_code == 201
+    story_id = created.json()["story_id"]
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={},
+    )
+    assert run.status_code == 200
+
+    with sqlite3.connect(str(db_path)) as connection:
+        connection.execute(
+            """
+            UPDATE story_analysis_runs
+            SET dashboard_json = ?
+            WHERE story_id = ?
+            """,
+            (
+                ('{"theme_heatmap": [{"theme": "memory", "stage": "epilogue", "intensity": 0.6}]}'),
+                story_id,
+            ),
+        )
+        connection.commit()
+
+    bad_response = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg",
+        headers=headers,
+    )
+    assert bad_response.status_code == 500
+    assert bad_response.json()["detail"] == "Invalid dashboard theme_heatmap payload"
+
+    anomalies = SQLiteAnomalyStore(db_path=db_path).list_recent(limit=20)
+    payload_errors = [event for event in anomalies if event.code == "invalid_payload_shape"]
+    assert payload_errors
+    assert any('"value": "epilogue"' in event.metadata_json for event in payload_errors)
