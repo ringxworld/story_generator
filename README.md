@@ -59,7 +59,8 @@ Not included on purpose:
 
 - Product demo (GitHub Pages): https://ringxworld.github.io/story_generator/
 - Studio alias: https://ringxworld.github.io/story_generator/studio/
-- Wiki (primary docs): https://github.com/ringxworld/story_generator/wiki
+- Hosted technical docs (Pages): https://ringxworld.github.io/story_generator/docs/
+- Wiki (collaboration/ops notes): https://github.com/ringxworld/story_generator/wiki
 - Project board: https://github.com/users/ringxworld/projects/2
 - Security policy: `SECURITY.md`
 
@@ -67,7 +68,7 @@ Not included on purpose:
 
 - Repo docs (`docs/`, contracts, architecture, ADRs): versioned technical source of truth.
 - Wiki: collaborative/project-operations context (planning, decisions, onboarding, weekly updates).
-- Pages: public product/demo narrative.
+- Pages: public product/demo surface plus a static docs snapshot under `/docs/`.
 
 Rule of thumb:
 

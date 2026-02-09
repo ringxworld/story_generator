@@ -2,8 +2,8 @@
 
 ## Current split
 
-- GitHub Wiki: long-form docs and ADR reading surface
-- GitHub Pages: product-first static studio demo snapshot
+- GitHub Wiki: collaboration and project-operations notes
+- GitHub Pages: product-first static studio demo snapshot plus hosted docs under `/docs`
 - React + TypeScript studio (`web/`): local dev now, static hosting ready
 - FastAPI service: local runtime today, external backend host later
 - Persistence: SQLite (`work/local/story_gen.db`) for local or single-instance deployments
@@ -69,7 +69,8 @@ S3-compatible note:
 ## Near-term plan
 
 1. Keep Pages focused on the product demo at repo root.
-2. Keep docs mirrored into the repository wiki.
+2. Publish static docs snapshot on Pages under `/docs`.
+3. Keep docs mirrored into the repository wiki for collaborative edits.
 3. Keep API local-first for editing and workflow testing.
 4. Keep web studio and Python interface on one shared blueprint contract.
 5. Add CORS + stronger auth + storage migration when remote multi-user hosting is needed.
@@ -84,6 +85,10 @@ Repository docs remain authored in `docs/` and are mirrored to the wiki:
 Wiki URL:
 
 - `https://github.com/ringxworld/story_generator/wiki`
+
+Hosted docs URL:
+
+- `https://ringxworld.github.io/story_generator/docs/`
 
 ## Migration path
 

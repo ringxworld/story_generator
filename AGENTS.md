@@ -166,7 +166,7 @@ Use one clear source of truth per documentation type:
 
 - Repo docs (`docs/`, API contracts, architecture, ADRs, runbooks tied to code) hold versioned technical truth.
 - Wiki holds collaborative/project-operations material (roadmap context, planning notes, meeting outcomes, onboarding checklists, weekly change notes).
-- GitHub Pages holds public product/demo narrative (what the product is, what it looks like, lightweight usage path).
+- GitHub Pages holds public product/demo narrative and a static docs snapshot at `/docs/`.
 
 Rule of thumb:
 

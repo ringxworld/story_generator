@@ -29,24 +29,24 @@ One-command flow:
 make pr-auto
 ```
 
-## Wiki docs sync
+## Docs publishing
 
-Docs are authored in `docs/` and mirrored into the repo wiki.
+Docs are authored in `docs/` and published to two read surfaces:
+
+- static snapshot on Pages: `https://ringxworld.github.io/story_generator/docs/`
+- mirrored wiki for collaboration notes: `https://github.com/ringxworld/story_generator/wiki`
 
 Automation:
 
 - `.github/workflows/wiki-sync.yml` syncs wiki content on pushes to `develop`/`main`
   when docs or sync tooling changes.
 - You can also run the same sync workflow manually from the Actions tab.
+- `.github/workflows/deploy-pages.yml` builds MkDocs and publishes it under `/docs/` after successful CI on `develop`/`main`.
 
 ```bash
 make wiki-sync       # update local wiki clone from docs/
 make wiki-sync-push  # publish synced docs to GitHub wiki
 ```
-
-Wiki URL:
-
-- `https://github.com/ringxworld/story_generator/wiki`
 
 ## Pull request defaults in this repo
 

@@ -92,15 +92,19 @@ def test_deploy_workflow_requires_ci_success() -> None:
     assert "conclusion == 'success'" in workflow
     assert "head_branch == 'develop'" in workflow
     assert "head_branch == 'main'" in workflow
+    assert "Setup uv" in workflow
+    assert "uv python install 3.11" in workflow
+    assert "uv sync --group dev" in workflow
+    assert "Build docs snapshot" in workflow
+    assert "uv run mkdocs build --strict --site-dir docs_site" in workflow
     assert "Setup Node" in workflow
     assert "Build product demo snapshot" in workflow
     assert "VITE_BASE_PATH: /${{ github.event.repository.name }}/" in workflow
     assert "cp -R web/dist/. site/" in workflow
     assert "npm run --prefix web build" in workflow
     assert "site/studio" in workflow
-    assert "Add wiki redirect page" in workflow
-    assert "site/docs/index.html" in workflow
-    assert "/wiki" in workflow
+    assert "site/docs" in workflow
+    assert "cp -R docs_site/. site/docs/" in workflow
 
 
 def test_native_cmake_scaffold_present() -> None:
@@ -215,6 +219,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0017 Story Bundle Binary Format:" in config
     assert "0019 Contract Registry and Pipeline Governance:" in config
     assert "0018 Wiki Docs + Product-First Pages:" in config
+    assert "0020 Pages Hosted MkDocs Snapshot:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
