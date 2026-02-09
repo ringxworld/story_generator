@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, type ReactElement } from "react";
 
 import {
   apiBaseUrl,
@@ -59,7 +59,7 @@ const defaultEssayBlueprint = (): EssayBlueprint => ({
   rubric: ["clear thesis", "evidence per claim", "logical transitions"],
 });
 
-const App = (): JSX.Element => {
+const App = (): ReactElement => {
   if (isOfflineDemoMode()) {
     return <OfflineDemoStudio />;
   }
@@ -307,9 +307,8 @@ const App = (): JSX.Element => {
     setGraphSvg("");
     setSelectedGraphNodeId(null);
     if (token.trim()) {
-      void refreshStoryDashboard(token, story.story_id).catch(() => {
-        setStatus("No analysis run yet for this story.");
-      });
+      // Avoid clobbering foreground status updates from save/analyze actions.
+      void refreshStoryDashboard(token, story.story_id).catch(() => undefined);
     }
   };
 
