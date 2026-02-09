@@ -88,12 +88,16 @@ def test_native_cmake_scaffold_present() -> None:
     root_cmake = _read("CMakeLists.txt")
     cpp_cmake = _read("cpp/CMakeLists.txt")
     cpp_source = _read("cpp/chapter_metrics.cpp")
+    feature_metrics_source = _read("cpp/story_feature_metrics.cpp")
     assert "add_subdirectory(cpp)" in root_cmake
     assert "CMAKE_CXX_CLANG_TIDY" in root_cmake
     assert "CMAKE_CXX_CPPCHECK" in root_cmake
     assert "add_executable(chapter_metrics" in cpp_cmake
+    assert "add_executable(story_feature_metrics" in cpp_cmake
     assert "chapter_metrics_demo" in cpp_cmake
+    assert "story_feature_metrics_demo" in cpp_cmake
     assert "PrintMetricsJson" in cpp_source
+    assert "ComputeFeatureMetrics" in feature_metrics_source
 
 
 def test_native_quality_config_files_exist() -> None:
@@ -156,6 +160,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0013 Bounded Observability and Anomaly Retention:" in config
     assert "0014 Graph Layout Contract and Storage Evaluation:" in config
     assert "0015 Dark Mode Default and Theme Toggle:" in config
+    assert "0016 Native Feature Metrics Acceleration Path:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -242,6 +247,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0013-bounded-observability-and-anomaly-retention.md").exists()
     assert (ROOT / "docs" / "adr" / "0014-graph-layout-contract-and-storage-evaluation.md").exists()
     assert (ROOT / "docs" / "adr" / "0015-dark-mode-default-and-toggle.md").exists()
+    assert (ROOT / "docs" / "adr" / "0016-native-feature-metrics-acceleration-path.md").exists()
     assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "graph_strategy.md").exists()
     assert (ROOT / "docs" / "studio.md").exists()
