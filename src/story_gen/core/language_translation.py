@@ -34,7 +34,7 @@ _FRENCH_MARKERS: Final[set[str]] = {
 }
 
 _SPANISH_TO_ENGLISH: Final[dict[str, str]] = {
-    # TODO(#1002): Replace toy token map with model-backed translation service.
+    # TODO(#3): Replace toy token map with model-backed translation service.
     "historia": "story",
     "familia": "family",
     "conflicto": "conflict",
@@ -76,7 +76,7 @@ class SegmentAlignment:
 
 def detect_language(text: str) -> LanguageDetectionResult:
     """Detect language from lightweight lexical markers."""
-    # TODO(#1003): Upgrade from lexical/script heuristics to a robust language-id model.
+    # TODO(#3): Upgrade from lexical/script heuristics to a robust language-id model.
     japanese_chars = len(_JAPANESE_SCRIPT.findall(text))
     latin_chars = len(_LATIN_LETTER.findall(text))
     if japanese_chars >= 4 and japanese_chars >= latin_chars:
@@ -117,7 +117,7 @@ def translate_segments(
     target_language: str = "en",
 ) -> tuple[list[RawSegment], list[SegmentAlignment], str]:
     """Detect and translate segments into target language when needed."""
-    # TODO(#1004): Add external translation provider path with retries and circuit-breakers.
+    # TODO(#3): Add external translation provider path with retries and circuit-breakers.
     translated_segments: list[RawSegment] = []
     alignments: list[SegmentAlignment] = []
     detected_languages: list[str] = []

@@ -310,7 +310,7 @@ def _build_graph(
 
     theme_ids = [theme.theme_id for theme in document.theme_signals]
     beat_ids = [beat.beat_id for beat in document.story_beats]
-    # TODO(#1007): Replace dense theme->beat linking with evidence-driven graph edges.
+    # TODO(#9): Replace dense theme->beat linking with evidence-driven graph edges.
     for theme_id in theme_ids:
         for beat_id in beat_ids:
             edges.append(

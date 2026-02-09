@@ -87,7 +87,7 @@ def compose_timeline(
 
 
 def _stage_for_order(order: int, total: int) -> StoryStage:
-    # TODO(#1006): Derive event stage from beat linkage instead of order-ratio heuristic.
+    # TODO(#7): Derive event stage from beat linkage instead of order-ratio heuristic.
     if total <= 1:
         return "setup"
     ratio = order / total
