@@ -20,13 +20,15 @@ RUN apt-get update \
 RUN ln -sf /usr/bin/python3 /usr/local/bin/python
 ENV PATH="/root/.local/bin:${PATH}"
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+RUN ln -sf /root/.local/bin/uv /usr/local/bin/uv \
+    && ln -sf /root/.local/bin/uvx /usr/local/bin/uvx
 RUN uv --version
 
 WORKDIR /workspace
 
 COPY . .
 
-RUN uv sync --all-groups
+RUN uv sync --group dev
 RUN npm ci --prefix web
 
 CMD ["bash", "-lc", "make check && uv run mkdocs build --strict"]

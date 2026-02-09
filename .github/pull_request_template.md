@@ -1,24 +1,46 @@
 ## Summary
 
-- What changed:
-- Why it changed:
+Briefly describe what this change does and why it exists.
+Focus on intent and effect, not implementation details.
 
-## Validation
+## Motivation / Context
 
-- [ ] `uv run pre-commit run --all-files`
-- [ ] `uv run pytest`
-- [ ] `npm run --prefix web typecheck`
-- [ ] `npm run --prefix web test:coverage`
-- [ ] `npm run --prefix web build`
-- [ ] `uv run mkdocs build --strict`
+Why this change is needed now.
 
-## Risk Review
+- What was broken, unclear, or fragile
+- What assumption is being corrected
+- What new capability this unlocks
 
-- [ ] I reviewed changed files for likely regressions.
-- [ ] I added/updated tests for new behavior.
-- [ ] I added `TODO(#issue)` tags for temporary/stub logic.
+## What Changed
 
-## Release Notes
+Concrete, reviewable bullets.
 
-- User-facing impact:
-- Migration notes (if any):
+- Added:
+- Removed:
+- Refactored:
+
+## Tradeoffs and Risks
+
+Call out anything non-obvious.
+
+- Performance impacts:
+- Behavior changes:
+- Edge cases that still exist:
+- Things deliberately left out:
+
+## How This Was Tested
+
+Be honest and specific.
+
+- Unit tests added or updated:
+- Manual test cases run:
+- Inputs used to validate behavior:
+- Not tested (if any):
+
+## Follow-ups / Future Work
+
+Optional. Only include if relevant.
+
+- Cleanup opportunities:
+- Known gaps:
+- Ideas explicitly deferred:

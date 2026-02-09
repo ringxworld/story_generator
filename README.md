@@ -80,57 +80,6 @@ make docker-logs   # tail logs
 make docker-ci     # run full CI-quality checks in Docker
 ```
 
-## Visual System
-
-The project uses one shared visual system across the React studio and GitHub Pages docs.
-
-Core palette:
-
-- `Ink`: `#1F1B17`
-- `Paper`: `#F7F2E6`
-- `Parchment`: `#EFE3CC`
-- `Evergreen`: `#2E473D`
-- `Copper`: `#A45B2A`
-- `Border`: `#CCB99A`
-
-Typography:
-
-- UI body: `Source Sans 3`
-- Section headings: `Alegreya`
-- Code: `JetBrains Mono`
-
-Theme behavior:
-
-- Dark mode is the default for both studio and docs.
-- Both surfaces expose a runtime light/dark toggle.
-
-Icon system:
-
-- Branded source assets: `web/public/brand/story-gen-mark.svg`
-- Browser/app icon pack: `web/public/icons/`
-- Docs logo/favicon assets: `docs/assets/brand/`
-- Regenerate all icon outputs with: `make brand-icons`
-
-## Current Stage
-
-- Build the core story engine around themes, chapters, characters, and canon.
-- Use reference-text analysis to learn craft patterns (structure, dialogue, pacing, character pressure).
-- Turn those patterns into reusable constraints for original story generation.
-
-## What This Project Is Optimizing For
-
-- Narrative consistency over long arcs
-- Intentional character voice and relationship evolution
-- Clear chapter-level objectives and dependency tracking
-- Repeatable workflow from draft to validated chapter
-
-## Working Principles
-
-- Canon is explicit and versioned.
-- Drift checks are automated and test-backed.
-- Reference material is for private study, not redistribution.
-- Every change should move us toward a reliable, high-quality story pipeline.
-
 ## Focus Areas
 
 - Architecture contracts: `docs/architecture.md`
@@ -156,3 +105,4 @@ Icon system:
 - Contribution process: `CONTRIBUTING.md`
 - Security reporting: `SECURITY.md`
 - Collaboration flow (`develop` + release `main`): `docs/github_collaboration.md`
+- PR automation helpers: `make pr-open`, `make pr-checks`, `make pr-merge`, `make pr-auto`

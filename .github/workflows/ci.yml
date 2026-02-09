@@ -22,7 +22,7 @@ jobs:
         run: uv python install 3.11
 
       - name: Sync dependencies
-        run: uv sync --all-groups
+        run: uv sync --group dev
 
       - name: Install clang-format
         run: |
@@ -78,6 +78,42 @@ jobs:
 
       - name: Frontend build
         run: npm run --prefix web build
+
+  pages:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Python
+        run: uv python install 3.11
+
+      - name: Sync dependencies
+        run: uv sync --group dev
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build docs site artifact
+        run: uv run mkdocs build --strict
+
+      - name: Build offline studio artifact
+        env:
+          VITE_OFFLINE_DEMO: "true"
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/studio/
+        run: |
+          npm ci --prefix web
+          npm run --prefix web build
+          mkdir -p site/studio
+          cp -R web/dist/. site/studio/
 
   native:
     runs-on: ubuntu-latest
