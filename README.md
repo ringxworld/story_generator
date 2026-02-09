@@ -1,28 +1,6 @@
 # story_gen
 
-```text
-     ...............
-    .@##############
-     ...::::::::::::::.
-       :##***********#*      .
-          ::::::::::::::*.  ::
-          **************#*:::::::.
-                          ::::::.
-                      . .:@#***##.
-                     *#*.......::::**.
-                     .**#@  #@  ##*@#.
-                .:*####**#  @@  ##*##@#*:.
-           .:@@@@#*:..  :#  @@  #*  ..::#@@@@:.
-     ..:*#@##*:*@@@*:.. :#  @@  #* ...*#@@*::##@##*..
- .*##@#*:..   . ..*#######::@#::#@*##@#*:. .   ..:*#@@#*.
-.#*:..   .........   ...*#::@#::#*...   ..........  ..:*#:
-.#. ................... :#  @@  #* .................... #:
-.#......................:#  @@  #* .................... #:
-.#.................     :#  @@  #*     ................ #:
-.#...      ......:::***##@  @@  @@#***::::.....      .. #:
-.#.:::***########***:::..   ..   ..:::***########***:::.#:
-.@##**:::....                                 ...:::***#@.
-```
+![story_gen logo](docs/assets/brand/story-gen-mark.svg)
 
 [![CI](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml)
 [![Deploy Pages](https://github.com/ringxworld/story_generator/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/deploy-pages.yml)
@@ -33,9 +11,6 @@
 `story_gen` is a story intelligence pipeline and studio.
 
 It ingests narrative sources, extracts structured story signals, and projects them into timeline/theme/arc views for analysis.
-
-ASCII mark source: `docs/assets/brand/story-gen-mark-ascii.txt`
-Generated image source: `docs/assets/brand/story-gen-mark-source-book.png`
 
 It provides:
 
