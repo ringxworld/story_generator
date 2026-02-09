@@ -54,4 +54,3 @@ def test_anomaly_store_validates_prune_arguments(tmp_path: Path) -> None:
         store.prune_anomalies(retention_days=0, max_rows=100)
     with pytest.raises(ValueError, match="max_rows"):
         store.prune_anomalies(retention_days=30, max_rows=0)
-

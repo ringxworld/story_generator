@@ -1,0 +1,41 @@
+backend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/story_gen/api/**"
+          - "src/story_gen/core/**"
+          - "src/story_gen/adapters/**"
+          - "src/story_gen/application/**"
+          - "src/story_gen/domain/**"
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "web/**"
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "README.md"
+          - "mkdocs.yml"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".pre-commit-config.yaml"
+          - "tools/run_dev_tool.py"
+          - "src/story_gen/pre_push_checks.py"
+
+native:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "cpp/**"
+          - "CMakeLists.txt"
+
+infra:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docker/**"
+          - "docker-compose.yml"
+          - "ops/**"

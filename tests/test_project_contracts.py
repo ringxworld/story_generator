@@ -44,6 +44,8 @@ def test_makefile_contains_quality_and_native_targets() -> None:
 
 def test_ci_workflow_includes_code_quality_steps() -> None:
     workflow = _read(".github/workflows/ci.yml")
+    assert "- develop" in workflow
+    assert "- main" in workflow
     assert "Pre-commit hooks (all files)" in workflow
     assert "uv lock --check" in workflow
     assert "uv run ruff check ." in workflow
@@ -235,6 +237,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "studio.md").exists()
     assert (ROOT / "docs" / "developer_setup.md").exists()
+    assert (ROOT / "docs" / "github_collaboration.md").exists()
     assert (ROOT / "docs" / "essay_mode.md").exists()
     assert (ROOT / "docs" / "droplet_stack.md").exists()
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
@@ -305,6 +308,13 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "docker" / "web.Dockerfile").exists()
     assert (ROOT / "docker" / "ci.Dockerfile").exists()
     assert (ROOT / "tools" / "generate_brand_icons.py").exists()
+    assert (ROOT / ".github" / "pull_request_template.md").exists()
+    assert (ROOT / ".github" / "labeler.yml").exists()
+    assert (ROOT / ".github" / "ISSUE_TEMPLATE" / "bug_report.yml").exists()
+    assert (ROOT / ".github" / "ISSUE_TEMPLATE" / "feature_request.yml").exists()
+    assert (ROOT / ".github" / "ISSUE_TEMPLATE" / "task.yml").exists()
+    assert (ROOT / ".github" / "ISSUE_TEMPLATE" / "config.yml").exists()
+    assert (ROOT / ".github" / "workflows" / "pr-labeler.yml").exists()
     assert (ROOT / "web" / "public" / "favicon.svg").exists()
     assert (ROOT / "web" / "public" / "favicon.ico").exists()
     assert (ROOT / "web" / "public" / "site.webmanifest").exists()

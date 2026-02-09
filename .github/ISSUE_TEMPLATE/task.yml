@@ -1,0 +1,38 @@
+name: Engineering task
+description: Track a bounded engineering task.
+title: "[task] "
+labels:
+  - chore
+body:
+  - type: input
+    id: owner
+    attributes:
+      label: Owner
+      description: GitHub handle of task owner.
+      placeholder: "@ringxworld"
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is in-scope for this task.
+    validations:
+      required: true
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+    validations:
+      required: true
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Checklist
+      placeholder: |
+        - [ ] implement
+        - [ ] validate
+        - [ ] docs/tests
+        - [ ] merge via PR
+    validations:
+      required: true

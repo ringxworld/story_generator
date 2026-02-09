@@ -148,3 +148,4 @@ Icon system:
 
 - Contribution process: `CONTRIBUTING.md`
 - Security reporting: `SECURITY.md`
+- Collaboration flow (`develop` + release `main`): `docs/github_collaboration.md`

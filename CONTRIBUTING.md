@@ -80,10 +80,11 @@ Expect CI to reject changes when:
 
 Recommended GitHub repository protection:
 
-- protect `main` with a ruleset/branch protection
+- set `develop` as the default integration branch
+- protect `develop` and `main` with rulesets/branch protection
 - require passing status checks (`CI`)
-- require pull request before merge
-- restrict direct pushes to `main`
+- require pull request before merge into protected branches
+- restrict direct pushes to `main` (release branch)
 
 ## Entropy Prevention
 
