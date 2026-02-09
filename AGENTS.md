@@ -150,3 +150,12 @@ Treat the GitHub Projects page as a first-class planning surface:
 - Keep issue titles concise so board scans are clear.
 - Keep `Status`, `Track`, and `Priority Band` up to date as work moves.
 - Avoid placeholder names (for example: `View 1`) once a board is active.
+
+## 12. Issue Close-Out Summaries
+
+When closing an issue, always add a structured summary comment first, then close:
+
+- Use `.github/ISSUE_CLOSE_SUMMARY_TEMPLATE.md` as the baseline.
+- Required headings: `Work Summary`, `Objective`, `Root Cause`, `Approach`, `Implementation Details`, `Validation`, and `Ownership / Follow-ups`.
+- Include concrete artifacts (PR URLs, commit SHAs, tests executed).
+- Use `make issue-close ISSUE_NUMBER=<n> ISSUE_SUMMARY_FILE=<path>` so closure and summary stay paired.
