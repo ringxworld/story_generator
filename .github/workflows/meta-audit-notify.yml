@@ -103,7 +103,7 @@ jobs:
 
       - name: Upsert manual intervention tracker issue
         if: steps.findings.outputs.has_findings == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           FINDINGS: ${{ steps.findings.outputs.summary }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
