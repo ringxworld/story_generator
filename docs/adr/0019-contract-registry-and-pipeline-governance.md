@@ -43,6 +43,13 @@ Developer command:
 - Exported registry JSON must match runtime snapshot in tests.
 - Story analysis orchestration validates input/output stage contracts at runtime.
 
+## Version Migration Policy
+
+- Backward-compatible additions stay within `story_analysis.v1`.
+- Breaking schema changes require a new explicit key (for example `story_analysis.v2`).
+- Storage adapters fail fast when persisted schema version does not match expected version.
+- Registry/docs must declare both old and new versions during migration windows.
+
 ## Test plan
 
 - Add unit tests for runtime registry content and uniqueness.

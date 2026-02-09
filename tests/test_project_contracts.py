@@ -323,6 +323,12 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
     assert (ROOT / "docs" / "architecture_diagrams.md").exists()
     assert (ROOT / "docs" / "javascripts" / "mermaid.js").exists()
+    architecture = _read("docs/architecture.md")
+    adr_0019 = _read("docs/adr/0019-contract-registry-and-pipeline-governance.md")
+    assert "## Schema Versioning Policy" in architecture
+    assert "story_analysis.v2" in architecture
+    assert "## Version Migration Policy" in adr_0019
+    assert "story_analysis.v2" in adr_0019
 
 
 def test_api_docs_reference_swagger_and_openapi_endpoints() -> None:
@@ -354,6 +360,10 @@ def test_analysis_contract_scaffold_exists_and_is_valid_json() -> None:
         payload = json.loads(path.read_text(encoding="utf-8"))
         assert payload["version"] == "0.1.0"
         assert payload["artifacts"]
+    golden_story = ROOT / "tests" / "fixtures" / "story_analysis_v1_golden.json"
+    assert golden_story.exists()
+    payload = json.loads(golden_story.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "story_analysis.v1"
 
 
 def test_policy_docs_require_failure_path_testing_rules() -> None:

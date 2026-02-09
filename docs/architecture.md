@@ -87,3 +87,13 @@ Schema and stage-level pipeline contracts are tracked in:
 - `src/story_gen/api/contract_registry.py`
 - `work/contracts/story_pipeline_contract_registry.v1.json`
 - `src/story_gen/core/pipeline_contracts.py`
+
+## Schema Versioning Policy
+
+Canonical story schema rules:
+
+- `story_analysis.v1` is the current canonical schema key.
+- Backward-compatible additions may be introduced in `v1` without changing the key.
+- Breaking changes require a new schema key (for example `story_analysis.v2`).
+- Persistence adapters must fail fast on schema version mismatches until migrations run.
+- During migrations, both versions must be explicitly tracked in contracts and docs.
