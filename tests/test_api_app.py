@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+import story_gen.api.app as app_module
 from story_gen.adapters.sqlite_anomaly_store import SQLiteAnomalyStore
 from story_gen.api.app import create_app
 
@@ -119,6 +120,7 @@ def test_api_root_reports_auth_and_story_endpoints() -> None:
     assert "/api/v1/auth/register" in payload["endpoints"]
     assert "/api/v1/stories" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/features/extract" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/ingestion/status" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/analysis/run" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/overview" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/v1/overview" in payload["endpoints"]
@@ -218,6 +220,13 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
     latest_analysis = client.get(f"/api/v1/stories/{story_id}/analysis/latest", headers=headers)
     assert latest_analysis.status_code == 200
     assert latest_analysis.json()["run_id"] == analysis_payload["run_id"]
+    ingestion_status = client.get(f"/api/v1/stories/{story_id}/ingestion/status", headers=headers)
+    assert ingestion_status.status_code == 200
+    ingestion_payload = ingestion_status.json()
+    assert ingestion_payload["story_id"] == story_id
+    assert ingestion_payload["status"] == "succeeded"
+    assert ingestion_payload["segment_count"] >= 1
+    assert ingestion_payload["run_id"] == analysis_payload["run_id"]
 
     overview = client.get(f"/api/v1/stories/{story_id}/dashboard/overview", headers=headers)
     assert overview.status_code == 200
@@ -341,6 +350,9 @@ def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     )
     bob_extract = client.post(f"/api/v1/stories/{story_id}/features/extract", headers=bob_headers)
     bob_latest = client.get(f"/api/v1/stories/{story_id}/features/latest", headers=bob_headers)
+    bob_ingestion_status = client.get(
+        f"/api/v1/stories/{story_id}/ingestion/status", headers=bob_headers
+    )
     bob_analysis_run = client.post(
         f"/api/v1/stories/{story_id}/analysis/run", headers=bob_headers, json={}
     )
@@ -363,6 +375,7 @@ def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     assert bob_put.status_code == 404
     assert bob_extract.status_code == 404
     assert bob_latest.status_code == 404
+    assert bob_ingestion_status.status_code == 404
     assert bob_analysis_run.status_code == 404
     assert bob_analysis_latest.status_code == 404
     assert bob_dashboard.status_code == 404
@@ -394,6 +407,120 @@ def test_story_analysis_accepts_custom_source_text(tmp_path: Path) -> None:
     assert run.status_code == 200
     payload = run.json()
     assert payload["source_language"] == "es"
+
+
+def test_analysis_ingestion_is_idempotent_for_same_dedupe_key(tmp_path: Path) -> None:
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    headers = _auth_headers(client, "idempotent@example.com")
+    create = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Retry-safe Story", "blueprint": _sample_blueprint()},
+    )
+    assert create.status_code == 201
+    story_id = create.json()["story_id"]
+
+    first = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={"idempotency_key": "canary-retry-1"},
+    )
+    assert first.status_code == 200
+    second = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={"idempotency_key": "canary-retry-1"},
+    )
+    assert second.status_code == 200
+    assert second.json()["run_id"] == first.json()["run_id"]
+
+    status_payload = client.get(
+        f"/api/v1/stories/{story_id}/ingestion/status",
+        headers=headers,
+    )
+    assert status_payload.status_code == 200
+    assert status_payload.json()["attempt_count"] >= 2
+    assert status_payload.json()["run_id"] == first.json()["run_id"]
+
+
+def test_ingestion_status_surfaces_adapter_warnings_for_malformed_transcript(
+    tmp_path: Path,
+) -> None:
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    headers = _auth_headers(client, "transcript@example.com")
+    create = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Transcript Story", "blueprint": _sample_blueprint()},
+    )
+    assert create.status_code == 201
+    story_id = create.json()["story_id"]
+    malformed = (
+        "[00:01] Narrator: First line\n[00:02] \n::: not parseable :::\n[00:03] Rhea: Final line"
+    )
+
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={
+            "source_type": "transcript",
+            "source_text": malformed,
+            "idempotency_key": "transcript-1",
+        },
+    )
+    assert run.status_code == 200
+    status_response = client.get(
+        f"/api/v1/stories/{story_id}/ingestion/status",
+        headers=headers,
+    )
+    assert status_response.status_code == 200
+    status_payload = status_response.json()
+    assert status_payload["status"] == "succeeded"
+    assert status_payload["issue_count"] >= 1
+
+
+def test_ingestion_status_marks_failed_when_analysis_persistence_fails(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    class FailingAnalysisStore:
+        def write_analysis_result(self, *, owner_id: str, result: Any) -> Any:
+            raise RuntimeError("simulated persistence failure")
+
+        def get_latest_analysis(self, *, owner_id: str, story_id: str) -> None:
+            return None
+
+    monkeypatch.setattr(
+        app_module,
+        "create_story_analysis_store",
+        lambda *, db_path: FailingAnalysisStore(),
+    )
+    client = TestClient(
+        app_module.create_app(db_path=tmp_path / "stories.db"), raise_server_exceptions=False
+    )
+    headers = _auth_headers(client, "persist-fail@example.com")
+    create = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Persistence Failure Story", "blueprint": _sample_blueprint()},
+    )
+    assert create.status_code == 201
+    story_id = create.json()["story_id"]
+
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={"idempotency_key": "persist-fail-1"},
+    )
+    assert run.status_code == 500
+
+    status_response = client.get(
+        f"/api/v1/stories/{story_id}/ingestion/status",
+        headers=headers,
+    )
+    assert status_response.status_code == 200
+    status_payload = status_response.json()
+    assert status_payload["status"] == "failed"
+    assert "simulated persistence failure" in (status_payload["last_error"] or "")
 
 
 def test_essay_crud_and_evaluation_lifecycle(tmp_path: Path) -> None:

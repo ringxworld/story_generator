@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 from story_gen.adapters.sqlite_anomaly_store import SQLiteAnomalyStore
 from story_gen.adapters.sqlite_essay_store import SQLiteEssayStore, StoredEssay
 from story_gen.adapters.sqlite_feature_store import SQLiteFeatureStore, StoredFeatureRun
+from story_gen.adapters.sqlite_ingestion_store import SQLiteIngestionStore, StoredIngestionJob
 from story_gen.adapters.sqlite_story_store import SQLiteStoryStore, StoredStory, StoredUser
 from story_gen.adapters.story_analysis_store_factory import (
     StoryAnalysisStorePort,
@@ -53,6 +54,7 @@ from story_gen.api.contracts import (
     EssayResponse,
     EssaySectionRequirement,
     EssayUpdateRequest,
+    IngestionStatusResponse,
     StoryAnalysisGateResponse,
     StoryAnalysisRunRequest,
     StoryAnalysisRunResponse,
@@ -87,6 +89,7 @@ from story_gen.core.story_feature_pipeline import (
     StoryFeatureExtractionResult,
     extract_story_features,
 )
+from story_gen.core.story_ingestion import IngestionRequest, ingest_story_text
 from story_gen.core.story_schema import StoryDocument, StoryStage
 
 DEFAULT_DB_PATH = Path("work/local/story_gen.db")
@@ -121,6 +124,7 @@ class ApiRootResponse(BaseModel):
             "/api/v1/stories/{story_id}",
             "/api/v1/stories/{story_id}/features/extract",
             "/api/v1/stories/{story_id}/features/latest",
+            "/api/v1/stories/{story_id}/ingestion/status",
             "/api/v1/stories/{story_id}/analysis/run",
             "/api/v1/stories/{story_id}/analysis/latest",
             "/api/v1/stories/{story_id}/dashboard/overview",
@@ -336,12 +340,35 @@ def _analysis_summary_response(
     )
 
 
+def _ingestion_status_response(job: StoredIngestionJob) -> IngestionStatusResponse:
+    return IngestionStatusResponse(
+        job_id=job.job_id,
+        story_id=job.story_id,
+        owner_id=job.owner_id,
+        source_type=job.source_type,
+        idempotency_key=job.idempotency_key,
+        source_hash=job.source_hash,
+        dedupe_key=job.dedupe_key,
+        status=job.status,
+        attempt_count=job.attempt_count,
+        retry_count=job.retry_count,
+        segment_count=job.segment_count,
+        issue_count=job.issue_count,
+        run_id=job.run_id,
+        last_error=job.last_error,
+        created_at_utc=job.created_at_utc,
+        updated_at_utc=job.updated_at_utc,
+        completed_at_utc=job.completed_at_utc,
+    )
+
+
 def create_app(db_path: Path | None = None) -> FastAPI:
     """Create the API application."""
     effective_db_path = _resolve_db_path(db_path)
     store = SQLiteStoryStore(db_path=effective_db_path)
     feature_store = SQLiteFeatureStore(db_path=effective_db_path)
     analysis_store: StoryAnalysisStorePort = create_story_analysis_store(db_path=effective_db_path)
+    ingestion_store = SQLiteIngestionStore(db_path=effective_db_path)
     essay_store = SQLiteEssayStore(db_path=effective_db_path)
     anomaly_store = SQLiteAnomalyStore(db_path=effective_db_path)
     anomaly_retention_days = _int_env(
@@ -555,11 +582,11 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     ) -> list[TimelineLaneView]:
         converted: list[TimelineLaneView] = []
         for lane in lanes:
-            items: list[dict[str, str | int | None]] = []
+            items: list[dict[str, object]] = []
             for item in lane.items:
-                normalized: dict[str, str | int | None] = {}
+                normalized: dict[str, object] = {}
                 for key, value in item.items():
-                    if isinstance(value, (str, int)) or value is None:
+                    if isinstance(value, (str, int, float, bool, list, dict)) or value is None:
                         normalized[str(key)] = value
                     else:
                         normalized[str(key)] = str(value)
@@ -723,6 +750,21 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         return _feature_run_response(run=run, result=result)
 
     @app.get(
+        "/api/v1/stories/{story_id}/ingestion/status",
+        response_model=IngestionStatusResponse,
+        tags=["stories", "analysis"],
+    )
+    def ingestion_status(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> IngestionStatusResponse:
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = ingestion_store.get_latest_job(owner_id=user.user_id, story_id=story.story_id)
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Ingestion status not found")
+        return _ingestion_status_response(latest)
+
+    @app.get(
         "/api/v1/stories/{story_id}/features/latest",
         response_model=StoryFeatureRunResponse,
         tags=["stories", "features"],
@@ -760,12 +802,80 @@ def create_app(db_path: Path | None = None) -> FastAPI:
                 status_code=422,
                 detail="Story must include source text or chapter content to run analysis.",
             )
-        analysis_result = run_story_analysis(
-            story_id=story.story_id,
-            source_text=source_text,
-            source_type=payload.source_type,
-            target_language=payload.target_language,
+        idempotency_key = (
+            payload.idempotency_key.strip()
+            if payload.idempotency_key
+            else f"{story.story_id}:{payload.source_type}"
         )
+        try:
+            ingestion_artifact = ingest_story_text(
+                IngestionRequest(
+                    source_type=payload.source_type,
+                    source_text=source_text,
+                    idempotency_key=idempotency_key,
+                )
+            )
+        except ValueError as exc:
+            record_anomaly(
+                scope="ingestion",
+                code="ingestion_input_invalid",
+                severity="warning",
+                message="Ingestion input was invalid after normalization.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "error": str(exc),
+                },
+            )
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        ingestion_job, dedupe_hit = ingestion_store.begin_job(
+            owner_id=user.user_id,
+            story_id=story.story_id,
+            artifact=ingestion_artifact,
+        )
+        if ingestion_artifact.issues:
+            record_anomaly(
+                scope="ingestion",
+                code="ingestion_adapter_warnings",
+                severity="warning",
+                message="Ingestion source adapter reported recoverable warnings.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "job_id": ingestion_job.job_id,
+                    "issue_count": len(ingestion_artifact.issues),
+                    "codes": sorted({issue.code for issue in ingestion_artifact.issues}),
+                },
+            )
+        if dedupe_hit and ingestion_job.run_id:
+            latest = analysis_store.get_latest_analysis(
+                owner_id=user.user_id, story_id=story.story_id
+            )
+            if latest is not None and latest[0].run_id == ingestion_job.run_id:
+                return _analysis_summary_response(run=latest[0], document=latest[1])
+        try:
+            analysis_result = run_story_analysis(
+                story_id=story.story_id,
+                source_text=source_text,
+                source_type=payload.source_type,
+                target_language=payload.target_language,
+                ingestion_artifact=ingestion_artifact,
+            )
+        except Exception as exc:
+            ingestion_store.mark_failed(job_id=ingestion_job.job_id, error_message=str(exc))
+            record_anomaly(
+                scope="ingestion",
+                code="ingestion_run_failed",
+                severity="error",
+                message="Ingestion or analysis stage failed during run.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "job_id": ingestion_job.job_id,
+                    "error": str(exc),
+                },
+            )
+            raise
         if not analysis_result.document.quality_gate.passed:
             record_anomaly(
                 scope="analysis",
@@ -781,7 +891,31 @@ def create_app(db_path: Path | None = None) -> FastAPI:
                     "translation_quality": analysis_result.document.quality_gate.translation_quality,
                 },
             )
-        run = analysis_store.write_analysis_result(owner_id=user.user_id, result=analysis_result)
+        try:
+            run = analysis_store.write_analysis_result(
+                owner_id=user.user_id, result=analysis_result
+            )
+            ingestion_store.mark_succeeded(
+                job_id=ingestion_job.job_id,
+                segment_count=len(analysis_result.document.raw_segments),
+                issue_count=len(ingestion_artifact.issues),
+                run_id=run.run_id,
+            )
+        except Exception as exc:
+            ingestion_store.mark_failed(job_id=ingestion_job.job_id, error_message=str(exc))
+            record_anomaly(
+                scope="ingestion",
+                code="ingestion_persistence_failed",
+                severity="error",
+                message="Analysis persistence failed after ingestion completed.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "job_id": ingestion_job.job_id,
+                    "error": str(exc),
+                },
+            )
+            raise
         return _analysis_summary_response(run=run, document=analysis_result.document)
 
     @app.get(

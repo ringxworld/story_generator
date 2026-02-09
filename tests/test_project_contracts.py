@@ -34,6 +34,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "clean-deep:" in makefile
     assert "collect-story:" in makefile
     assert "video-story:" in makefile
+    assert "pipeline-canary:" in makefile
     assert "features:" in makefile
     assert "dev-stack-hot:" in makefile
     assert "stack-up-hot:" in makefile
@@ -65,6 +66,7 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "uv run ruff format --check ." in workflow
     assert "uv run mypy" in workflow
     assert "uv run pytest" in workflow
+    assert "uv run story-pipeline-canary --strict" in workflow
     assert "uv run mkdocs build --strict" in workflow
     assert "uv run python tools/check_imports.py" in workflow
     assert "uv run python tools/check_contract_drift.py" in workflow
@@ -206,6 +208,7 @@ def test_pyproject_exposes_story_collection_entrypoints() -> None:
     assert 'story-blueprint = "story_gen.cli.blueprint:main"' in pyproject
     assert 'story-features = "story_gen.cli.features:main"' in pyproject
     assert 'story-dashboard-export = "story_gen.cli.dashboard_export:main"' in pyproject
+    assert 'story-pipeline-canary = "story_gen.cli.pipeline_canary:main"' in pyproject
 
 
 def test_mkdocs_configuration_exists() -> None:

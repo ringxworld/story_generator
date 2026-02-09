@@ -25,3 +25,4 @@ Latest ADR:
 - `0024-dashboard-timeline-and-heatmap-export-surfaces.md`
 - `0025-dashboard-interaction-and-export-presets.md`
 - `0026-storage-adapter-boundary-and-decision-spike.md`
+- `0027-pipeline-ingestion-resilience-and-canary.md`

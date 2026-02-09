@@ -77,6 +77,7 @@ nav:
       - 0024 Dashboard Timeline and Heatmap Export Surfaces: adr/0024-dashboard-timeline-and-heatmap-export-surfaces.md
       - 0025 Dashboard Interaction and Export Presets: adr/0025-dashboard-interaction-and-export-presets.md
       - 0026 Storage Adapter Boundary and Decision Spike: adr/0026-storage-adapter-boundary-and-decision-spike.md
+      - 0027 Pipeline Ingestion Resilience and Canary Enforcement: adr/0027-pipeline-ingestion-resilience-and-canary.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

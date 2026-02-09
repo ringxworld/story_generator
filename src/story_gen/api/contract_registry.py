@@ -92,6 +92,14 @@ def _schema_contracts() -> list[SchemaContractRecord]:
             description="Run summary response for completed analysis executions.",
         ),
         SchemaContractRecord(
+            contract_id="story.ingestion.status",
+            schema_version=STORY_ANALYSIS_RUN_SCHEMA_VERSION,
+            model_path="story_gen.api.contracts.IngestionStatusResponse",
+            category="response",
+            owner="api",
+            description="Ingestion job status response for polling and retries.",
+        ),
+        SchemaContractRecord(
             contract_id="dashboard.overview",
             schema_version=DASHBOARD_SCHEMA_VERSION,
             model_path="story_gen.api.contracts.DashboardOverviewResponse",
