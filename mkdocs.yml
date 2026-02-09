@@ -60,6 +60,7 @@ nav:
       - 0013 Bounded Observability and Anomaly Retention: adr/0013-bounded-observability-and-anomaly-retention.md
       - 0014 Graph Layout Contract and Storage Evaluation: adr/0014-graph-layout-contract-and-storage-evaluation.md
       - 0015 Dark Mode Default and Theme Toggle: adr/0015-dark-mode-default-and-toggle.md
+      - 0016 Native Feature Metrics Acceleration Path: adr/0016-native-feature-metrics-acceleration-path.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md
