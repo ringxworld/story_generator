@@ -8,8 +8,11 @@ A story engineering project for building original fiction with discipline.
 We are treating storytelling like a software system: define canon, model dependencies, validate continuity, and evolve chapters without drift.
 
 Live project pages:
-- https://ringxworld.github.io/story_generator/
-- https://ringxworld.github.io/story_generator/studio/ (offline interactive demo)
+- https://ringxworld.github.io/story_generator/ (offline interactive product demo)
+- https://ringxworld.github.io/story_generator/studio/ (compatibility alias)
+
+Wiki docs:
+- https://github.com/ringxworld/story_generator/wiki
 
 ## Quick Start (Local Stack)
 
@@ -113,3 +116,4 @@ make clean-deep  # clean + local .venv and web/node_modules
 - Security reporting: `SECURITY.md`
 - Collaboration flow (`develop` + release `main`): `docs/github_collaboration.md`
 - PR automation helpers: `make pr-open`, `make pr-checks`, `make pr-merge`, `make pr-auto`
+- Wiki sync helpers: `make wiki-sync`, `make wiki-sync-push`

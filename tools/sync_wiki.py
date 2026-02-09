@@ -1,0 +1,329 @@
+"""Mirror repository docs into the GitHub wiki repository.
+
+This keeps `docs/` as the authored source while making the wiki usable for
+readers who prefer GitHub's wiki surface.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import shutil
+import subprocess
+from dataclasses import dataclass
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DOCS_ROOT = REPO_ROOT / "docs"
+ADR_ROOT = DOCS_ROOT / "adr"
+WIKI_MANIFEST = ".story_gen_wiki_sync.json"
+
+
+@dataclass(frozen=True)
+class WikiPage:
+    wiki_path: str
+    source_path: Path
+
+
+DOC_PAGE_MAP = (
+    WikiPage("Home.md", DOCS_ROOT / "index.md"),
+    WikiPage("Architecture.md", DOCS_ROOT / "architecture.md"),
+    WikiPage("Architecture-Diagrams.md", DOCS_ROOT / "architecture_diagrams.md"),
+    WikiPage("API.md", DOCS_ROOT / "api.md"),
+    WikiPage("Developer-Setup.md", DOCS_ROOT / "developer_setup.md"),
+    WikiPage("Deployment.md", DOCS_ROOT / "deployment.md"),
+    WikiPage("Studio.md", DOCS_ROOT / "studio.md"),
+    WikiPage("Feature-Pipeline.md", DOCS_ROOT / "feature_pipeline.md"),
+    WikiPage("Graph-Strategy.md", DOCS_ROOT / "graph_strategy.md"),
+    WikiPage("Story-Bundle.md", DOCS_ROOT / "story_bundle.md"),
+    WikiPage("Observability.md", DOCS_ROOT / "observability.md"),
+    WikiPage("Reference-Pipeline.md", DOCS_ROOT / "reference_pipeline.md"),
+    WikiPage("Native-CPP.md", DOCS_ROOT / "native_cpp.md"),
+    WikiPage("GitHub-Collaboration.md", DOCS_ROOT / "github_collaboration.md"),
+)
+
+
+class WikiSyncError(RuntimeError):
+    """Raised when wiki synchronization fails."""
+
+
+def _run(
+    command: list[str], *, cwd: Path, capture_output: bool = False
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        command,
+        cwd=cwd,
+        check=False,
+        text=True,
+        capture_output=capture_output,
+    )
+
+
+def _run_or_raise(
+    command: list[str], *, cwd: Path, capture_output: bool = False
+) -> subprocess.CompletedProcess[str]:
+    completed = _run(command, cwd=cwd, capture_output=capture_output)
+    if completed.returncode != 0:
+        stderr = completed.stderr.strip() if completed.stderr else ""
+        stdout = completed.stdout.strip() if completed.stdout else ""
+        message = stderr or stdout or f"command failed: {' '.join(command)}"
+        raise WikiSyncError(message)
+    return completed
+
+
+def _git_origin_url() -> str:
+    completed = _run_or_raise(
+        ["git", "config", "--get", "remote.origin.url"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+    )
+    origin = completed.stdout.strip()
+    if not origin:
+        raise WikiSyncError("remote.origin.url is empty")
+    return origin
+
+
+def _repo_slug(origin_url: str) -> str:
+    if origin_url.startswith("git@github.com:"):
+        slug = origin_url.split(":", 1)[1]
+    elif "github.com/" in origin_url:
+        slug = origin_url.split("github.com/", 1)[1]
+    else:
+        raise WikiSyncError(f"Unsupported origin URL format: {origin_url}")
+    if slug.endswith(".git"):
+        slug = slug[:-4]
+    return slug.strip("/")
+
+
+def _wiki_remote_from_origin(origin_url: str) -> str:
+    if origin_url.startswith("git@github.com:"):
+        base = origin_url[:-4] if origin_url.endswith(".git") else origin_url
+        return f"{base}.wiki.git"
+    if origin_url.startswith("https://github.com/") or origin_url.startswith("http://github.com/"):
+        base = origin_url[:-4] if origin_url.endswith(".git") else origin_url
+        return f"{base}.wiki.git"
+    raise WikiSyncError(f"Unsupported origin URL format: {origin_url}")
+
+
+def _read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def _wiki_sidebar(repo_slug: str) -> str:
+    wiki_root = f"https://github.com/{repo_slug}/wiki"
+    pages_root = f"https://{repo_slug.split('/')[0]}.github.io/{repo_slug.split('/')[1]}/"
+    return "\n".join(
+        [
+            "# story_gen wiki",
+            "",
+            "- [Home](Home)",
+            f"- [Product Demo (GitHub Pages)]({pages_root})",
+            f"- [Repository]({f'https://github.com/{repo_slug}'})",
+            "",
+            "## Product Docs",
+            "",
+            "- [Architecture](Architecture)",
+            "- [Architecture Diagrams](Architecture-Diagrams)",
+            "- [API](API)",
+            "- [Developer Setup](Developer-Setup)",
+            "- [Studio](Studio)",
+            "- [Feature Pipeline](Feature-Pipeline)",
+            "- [Graph Strategy](Graph-Strategy)",
+            "- [Story Bundle](Story-Bundle)",
+            "- [Observability](Observability)",
+            "- [Reference Pipeline](Reference-Pipeline)",
+            "- [Native CPP](Native-CPP)",
+            "- [Deployment](Deployment)",
+            "- [GitHub Collaboration](GitHub-Collaboration)",
+            "",
+            "## ADR",
+            "",
+            "- [ADR Index](ADR/README)",
+            "",
+            f"_Generated by `tools/sync_wiki.py` from `{repo_slug}` docs._",
+            f"_Full wiki: {wiki_root}_",
+            "",
+        ]
+    )
+
+
+def _wiki_footer() -> str:
+    return "\n".join(
+        [
+            "---",
+            "_This wiki is synced from repository docs. Update source files in `docs/` and run `make wiki-sync-push`._",
+            "",
+        ]
+    )
+
+
+def _pages_to_sync(repo_slug: str) -> dict[str, str]:
+    pages: dict[str, str] = {}
+
+    for mapped in DOC_PAGE_MAP:
+        pages[mapped.wiki_path] = _read_text(mapped.source_path)
+
+    for adr_file in sorted(ADR_ROOT.glob("*.md")):
+        pages[f"ADR/{adr_file.name}"] = _read_text(adr_file)
+
+    pages["_Sidebar.md"] = _wiki_sidebar(repo_slug)
+    pages["_Footer.md"] = _wiki_footer()
+    return pages
+
+
+def _load_previous_manifest(wiki_dir: Path) -> list[str]:
+    manifest_path = wiki_dir / WIKI_MANIFEST
+    if not manifest_path.exists():
+        return []
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    managed_files = payload.get("managed_files", [])
+    return [str(path) for path in managed_files]
+
+
+def _cleanup_empty_directories(root: Path) -> None:
+    for directory in sorted((path for path in root.rglob("*") if path.is_dir()), reverse=True):
+        if directory == root or directory == root / ".git":
+            continue
+        if any(directory.iterdir()):
+            continue
+        directory.rmdir()
+
+
+def _write_manifest(wiki_dir: Path, managed_files: list[str], repo_slug: str) -> None:
+    payload = {
+        "repo": repo_slug,
+        "source": "docs/",
+        "managed_files": sorted(managed_files),
+    }
+    (wiki_dir / WIKI_MANIFEST).write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _sync_checkout(wiki_dir: Path, wiki_remote: str) -> bool:
+    if not shutil.which("git"):
+        raise WikiSyncError("`git` executable is required")
+
+    if (wiki_dir / ".git").exists():
+        _run_or_raise(["git", "fetch", "origin"], cwd=wiki_dir)
+        # Wiki repos default to `master`. If it differs, a fast-forward pull still works.
+        _run_or_raise(["git", "pull", "--ff-only", "origin"], cwd=wiki_dir)
+        return True
+
+    wiki_dir.parent.mkdir(parents=True, exist_ok=True)
+    clone = _run(
+        ["git", "clone", wiki_remote, str(wiki_dir)],
+        cwd=wiki_dir.parent,
+        capture_output=True,
+    )
+    if clone.returncode == 0:
+        return True
+
+    stderr = clone.stderr.strip() if clone.stderr else ""
+    stdout = clone.stdout.strip() if clone.stdout else ""
+    message = stderr or stdout or f"command failed: git clone {wiki_remote} {wiki_dir}"
+    if "Repository not found" in message and ".wiki.git" in wiki_remote:
+        raise WikiSyncError(
+            "Wiki remote is not available yet. Enable wiki in repo settings and create "
+            "an initial wiki page once in the GitHub UI, then rerun wiki sync."
+        )
+    raise WikiSyncError(message)
+
+
+def _apply_sync(wiki_dir: Path, pages: dict[str, str], repo_slug: str) -> None:
+    previous_files = set(_load_previous_manifest(wiki_dir))
+    current_files = set(pages.keys())
+
+    stale_files = sorted(previous_files - current_files)
+    for stale in stale_files:
+        stale_path = wiki_dir / stale
+        if stale_path.exists():
+            stale_path.unlink()
+
+    for rel_path, content in pages.items():
+        target = wiki_dir / rel_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content.rstrip() + "\n", encoding="utf-8")
+
+    _cleanup_empty_directories(wiki_dir)
+    _write_manifest(wiki_dir, sorted(current_files), repo_slug)
+
+
+def _has_changes(wiki_dir: Path) -> bool:
+    completed = _run_or_raise(["git", "status", "--porcelain"], cwd=wiki_dir, capture_output=True)
+    return bool(completed.stdout.strip())
+
+
+def _commit_and_push(wiki_dir: Path, message: str) -> None:
+    _run_or_raise(["git", "add", "."], cwd=wiki_dir)
+    _run_or_raise(["git", "commit", "-m", message], cwd=wiki_dir)
+    _run_or_raise(["git", "push", "origin", "HEAD"], cwd=wiki_dir)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Sync repository docs into the GitHub wiki.")
+    parser.add_argument(
+        "--wiki-dir",
+        default=str(REPO_ROOT / ".cache" / "story_generator.wiki"),
+        help="Local path used for the wiki clone.",
+    )
+    parser.add_argument(
+        "--wiki-remote",
+        default=None,
+        help="Explicit wiki git remote URL. Defaults to origin-derived <repo>.wiki.git.",
+    )
+    parser.add_argument(
+        "--push",
+        action="store_true",
+        help="Commit and push synchronized wiki files.",
+    )
+    parser.add_argument(
+        "--commit-message",
+        default="docs(wiki): sync from repository docs",
+        help="Commit message used with --push.",
+    )
+    return parser
+
+
+def main() -> None:
+    args = build_parser().parse_args()
+
+    origin_url = _git_origin_url()
+    repo_slug = _repo_slug(origin_url)
+    wiki_remote = args.wiki_remote or _wiki_remote_from_origin(origin_url)
+    wiki_dir = Path(args.wiki_dir).resolve()
+
+    git_backed = False
+    try:
+        git_backed = _sync_checkout(wiki_dir, wiki_remote)
+    except WikiSyncError as error:
+        if args.push:
+            raise
+        message = str(error)
+        if "Wiki remote is not available yet" not in message:
+            raise
+        wiki_dir.mkdir(parents=True, exist_ok=True)
+        print(message)
+        print(f"Continuing with local export mode at {wiki_dir}.")
+
+    _apply_sync(wiki_dir, _pages_to_sync(repo_slug), repo_slug)
+
+    if not git_backed:
+        print(f"Wiki files synchronized locally at {wiki_dir}. Re-run with --push to publish.")
+        return
+
+    if not _has_changes(wiki_dir):
+        print(f"Wiki already up to date: {wiki_dir}")
+        return
+
+    if args.push:
+        _commit_and_push(wiki_dir, args.commit_message)
+        print(f"Wiki synchronized and pushed: https://github.com/{repo_slug}/wiki")
+        return
+
+    print(f"Wiki files synchronized locally at {wiki_dir}. Re-run with --push to publish.")
+
+
+if __name__ == "__main__":
+    main()

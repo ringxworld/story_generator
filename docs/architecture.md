@@ -26,6 +26,7 @@ This file defines the stable shape of the repository and import boundaries.
   - Architecture decision records.
 - `work/contracts/`
   - Versioned analysis artifact contracts (A-H) for corpus and drift workflows.
+  - Exported story schema/pipeline contract registry snapshot.
 - `web/`
   - React + TypeScript studio for story and essay product lanes.
 
@@ -78,3 +79,11 @@ Ownership defaults:
 
 The repository uses contract tests and CI checks to detect drift.
 If architecture rules need to change, update this file first and add an ADR.
+
+## Contract Registry
+
+Schema and stage-level pipeline contracts are tracked in:
+
+- `src/story_gen/api/contract_registry.py`
+- `work/contracts/story_pipeline_contract_registry.v1.json`
+- `src/story_gen/core/pipeline_contracts.py`

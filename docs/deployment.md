@@ -2,7 +2,8 @@
 
 ## Current split
 
-- GitHub Pages: static docs/site only
+- GitHub Wiki: long-form docs and ADR reading surface
+- GitHub Pages: product-first static studio demo snapshot
 - React + TypeScript studio (`web/`): local dev now, static hosting ready
 - FastAPI service: local runtime today, external backend host later
 - Persistence: SQLite (`work/local/story_gen.db`) for local or single-instance deployments
@@ -18,6 +19,7 @@ Local Docker composition for this split is available in:
 
 GitHub Pages does not run server-side application runtimes. It serves static
 files only. That means Python APIs and databases must run on a separate host.
+We also want the first public surface to look like the product, not docs.
 
 ## Intended hosted target
 
@@ -32,7 +34,9 @@ Baseline hosted stack:
   - Postgres container (or managed DB later)
   - MinIO container for S3-compatible object storage
 - GitHub Pages
-  - static docs and optional static frontend build
+  - static product demo build at root
+- GitHub Wiki
+  - reader-facing documentation mirror
 
 ## Compose variants for future cloud targets
 
@@ -64,10 +68,22 @@ S3-compatible note:
 
 ## Near-term plan
 
-1. Keep Pages for docs and static project pages.
-2. Keep API local-first for editing and workflow testing.
-3. Keep web studio and Python interface on one shared blueprint contract.
-4. Add CORS + stronger auth + storage migration when remote multi-user hosting is needed.
+1. Keep Pages focused on the product demo at repo root.
+2. Keep docs mirrored into the repository wiki.
+3. Keep API local-first for editing and workflow testing.
+4. Keep web studio and Python interface on one shared blueprint contract.
+5. Add CORS + stronger auth + storage migration when remote multi-user hosting is needed.
+
+## Wiki synchronization
+
+Repository docs remain authored in `docs/` and are mirrored to the wiki:
+
+- Local sync preview: `make wiki-sync`
+- Publish to wiki: `make wiki-sync-push`
+
+Wiki URL:
+
+- `https://github.com/ringxworld/story_generator/wiki`
 
 ## Migration path
 
