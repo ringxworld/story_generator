@@ -15,6 +15,7 @@ jobs:
         run: |
           required_sections=(
             "## Summary"
+            "## Linked Issues"
             "## Motivation / Context"
             "## What Changed"
             "## Tradeoffs and Risks"
@@ -32,5 +33,10 @@ jobs:
 
           if [ "$missing" -ne 0 ]; then
             echo "PR template requirements not satisfied."
+            exit 1
+          fi
+
+          if ! grep -Eq "https://github.com/ringxworld/story_generator/issues/[0-9]+" <<<"$PR_BODY"; then
+            echo "Missing linked issue URL."
             exit 1
           fi
