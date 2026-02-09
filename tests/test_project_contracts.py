@@ -24,6 +24,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "wiki-sync:" in makefile
     assert "wiki-sync-push:" in makefile
     assert "contracts-export:" in makefile
+    assert "project-sync:" in makefile
     assert "pr-open:" in makefile
     assert "pr-checks:" in makefile
     assert "pr-merge:" in makefile
@@ -82,6 +83,19 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "Docker compose stack smoke test" in workflow
     assert "Build CI Docker image" in workflow
     assert "Run full checks in CI Docker image" in workflow
+
+
+def test_project_board_sync_workflow_exists() -> None:
+    workflow = _read(".github/workflows/project-board-sync.yml")
+    assert "name: Project Board Sync" in workflow
+    assert "schedule:" in workflow
+    assert "issues:" in workflow
+    assert "pull_request:" in workflow
+    assert "repository-projects: write" in workflow
+    assert "PROJECT_SYNC_TOKEN" in workflow
+    assert "skipping project sync" in workflow
+    assert "tools/project_board_sync.py" in workflow
+    assert "--project-number 2" in workflow
 
 
 def test_deploy_workflow_requires_ci_success() -> None:
@@ -269,6 +283,13 @@ def test_pre_push_checks_include_docs_and_cpp_format() -> None:
     assert 'run_tool("clang-format", "--dry-run", "--Werror", *cpp_sources)' in checks
     assert '"docker/ci.Dockerfile"' in checks
     assert '"story-gen-ci-prepush"' in checks
+
+
+def test_project_board_tools_resolve_gh_binary_portably() -> None:
+    board_audit = _read("tools/project_board_audit.py")
+    board_sync = _read("tools/project_board_sync.py")
+    assert "def _resolve_gh_binary() -> str:" in board_audit
+    assert "def _resolve_gh_binary() -> str:" in board_sync
 
 
 def test_ci_dockerfile_installs_dev_group_only() -> None:

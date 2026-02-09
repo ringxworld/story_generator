@@ -150,6 +150,7 @@ Treat the GitHub Projects page as a first-class planning surface:
 - Keep issue titles concise so board scans are clear.
 - Keep `Status`, `Track`, and `Priority Band` up to date as work moves.
 - Avoid placeholder names (for example: `View 1`) once a board is active.
+- Keep Project `#2` synchronized with active roadmap issues and open PRs via `make project-sync` (or the `project-board-sync` workflow).
 
 ## 12. Issue Close-Out Summaries
 

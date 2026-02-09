@@ -73,6 +73,12 @@ Audit command:
 make project-audit
 ```
 
+Board sync command:
+
+```bash
+make project-sync
+```
+
 Label taxonomy audit:
 
 ```bash
@@ -84,6 +90,14 @@ Automated manual-intervention tracker:
 - `.github/workflows/meta-audit-notify.yml` runs on schedule and manual dispatch.
 - It audits project board hygiene and label taxonomy drift.
 - If warnings/errors are found, one tracker issue is created/updated (no duplicates).
+
+Automated board sync:
+
+- `.github/workflows/project-board-sync.yml` runs hourly and on issue/PR events.
+- It adds missing open roadmap issues, linked issue references from open PRs, and open PR cards into Project `#2`.
+- It is additive and idempotent (it does not remove cards).
+- Set repository secret `PROJECT_SYNC_TOKEN` (classic PAT with `repo` + `project` scopes) so the workflow can update the user-level project board.
+- If the secret is missing, the workflow exits successfully with a skip message.
 
 Manual rename fallback:
 

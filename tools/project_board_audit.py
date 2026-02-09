@@ -4,12 +4,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, cast
 
-GH_BIN = r"C:\Program Files\GitHub CLI\gh.exe"
+WINDOWS_GH_PATH = Path(r"C:\Program Files\GitHub CLI\gh.exe")
 
 
 @dataclass(frozen=True)
@@ -19,9 +22,27 @@ class AuditResult:
     notes: list[str]
 
 
+class ProjectBoardAuditError(RuntimeError):
+    """Raised when project board audit cannot execute."""
+
+
+def _resolve_gh_binary() -> str:
+    if configured := os.environ.get("GH_BIN"):
+        candidate = Path(configured)
+        if candidate.exists():
+            return str(candidate)
+        raise ProjectBoardAuditError(f"GH_BIN points to missing executable: {candidate}")
+    if found := shutil.which("gh"):
+        return found
+    if os.name == "nt" and WINDOWS_GH_PATH.exists():
+        return str(WINDOWS_GH_PATH)
+    raise ProjectBoardAuditError("GitHub CLI executable not found. Install `gh` or set GH_BIN.")
+
+
 def _run_gh_json(args: list[str]) -> dict[str, Any]:
+    gh_bin = _resolve_gh_binary()
     completed = subprocess.run(
-        [GH_BIN, *args],
+        [gh_bin, *args],
         check=False,
         text=True,
         capture_output=True,
@@ -242,4 +263,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except ProjectBoardAuditError as error:
+        print(error)
+        raise SystemExit(1) from error
