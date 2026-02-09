@@ -187,3 +187,17 @@ Treat external issues as intake signals, not automatic roadmap commitments:
 - Label external intake explicitly (`external`, `needs-triage`) and only assign priority after review.
 - If details are insufficient, require clarification (`needs-info`) before implementation planning.
 - Internal execution templates (for example `[task]`) are maintainer-only; external task-form submissions are closed as `not planned`.
+
+## 15. Adversarial Issue-Closure Verification
+
+Treat closed issues as untrusted until verified:
+
+- Assume closure summaries can over-promise; verify acceptance criteria against merged artifacts or explicit manual checks.
+- Evidence order: merged PRs + tests > merged PRs only > manual platform verification notes.
+- If acceptance criteria are not evidenced, do not leave the issue quietly closed.
+
+Decision policy when evidence is insufficient:
+
+- Reopen the issue when core acceptance criteria are still unmet.
+- Create a linked follow-up issue when the original outcome is mostly valid but verifiability or hardening is missing.
+- Record the verification result in a comment using concrete artifacts (PR URLs, commands run, current state observed).
