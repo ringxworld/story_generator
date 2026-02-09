@@ -107,6 +107,7 @@ class ArcSignal:
     state: str
     delta: float
     evidence_segment_ids: tuple[str, ...] = ()
+    provenance_segment_ids: tuple[str, ...] = ()
     confidence: float = 0.0
 
 
@@ -119,6 +120,7 @@ class ConflictShift:
     to_state: StoryStage
     intensity_delta: float
     evidence_segment_ids: tuple[str, ...] = ()
+    provenance_segment_ids: tuple[str, ...] = ()
     confidence: float = 0.0
 
 
@@ -130,6 +132,7 @@ class EmotionSignal:
     tone: str
     score: float
     evidence_segment_ids: tuple[str, ...] = ()
+    provenance_segment_ids: tuple[str, ...] = ()
     confidence: float = 0.0
 
 
@@ -154,6 +157,7 @@ def track_theme_arc_signals(
     arcs = _build_arcs(contexts, entities)
     conflicts = _build_conflicts(contexts)
     emotions = _build_emotions(contexts)
+    _validate_signal_provenance(arcs=arcs, conflicts=conflicts, emotions=emotions)
     return themes, arcs, conflicts, emotions
 
 
@@ -289,6 +293,7 @@ def _build_arcs(
                     state=state,
                     delta=delta,
                     evidence_segment_ids=evidence,
+                    provenance_segment_ids=evidence,
                     confidence=confidence,
                 )
             )
@@ -339,6 +344,7 @@ def _build_conflicts(contexts: dict[StoryStage, _StageContext]) -> list[Conflict
                 to_state=stage,
                 intensity_delta=delta,
                 evidence_segment_ids=evidence,
+                provenance_segment_ids=evidence,
                 confidence=stage_confidence[stage],
             )
         )
@@ -366,10 +372,50 @@ def _build_emotions(contexts: dict[StoryStage, _StageContext]) -> list[EmotionSi
                 tone=tone,
                 score=score,
                 evidence_segment_ids=context.evidence_segment_ids,
+                provenance_segment_ids=context.evidence_segment_ids,
                 confidence=confidence,
             )
         )
     return signals
+
+
+def _validate_signal_provenance(
+    *,
+    arcs: list[ArcSignal],
+    conflicts: list[ConflictShift],
+    emotions: list[EmotionSignal],
+) -> None:
+    for arc_signal in arcs:
+        if not arc_signal.evidence_segment_ids:
+            raise ValueError("Arc signals require evidence_segment_ids.")
+        if not arc_signal.provenance_segment_ids:
+            raise ValueError("Arc signals require provenance_segment_ids.")
+        if not set(arc_signal.evidence_segment_ids).intersection(arc_signal.provenance_segment_ids):
+            raise ValueError("Arc signal provenance must reference evidence segments.")
+        if arc_signal.confidence <= 0.0:
+            raise ValueError("Arc signal confidence must be positive.")
+    for conflict_signal in conflicts:
+        if not conflict_signal.evidence_segment_ids:
+            raise ValueError("Conflict shifts require evidence_segment_ids.")
+        if not conflict_signal.provenance_segment_ids:
+            raise ValueError("Conflict shifts require provenance_segment_ids.")
+        if not set(conflict_signal.evidence_segment_ids).intersection(
+            conflict_signal.provenance_segment_ids
+        ):
+            raise ValueError("Conflict shift provenance must reference evidence segments.")
+        if conflict_signal.confidence <= 0.0:
+            raise ValueError("Conflict shift confidence must be positive.")
+    for emotion_signal in emotions:
+        if not emotion_signal.evidence_segment_ids:
+            raise ValueError("Emotion signals require evidence_segment_ids.")
+        if not emotion_signal.provenance_segment_ids:
+            raise ValueError("Emotion signals require provenance_segment_ids.")
+        if not set(emotion_signal.evidence_segment_ids).intersection(
+            emotion_signal.provenance_segment_ids
+        ):
+            raise ValueError("Emotion signal provenance must reference evidence segments.")
+        if emotion_signal.confidence <= 0.0:
+            raise ValueError("Emotion signal confidence must be positive.")
 
 
 def _tokenize(text: str) -> list[str]:
