@@ -357,6 +357,8 @@ def _decode_arcs(data: bytes) -> list[ArcSignal]:
             stage=_parse_story_stage(item["stage"]),
             state=str(item["state"]),
             delta=float(item["delta"]),
+            evidence_segment_ids=_parse_segment_ids(item.get("evidence_segment_ids")),
+            confidence=float(item.get("confidence", 0.0)),
         )
         for item in parsed
     ]
@@ -372,6 +374,8 @@ def _decode_conflicts(data: bytes) -> list[ConflictShift]:
             from_state=_parse_story_stage(item["from_state"]),
             to_state=_parse_story_stage(item["to_state"]),
             intensity_delta=float(item["intensity_delta"]),
+            evidence_segment_ids=_parse_segment_ids(item.get("evidence_segment_ids")),
+            confidence=float(item.get("confidence", 0.0)),
         )
         for item in parsed
     ]
@@ -386,6 +390,8 @@ def _decode_emotions(data: bytes) -> list[EmotionSignal]:
             stage=_parse_story_stage(item["stage"]),
             tone=str(item["tone"]),
             score=float(item["score"]),
+            evidence_segment_ids=_parse_segment_ids(item.get("evidence_segment_ids")),
+            confidence=float(item.get("confidence", 0.0)),
         )
         for item in parsed
     ]
@@ -413,3 +419,11 @@ def _parse_story_stage(raw: object) -> StoryStage:
     if stage not in STORY_STAGE_ORDER:
         raise StoryBundleError(f"invalid story stage value: {raw}")
     return cast(StoryStage, stage)
+
+
+def _parse_segment_ids(raw: object) -> tuple[str, ...]:
+    if raw is None:
+        return ()
+    if not isinstance(raw, list):
+        raise StoryBundleError("segment id payload must be a JSON array")
+    return tuple(str(item) for item in raw)

@@ -35,6 +35,20 @@ def test_story_bundle_roundtrip_restores_analysis_artifacts() -> None:
     assert len(unpacked.timeline_actual) == len(result.timeline.actual_time)
     assert len(unpacked.timeline_narrative) == len(result.timeline.narrative_order)
     assert len(unpacked.alignments) == len(result.alignments)
+    assert len(unpacked.arcs) == len(result.arcs)
+    assert len(unpacked.conflicts) == len(result.conflicts)
+    assert len(unpacked.emotions) == len(result.emotions)
+    if unpacked.arcs:
+        assert unpacked.arcs[0].evidence_segment_ids == result.arcs[0].evidence_segment_ids
+        assert unpacked.arcs[0].confidence == result.arcs[0].confidence
+    if unpacked.conflicts:
+        assert (
+            unpacked.conflicts[0].evidence_segment_ids == result.conflicts[0].evidence_segment_ids
+        )
+        assert unpacked.conflicts[0].confidence == result.conflicts[0].confidence
+    if unpacked.emotions:
+        assert unpacked.emotions[0].evidence_segment_ids == result.emotions[0].evidence_segment_ids
+        assert unpacked.emotions[0].confidence == result.emotions[0].confidence
     assert unpacked.graph_svg.startswith("<svg")
 
 
