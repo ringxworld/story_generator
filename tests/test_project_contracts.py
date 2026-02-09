@@ -148,6 +148,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "Studio:" in config
     assert "Droplet Stack:" in config
     assert "Feature Pipeline:" in config
+    assert "Story Bundle:" in config
     assert "Graph Strategy:" in config
     assert "Architecture:" in config
     assert "ADR:" in config
@@ -161,6 +162,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0014 Graph Layout Contract and Storage Evaluation:" in config
     assert "0015 Dark Mode Default and Theme Toggle:" in config
     assert "0016 Native Feature Metrics Acceleration Path:" in config
+    assert "0017 Story Bundle Binary Format:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -248,6 +250,8 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0014-graph-layout-contract-and-storage-evaluation.md").exists()
     assert (ROOT / "docs" / "adr" / "0015-dark-mode-default-and-toggle.md").exists()
     assert (ROOT / "docs" / "adr" / "0016-native-feature-metrics-acceleration-path.md").exists()
+    assert (ROOT / "docs" / "adr" / "0017-story-bundle-binary-format.md").exists()
+    assert (ROOT / "docs" / "story_bundle.md").exists()
     assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "graph_strategy.md").exists()
     assert (ROOT / "docs" / "studio.md").exists()

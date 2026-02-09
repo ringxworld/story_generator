@@ -144,6 +144,7 @@ Icon system:
 - Developer local setup runbook: `docs/developer_setup.md`
 - React + TypeScript story studio: `docs/studio.md`
 - Story-first feature extraction pipeline: `docs/feature_pipeline.md`
+- Shareable binary analysis bundle format (`.sgb`): `docs/story_bundle.md`
 - Interactive graph and storage path: `docs/graph_strategy.md`
 - Full-series text collection: `src/story_gen/cli/story_collector.py`
 - Video-story transcript ingestion: `src/story_gen/cli/youtube_downloader.py`

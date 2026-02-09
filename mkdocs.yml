@@ -41,6 +41,7 @@ nav:
   - Studio: studio.md
   - Droplet Stack: droplet_stack.md
   - Feature Pipeline: feature_pipeline.md
+  - Story Bundle: story_bundle.md
   - Graph Strategy: graph_strategy.md
   - ADR:
       - Index: adr/README.md
@@ -61,6 +62,7 @@ nav:
       - 0014 Graph Layout Contract and Storage Evaluation: adr/0014-graph-layout-contract-and-storage-evaluation.md
       - 0015 Dark Mode Default and Theme Toggle: adr/0015-dark-mode-default-and-toggle.md
       - 0016 Native Feature Metrics Acceleration Path: adr/0016-native-feature-metrics-acceleration-path.md
+      - 0017 Story Bundle Binary Format: adr/0017-story-bundle-binary-format.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md
