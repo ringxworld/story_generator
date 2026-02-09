@@ -131,6 +131,14 @@ def validate_theme_output(themes: list[ThemeSignal]) -> None:
     for signal in themes:
         if not signal.evidence_segment_ids:
             raise ValueError("Theme signals require evidence.")
+        if not signal.provenance.source_segment_ids:
+            raise ValueError("Theme signals require provenance source segments.")
+        evidence = set(signal.evidence_segment_ids)
+        provenance = set(signal.provenance.source_segment_ids)
+        if not evidence.intersection(provenance):
+            raise ValueError("Theme signal provenance must reference evidence segments.")
+        if signal.confidence.score <= 0.0:
+            raise ValueError("Theme signal confidence must be positive.")
 
 
 def validate_timeline_input(events: list[ExtractedEvent], beats: list[StoryBeat]) -> None:
