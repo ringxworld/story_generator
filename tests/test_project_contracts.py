@@ -141,6 +141,7 @@ def test_precommit_enforces_commit_and_push_quality() -> None:
 def test_pr_template_contains_required_sections() -> None:
     template = _read(".github/pull_request_template.md")
     assert "## Summary" in template
+    assert "## Linked Issues" in template
     assert "## Motivation / Context" in template
     assert "## What Changed" in template
     assert "## Tradeoffs and Risks" in template
@@ -153,11 +154,13 @@ def test_pr_template_workflow_exists_and_checks_sections() -> None:
     assert "name: PR Template Check" in workflow
     assert "name: pr-template" in workflow
     assert "## Summary" in workflow
+    assert "## Linked Issues" in workflow
     assert "## Motivation / Context" in workflow
     assert "## What Changed" in workflow
     assert "## Tradeoffs and Risks" in workflow
     assert "## How This Was Tested" in workflow
     assert "## Follow-ups / Future Work" in workflow
+    assert "story_generator/issues" in workflow
 
 
 def test_pyproject_exposes_story_collection_entrypoints() -> None:

@@ -3,6 +3,12 @@
 Briefly describe what this change does and why it exists.
 Focus on intent and effect, not implementation details.
 
+## Linked Issues
+
+Use full URLs so GitHub links them automatically.
+
+- https://github.com/ringxworld/story_generator/issues/<id>
+
 ## Motivation / Context
 
 Why this change is needed now.
