@@ -107,7 +107,19 @@ After each completed prompt:
 1. implement
 2. validate
 3. commit
-4. push to `origin/main`
+4. push feature branch
+5. open PR to `develop`
+6. merge via PR after required checks pass
+
+## 7.1 Branch and PR Discipline
+
+This repository is PR-first and feature-branch-only for agent work:
+
+- Always branch from latest `origin/develop` before making changes.
+- Never commit directly to `develop` or `main`.
+- Keep changes isolated to one human-readable feature branch per task.
+- After pushing, open/update a PR to `develop` and link the relevant issue URL.
+- Do not close implementation issues until the PR is merged.
 
 ## 8. Human-Facing Wording for Issues and PRs
 
