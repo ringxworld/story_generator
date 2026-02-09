@@ -1,26 +1,32 @@
 # story_gen
 
 ```text
-          .-========================-.
-         /   /\/\  RAW STORY  /\/\   \
-        /___/____\___________/____\___\
-        \   \    /  scenes   \    /   /
-         \___\__/__voices_____\__/___/
-                 \   |   |   /
-                  \  |   |  /
-                   \ |   | /
-                [events][beats][themes]
+              .-==================-.
+             /  .--------------.   \
+            /  /   .------.     \   \
+           /  /   /  /\    \     \   \
+          /  /___/__/  \____\_____\   \
+          \  \   \  \  /  /   /   /   /
+           \  \   \  \/  /   /   /   /
+            \  \___\____/___/___/   /
+             \_____________________/
+                      \  |  /
                        \ | /
                     .---***---.
-                   / timeline  \
-                  / arcs + tone \
-                  \  conflicts  /
-                   '---+---+---'
-                       |
-                 .-----v------.
-                 | synthesis  |
-                 | new signal |
-                 '------------'
+                 .-'  o  |  o  '-.
+               .'    o   |   o    '.
+              /  o    o  |  o    o  \
+              \     o    |    o     /
+               '.     ___|___     .'
+                 '-._/   |   \_.-'
+                      \  |  /
+                       \ | /
+                    .---***---.
+                   /  .-===-.  \
+                  /  /  .-.  \  \
+                  \  \  '-'  /  /
+                   \  '-._.-'  /
+                    '----+-----'
 ```
 
 [![CI](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml)
