@@ -18,6 +18,6 @@ Start from `0000-template.md`.
 
 Latest ADR:
 
-- `0019-contract-registry-and-pipeline-governance.md`
 - `0020-pages-hosted-mkdocs-snapshot.md`
 - `0021-pages-hosted-python-api-reference.md`
+- `0022-dashboard-png-export-surface.md`

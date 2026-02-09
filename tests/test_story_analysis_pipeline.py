@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+from story_gen.core.dashboard_views import export_graph_png
 from story_gen.core.story_analysis_pipeline import run_story_analysis
 
 
@@ -76,6 +77,16 @@ def test_pipeline_assigns_graph_layout_coordinates() -> None:
         node.layout_x is not None and node.layout_y is not None
         for node in result.dashboard.graph_nodes
     )
+
+
+def test_pipeline_graph_png_export_is_deterministic() -> None:
+    result = run_story_analysis(story_id="story-layout-png", source_text=_sample_story())
+    first = export_graph_png(nodes=result.dashboard.graph_nodes, edges=result.dashboard.graph_edges)
+    second = export_graph_png(
+        nodes=result.dashboard.graph_nodes, edges=result.dashboard.graph_edges
+    )
+    assert first.startswith(b"\x89PNG\r\n\x1a\n")
+    assert first == second
 
 
 def test_pipeline_preserves_dashboard_heatmap_and_arc_shapes() -> None:
