@@ -9,7 +9,6 @@ import sys
 from dataclasses import dataclass
 from typing import Any, cast
 
-
 GH_BIN = r"C:\Program Files\GitHub CLI\gh.exe"
 
 
@@ -143,7 +142,9 @@ def evaluate_project_hygiene(
         content = item.get("content") or {}
         number = content.get("number")
         labels = item.get("labels", [])
-        is_roadmap = "Roadmap" in labels or (isinstance(number, int) and number in roadmap_numbers_expected)
+        is_roadmap = "Roadmap" in labels or (
+            isinstance(number, int) and number in roadmap_numbers_expected
+        )
         if not is_roadmap:
             continue
         roadmap_item_count += 1
@@ -187,7 +188,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Audit roadmap project board hygiene.")
     parser.add_argument("--owner", required=True, help="GitHub owner login (user/org).")
     parser.add_argument("--project-number", type=int, required=True, help="Project number.")
-    parser.add_argument("--roadmap-start", type=int, default=2, help="Inclusive start issue number.")
+    parser.add_argument(
+        "--roadmap-start", type=int, default=2, help="Inclusive start issue number."
+    )
     parser.add_argument("--roadmap-end", type=int, default=11, help="Inclusive end issue number.")
     return parser
 
