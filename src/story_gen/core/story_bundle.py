@@ -358,6 +358,9 @@ def _decode_arcs(data: bytes) -> list[ArcSignal]:
             state=str(item["state"]),
             delta=float(item["delta"]),
             evidence_segment_ids=_parse_segment_ids(item.get("evidence_segment_ids")),
+            provenance_segment_ids=_parse_segment_ids(
+                item.get("provenance_segment_ids", item.get("evidence_segment_ids"))
+            ),
             confidence=float(item.get("confidence", 0.0)),
         )
         for item in parsed
@@ -375,6 +378,9 @@ def _decode_conflicts(data: bytes) -> list[ConflictShift]:
             to_state=_parse_story_stage(item["to_state"]),
             intensity_delta=float(item["intensity_delta"]),
             evidence_segment_ids=_parse_segment_ids(item.get("evidence_segment_ids")),
+            provenance_segment_ids=_parse_segment_ids(
+                item.get("provenance_segment_ids", item.get("evidence_segment_ids"))
+            ),
             confidence=float(item.get("confidence", 0.0)),
         )
         for item in parsed
@@ -391,6 +397,9 @@ def _decode_emotions(data: bytes) -> list[EmotionSignal]:
             tone=str(item["tone"]),
             score=float(item["score"]),
             evidence_segment_ids=_parse_segment_ids(item.get("evidence_segment_ids")),
+            provenance_segment_ids=_parse_segment_ids(
+                item.get("provenance_segment_ids", item.get("evidence_segment_ids"))
+            ),
             confidence=float(item.get("confidence", 0.0)),
         )
         for item in parsed

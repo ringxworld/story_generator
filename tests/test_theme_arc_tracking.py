@@ -100,12 +100,26 @@ def test_theme_tracking_captures_strengthening_then_fading_with_evidence() -> No
     assert len(arcs) == 4
     assert any(arc.state == "fading" for arc in arcs)
     assert all(arc.evidence_segment_ids for arc in arcs)
+    assert all(arc.provenance_segment_ids for arc in arcs)
+    assert all(
+        set(arc.evidence_segment_ids).intersection(arc.provenance_segment_ids) for arc in arcs
+    )
     assert all(arc.confidence > 0.0 for arc in arcs)
 
     assert len(conflicts) == 3
     assert all(conflict.evidence_segment_ids for conflict in conflicts)
+    assert all(conflict.provenance_segment_ids for conflict in conflicts)
+    assert all(
+        set(conflict.evidence_segment_ids).intersection(conflict.provenance_segment_ids)
+        for conflict in conflicts
+    )
     assert all(conflict.confidence > 0.0 for conflict in conflicts)
 
     assert len(emotions) == 4
     assert all(emotion.evidence_segment_ids for emotion in emotions)
+    assert all(emotion.provenance_segment_ids for emotion in emotions)
+    assert all(
+        set(emotion.evidence_segment_ids).intersection(emotion.provenance_segment_ids)
+        for emotion in emotions
+    )
     assert all(emotion.confidence > 0.0 for emotion in emotions)

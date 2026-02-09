@@ -106,7 +106,7 @@ can power dashboard drilldown without breaking existing heatmap and arc chart cl
 
 - Theme signals must include evidence IDs and provenance source segment IDs with overlap.
 - Theme signal confidence must be positive.
-- Arc/conflict/emotion records must carry evidence and confidence when generated.
+- Arc/conflict/emotion records must carry evidence, provenance segment references, and confidence when generated.
 - Bundle decoding must stay backward compatible with older arc/conflict/emotion payloads.
 
 ### Test plan
