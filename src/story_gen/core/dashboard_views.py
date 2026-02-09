@@ -115,7 +115,9 @@ def build_dashboard_read_model(
     timeline_lanes = _build_timeline_lanes(timeline_actual, timeline_narrative)
     theme_heatmap = _build_theme_heatmap(document.theme_signals)
     arc_points = _build_arc_points(arcs, conflicts, emotions)
-    drilldown = _build_drilldown(document.insights)
+    drilldown = _build_drilldown(
+        document.insights, document.theme_signals, arcs, conflicts, emotions
+    )
     graph_nodes, graph_edges = _build_graph(document, arcs)
     return DashboardReadModel(
         overview=overview,
@@ -259,7 +261,13 @@ def _build_arc_points(
     return points
 
 
-def _build_drilldown(insights: list[Insight]) -> dict[str, DrilldownPanelView]:
+def _build_drilldown(
+    insights: list[Insight],
+    themes: list[ThemeSignal],
+    arcs: list[ArcSignal],
+    conflicts: list[ConflictShift],
+    emotions: list[EmotionSignal],
+) -> dict[str, DrilldownPanelView]:
     output: dict[str, DrilldownPanelView] = {}
     for insight in insights:
         output[insight.insight_id] = DrilldownPanelView(
@@ -268,6 +276,48 @@ def _build_drilldown(insights: list[Insight]) -> dict[str, DrilldownPanelView]:
             title=insight.title,
             content=insight.content,
             evidence_segment_ids=insight.evidence_segment_ids,
+        )
+    for theme in themes:
+        item_id = f"theme:{theme.theme_id}"
+        output[item_id] = DrilldownPanelView(
+            item_id=item_id,
+            item_type="theme",
+            title=f"Theme: {theme.label} ({theme.stage})",
+            content=(
+                f"Strength {theme.strength:.2f}; trend {theme.direction}; "
+                f"confidence {theme.confidence.score:.2f}."
+            ),
+            evidence_segment_ids=theme.evidence_segment_ids,
+        )
+    for arc in arcs:
+        item_id = f"arc:{arc.entity_id}:{arc.stage}"
+        output[item_id] = DrilldownPanelView(
+            item_id=item_id,
+            item_type="arc",
+            title=f"Character Arc: {arc.entity_name} ({arc.stage})",
+            content=f"State {arc.state}; delta {arc.delta:+.2f}; confidence {arc.confidence:.2f}.",
+            evidence_segment_ids=list(arc.evidence_segment_ids),
+        )
+    for conflict in conflicts:
+        item_id = f"conflict:{conflict.from_state}:{conflict.to_state}"
+        output[item_id] = DrilldownPanelView(
+            item_id=item_id,
+            item_type="conflict",
+            title=f"Conflict Shift: {conflict.from_state} -> {conflict.to_state}",
+            content=(
+                f"Intensity delta {conflict.intensity_delta:+.2f}; "
+                f"confidence {conflict.confidence:.2f}."
+            ),
+            evidence_segment_ids=list(conflict.evidence_segment_ids),
+        )
+    for emotion in emotions:
+        item_id = f"emotion:{emotion.stage}"
+        output[item_id] = DrilldownPanelView(
+            item_id=item_id,
+            item_type="emotion",
+            title=f"Emotion: {emotion.stage}",
+            content=f"Tone {emotion.tone}; score {emotion.score:.2f}; confidence {emotion.confidence:.2f}.",
+            evidence_segment_ids=list(emotion.evidence_segment_ids),
         )
     return output
 
