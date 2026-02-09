@@ -190,8 +190,7 @@ bool StartsWithDialogueMarker(const std::string& line) {
   return false;
 }
 
-void CountDialogueLines(const std::string& text, std::size_t* non_empty_lines,
-                        std::size_t* dialogue_lines) {
+void CountDialogueLines(const std::string& text, FeatureMetrics* metrics) {
   std::istringstream input(text);
   std::string line;
   while (std::getline(input, line)) {
@@ -201,9 +200,9 @@ void CountDialogueLines(const std::string& text, std::size_t* non_empty_lines,
     if (IsLineBlank(line)) {
       continue;
     }
-    ++(*non_empty_lines);
+    ++(metrics->non_empty_lines);
     if (StartsWithDialogueMarker(line)) {
-      ++(*dialogue_lines);
+      ++(metrics->dialogue_lines);
     }
   }
 }
@@ -220,7 +219,7 @@ FeatureMetrics ComputeFeatureMetrics(const std::string& text) {
         static_cast<double>(metrics.token_count) / static_cast<double>(metrics.sentence_count);
   }
 
-  CountDialogueLines(text, &metrics.non_empty_lines, &metrics.dialogue_lines);
+  CountDialogueLines(text, &metrics);
   if (metrics.non_empty_lines > 0) {
     metrics.dialogue_line_ratio =
         static_cast<double>(metrics.dialogue_lines) / static_cast<double>(metrics.non_empty_lines);
