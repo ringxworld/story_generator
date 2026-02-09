@@ -32,6 +32,11 @@ Default local endpoints:
 - Web studio: `http://127.0.0.1:5173`
 - API docs: `http://127.0.0.1:8000/docs`
 
+Default observability outputs:
+
+- Rotating runtime logs: `work/logs/story_gen.log`
+- Anomaly breadcrumbs: `anomaly_events` table in `work/local/story_gen.db`
+
 For faster repeat runs (skip bootstrap/build), use:
 
 ```bash

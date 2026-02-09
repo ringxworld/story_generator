@@ -91,6 +91,7 @@ Default local endpoints:
 Default local DB:
 
 - `work/local/story_gen.db`
+- Runtime log file: `work/logs/story_gen.log`
 
 Override DB path:
 
@@ -104,6 +105,15 @@ Override frontend API base URL:
 # PowerShell
 $env:VITE_API_BASE_URL="http://127.0.0.1:8000"
 npm run --prefix web dev
+```
+
+Tune local observability limits:
+
+```bash
+# PowerShell
+$env:STORY_GEN_LOG_LEVEL="INFO"
+$env:STORY_GEN_ANOMALY_RETENTION_DAYS="30"
+$env:STORY_GEN_ANOMALY_MAX_ROWS="10000"
 ```
 
 ## 5. Quality checks

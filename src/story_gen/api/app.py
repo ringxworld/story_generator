@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import os
 import secrets
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Literal
@@ -15,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
+from story_gen.adapters.sqlite_anomaly_store import SQLiteAnomalyStore
 from story_gen.adapters.sqlite_essay_store import SQLiteEssayStore, StoredEssay
 from story_gen.adapters.sqlite_feature_store import SQLiteFeatureStore, StoredFeatureRun
 from story_gen.adapters.sqlite_story_analysis_store import (
@@ -72,6 +76,8 @@ from story_gen.core.story_schema import StoryDocument
 DEFAULT_DB_PATH = Path("work/local/story_gen.db")
 TOKEN_TTL_HOURS = 24
 PBKDF2_ITERATIONS = 310_000
+
+logger = logging.getLogger(__name__)
 
 
 class HealthResponse(BaseModel):
@@ -134,6 +140,17 @@ def _cors_origins() -> list[str]:
         "http://localhost:5173",
         "https://ringxworld.github.io",
     ]
+
+
+def _int_env(name: str, default: int, *, minimum: int, maximum: int) -> int:
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return max(minimum, min(maximum, value))
 
 
 def _utc_now() -> datetime:
@@ -302,7 +319,29 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     feature_store = SQLiteFeatureStore(db_path=effective_db_path)
     analysis_store = SQLiteStoryAnalysisStore(db_path=effective_db_path)
     essay_store = SQLiteEssayStore(db_path=effective_db_path)
+    anomaly_store = SQLiteAnomalyStore(db_path=effective_db_path)
+    anomaly_retention_days = _int_env(
+        "STORY_GEN_ANOMALY_RETENTION_DAYS",
+        30,
+        minimum=1,
+        maximum=3650,
+    )
+    anomaly_max_rows = _int_env(
+        "STORY_GEN_ANOMALY_MAX_ROWS",
+        10_000,
+        minimum=100,
+        maximum=2_000_000,
+    )
     bearer = HTTPBearer(auto_error=False)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        removed = anomaly_store.prune_anomalies(
+            retention_days=anomaly_retention_days,
+            max_rows=anomaly_max_rows,
+        )
+        logger.info("anomaly.prune removed=%s", removed)
+        yield
 
     app = FastAPI(
         title="story_gen API",
@@ -311,6 +350,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
             "Local preview API for story blueprint editing and persistence. "
             "Designed for local/dev runtimes and future backend hosting."
         ),
+        lifespan=lifespan,
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
@@ -342,6 +382,102 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    logger.info(
+        "api.start db_path=%s anomaly_retention_days=%s anomaly_max_rows=%s",
+        effective_db_path,
+        anomaly_retention_days,
+        anomaly_max_rows,
+    )
+
+    def record_anomaly(
+        *,
+        scope: str,
+        code: str,
+        severity: str,
+        message: str,
+        metadata: dict[str, object] | None = None,
+    ) -> None:
+        """Persist anomaly breadcrumbs and mirror concise warning logs."""
+        anomaly = anomaly_store.write_anomaly(
+            scope=scope,
+            code=code,
+            severity=severity,
+            message=message,
+            metadata=metadata,
+        )
+        logger.warning(
+            "anomaly.recorded id=%s scope=%s code=%s severity=%s message=%s",
+            anomaly.anomaly_id,
+            scope,
+            code,
+            severity,
+            message,
+        )
+
+    def owned_story_or_404(*, story_id: str, user: StoredUser) -> StoredStory:
+        story = store.get_story(story_id=story_id)
+        if story is None or story.owner_id != user.user_id:
+            raise HTTPException(status_code=404, detail="Story not found")
+        return story
+
+    def latest_analysis_or_404(
+        *,
+        story: StoredStory,
+        user: StoredUser,
+    ) -> tuple[StoredAnalysisRun, StoryDocument, dict[str, object], str]:
+        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Analysis run not found")
+        return latest
+
+    def require_dashboard_dict(
+        *,
+        dashboard: dict[str, object],
+        key: str,
+        story_id: str,
+        expected: str,
+    ) -> dict[str, object]:
+        payload = dashboard.get(key)
+        if isinstance(payload, dict):
+            return payload
+        record_anomaly(
+            scope="dashboard",
+            code="invalid_payload_shape",
+            severity="error",
+            message=f"Expected {expected} for dashboard payload.",
+            metadata={
+                "story_id": story_id,
+                "dashboard_key": key,
+                "expected": expected,
+                "actual_type": type(payload).__name__,
+            },
+        )
+        raise HTTPException(status_code=500, detail=f"Invalid dashboard {key} payload")
+
+    def require_dashboard_list(
+        *,
+        dashboard: dict[str, object],
+        key: str,
+        story_id: str,
+        expected: str,
+    ) -> list[object]:
+        payload = dashboard.get(key)
+        if isinstance(payload, list):
+            return payload
+        record_anomaly(
+            scope="dashboard",
+            code="invalid_payload_shape",
+            severity="error",
+            message=f"Expected {expected} for dashboard payload.",
+            metadata={
+                "story_id": story_id,
+                "dashboard_key": key,
+                "expected": expected,
+                "actual_type": type(payload).__name__,
+            },
+        )
+        raise HTTPException(status_code=500, detail=f"Invalid dashboard {key} payload")
 
     def current_user(
         credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
@@ -426,9 +562,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
 
     @app.get("/api/v1/stories/{story_id}", response_model=StoryResponse, tags=["stories"])
     def get_story(story_id: str, user: StoredUser = Depends(current_user)) -> StoryResponse:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
         return _story_response(story)
 
     @app.put("/api/v1/stories/{story_id}", response_model=StoryResponse, tags=["stories"])
@@ -437,9 +571,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         payload: StoryUpdateRequest,
         user: StoredUser = Depends(current_user),
     ) -> StoryResponse:
-        existing = store.get_story(story_id=story_id)
-        if existing is None or existing.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
+        owned_story_or_404(story_id=story_id, user=user)
         story = store.update_story(
             story_id=story_id,
             title=payload.title.strip(),
@@ -457,9 +589,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     def extract_features(
         story_id: str, user: StoredUser = Depends(current_user)
     ) -> StoryFeatureRunResponse:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
         blueprint = StoryBlueprint.model_validate_json(story.blueprint_json)
         chapters = [_chapter_input_from_blueprint(chapter) for chapter in blueprint.chapters]
         if not chapters:
@@ -480,9 +610,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> StoryFeatureRunResponse:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
         latest = feature_store.get_latest_feature_result(
             owner_id=user.user_id, story_id=story.story_id
         )
@@ -501,9 +629,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         payload: StoryAnalysisRunRequest,
         user: StoredUser = Depends(current_user),
     ) -> StoryAnalysisRunResponse:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
         blueprint = StoryBlueprint.model_validate_json(story.blueprint_json)
         source_text = (
             payload.source_text.strip() if payload.source_text else _analysis_source_text(blueprint)
@@ -519,6 +645,21 @@ def create_app(db_path: Path | None = None) -> FastAPI:
             source_type=payload.source_type,
             target_language=payload.target_language,
         )
+        if not analysis_result.document.quality_gate.passed:
+            record_anomaly(
+                scope="analysis",
+                code="quality_gate_failed",
+                severity="warning",
+                message="Story analysis run did not pass quality gate.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "reasons": analysis_result.document.quality_gate.reasons,
+                    "confidence_floor": analysis_result.document.quality_gate.confidence_floor,
+                    "hallucination_risk": analysis_result.document.quality_gate.hallucination_risk,
+                    "translation_quality": analysis_result.document.quality_gate.translation_quality,
+                },
+            )
         run = analysis_store.write_analysis_result(owner_id=user.user_id, result=analysis_result)
         return _analysis_summary_response(run=run, document=analysis_result.document)
 
@@ -531,12 +672,8 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> StoryAnalysisRunResponse:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
-        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
-        if latest is None:
-            raise HTTPException(status_code=404, detail="Analysis run not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
         run, document, _, _ = latest
         return _analysis_summary_response(run=run, document=document)
 
@@ -549,16 +686,15 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardOverviewResponse:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
-        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
-        if latest is None:
-            raise HTTPException(status_code=404, detail="Analysis run not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        payload = dashboard.get("overview")
-        if not isinstance(payload, dict):
-            raise HTTPException(status_code=500, detail="Invalid dashboard overview payload")
+        payload = require_dashboard_dict(
+            dashboard=dashboard,
+            key="overview",
+            story_id=story.story_id,
+            expected="object",
+        )
         return DashboardOverviewResponse.model_validate(payload)
 
     @app.get(
@@ -570,16 +706,15 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> list[DashboardTimelineLaneResponse]:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
-        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
-        if latest is None:
-            raise HTTPException(status_code=404, detail="Analysis run not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        payload = dashboard.get("timeline_lanes")
-        if not isinstance(payload, list):
-            raise HTTPException(status_code=500, detail="Invalid dashboard timeline payload")
+        payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="timeline_lanes",
+            story_id=story.story_id,
+            expected="array",
+        )
         return [DashboardTimelineLaneResponse.model_validate(item) for item in payload]
 
     @app.get(
@@ -591,16 +726,15 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> list[DashboardThemeHeatmapCellResponse]:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
-        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
-        if latest is None:
-            raise HTTPException(status_code=404, detail="Analysis run not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        payload = dashboard.get("theme_heatmap")
-        if not isinstance(payload, list):
-            raise HTTPException(status_code=500, detail="Invalid dashboard theme payload")
+        payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="theme_heatmap",
+            story_id=story.story_id,
+            expected="array",
+        )
         return [DashboardThemeHeatmapCellResponse.model_validate(item) for item in payload]
 
     @app.get(
@@ -612,16 +746,15 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> list[DashboardArcPointResponse]:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
-        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
-        if latest is None:
-            raise HTTPException(status_code=404, detail="Analysis run not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        payload = dashboard.get("arc_points")
-        if not isinstance(payload, list):
-            raise HTTPException(status_code=500, detail="Invalid dashboard arc payload")
+        payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="arc_points",
+            story_id=story.story_id,
+            expected="array",
+        )
         return [DashboardArcPointResponse.model_validate(item) for item in payload]
 
     @app.get(
@@ -634,20 +767,31 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         item_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardDrilldownResponse:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
-        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
-        if latest is None:
-            raise HTTPException(status_code=404, detail="Analysis run not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        drilldown = dashboard.get("drilldown")
-        if not isinstance(drilldown, dict):
-            raise HTTPException(status_code=500, detail="Invalid dashboard drilldown payload")
+        drilldown = require_dashboard_dict(
+            dashboard=dashboard,
+            key="drilldown",
+            story_id=story.story_id,
+            expected="object",
+        )
         item = drilldown.get(item_id)
         if item is None:
             raise HTTPException(status_code=404, detail="Dashboard item not found")
         if not isinstance(item, dict):
+            record_anomaly(
+                scope="dashboard",
+                code="invalid_payload_shape",
+                severity="error",
+                message="Dashboard drilldown item is not an object.",
+                metadata={
+                    "story_id": story.story_id,
+                    "dashboard_key": "drilldown",
+                    "item_id": item_id,
+                    "actual_type": type(item).__name__,
+                },
+            )
             raise HTTPException(status_code=500, detail="Invalid dashboard drilldown item")
         return DashboardDrilldownResponse.model_validate(item)
 
@@ -660,17 +804,21 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardGraphResponse:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
-        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
-        if latest is None:
-            raise HTTPException(status_code=404, detail="Analysis run not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        node_payload = dashboard.get("graph_nodes")
-        edge_payload = dashboard.get("graph_edges")
-        if not isinstance(node_payload, list) or not isinstance(edge_payload, list):
-            raise HTTPException(status_code=500, detail="Invalid dashboard graph payload")
+        node_payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="graph_nodes",
+            story_id=story.story_id,
+            expected="array",
+        )
+        edge_payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="graph_edges",
+            story_id=story.story_id,
+            expected="array",
+        )
         nodes = [DashboardGraphNodeResponse.model_validate(item) for item in node_payload]
         edges = [DashboardGraphEdgeResponse.model_validate(item) for item in edge_payload]
         return DashboardGraphResponse(nodes=nodes, edges=edges)
@@ -684,12 +832,8 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardGraphExportResponse:
-        story = store.get_story(story_id=story_id)
-        if story is None or story.owner_id != user.user_id:
-            raise HTTPException(status_code=404, detail="Story not found")
-        latest = analysis_store.get_latest_analysis(owner_id=user.user_id, story_id=story.story_id)
-        if latest is None:
-            raise HTTPException(status_code=404, detail="Analysis run not found")
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
         _, _, _, graph_svg = latest
         return DashboardGraphExportResponse(svg=graph_svg)
 

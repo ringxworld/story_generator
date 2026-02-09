@@ -138,6 +138,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "Developer Setup:" in config
     assert "Good Essay Mode:" in config
     assert "Deployment:" in config
+    assert "Observability:" in config
     assert "Studio:" in config
     assert "Droplet Stack:" in config
     assert "Feature Pipeline:" in config
@@ -146,6 +147,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "logo: assets/brand/story-gen-mark.svg" in config
     assert "favicon: assets/brand/story-gen-favicon.svg" in config
     assert "0012 Offline Studio Demo on Pages:" in config
+    assert "0013 Bounded Observability and Anomaly Retention:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -229,6 +231,8 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0010-docker-local-stack-and-ci-validation.md").exists()
     assert (ROOT / "docs" / "adr" / "0011-brand-icon-system-for-web-and-docs.md").exists()
     assert (ROOT / "docs" / "adr" / "0012-offline-studio-demo-on-github-pages.md").exists()
+    assert (ROOT / "docs" / "adr" / "0013-bounded-observability-and-anomaly-retention.md").exists()
+    assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "studio.md").exists()
     assert (ROOT / "docs" / "developer_setup.md").exists()
     assert (ROOT / "docs" / "essay_mode.md").exists()

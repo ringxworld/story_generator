@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+from story_gen.adapters.sqlite_anomaly_store import SQLiteAnomalyStore
 from story_gen.api.app import create_app
 
 
@@ -485,3 +486,88 @@ def test_feature_extract_rejects_story_without_chapters(tmp_path: Path) -> None:
 
     extracted = client.post(f"/api/v1/stories/{story_id}/features/extract", headers=headers)
     assert extracted.status_code == 422
+
+
+def test_api_startup_prunes_anomaly_store(tmp_path: Path, monkeypatch: Any) -> None:
+    calls: dict[str, int] = {}
+
+    def fake_prune(self: SQLiteAnomalyStore, *, retention_days: int, max_rows: int) -> int:
+        calls["retention_days"] = retention_days
+        calls["max_rows"] = max_rows
+        return 0
+
+    monkeypatch.setenv("STORY_GEN_ANOMALY_RETENTION_DAYS", "45")
+    monkeypatch.setenv("STORY_GEN_ANOMALY_MAX_ROWS", "2500")
+    monkeypatch.setattr(SQLiteAnomalyStore, "prune_anomalies", fake_prune)
+    with TestClient(create_app(db_path=tmp_path / "stories.db")) as client:
+        response = client.get("/healthz")
+    assert response.status_code == 200
+    assert calls == {"retention_days": 45, "max_rows": 2500}
+
+
+def test_analysis_quality_failure_is_persisted_as_anomaly(tmp_path: Path) -> None:
+    db_path = tmp_path / "stories.db"
+    client = TestClient(create_app(db_path=db_path))
+    headers = _auth_headers(client, "alice@example.com")
+
+    created = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Risky Analysis", "blueprint": _sample_blueprint()},
+    )
+    assert created.status_code == 201
+    story_id = created.json()["story_id"]
+
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={"source_text": "これは危険だ。スバルは記憶の断片を追いかける。"},
+    )
+    assert run.status_code == 200
+    assert run.json()["quality_gate"]["passed"] is False
+
+    anomalies = SQLiteAnomalyStore(db_path=db_path).list_recent(limit=20)
+    quality_failures = [event for event in anomalies if event.code == "quality_gate_failed"]
+    assert quality_failures
+    assert story_id in quality_failures[0].metadata_json
+
+
+def test_dashboard_payload_shape_error_records_anomaly(tmp_path: Path) -> None:
+    import sqlite3
+
+    db_path = tmp_path / "stories.db"
+    client = TestClient(create_app(db_path=db_path))
+    headers = _auth_headers(client, "alice@example.com")
+    created = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Dashboard Corruption", "blueprint": _sample_blueprint()},
+    )
+    assert created.status_code == 201
+    story_id = created.json()["story_id"]
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={},
+    )
+    assert run.status_code == 200
+
+    with sqlite3.connect(str(db_path)) as connection:
+        connection.execute(
+            """
+            UPDATE story_analysis_runs
+            SET dashboard_json = ?
+            WHERE story_id = ?
+            """,
+            ('{"overview": []}', story_id),
+        )
+        connection.commit()
+
+    bad_response = client.get(f"/api/v1/stories/{story_id}/dashboard/overview", headers=headers)
+    assert bad_response.status_code == 500
+    assert bad_response.json()["detail"] == "Invalid dashboard overview payload"
+
+    anomalies = SQLiteAnomalyStore(db_path=db_path).list_recent(limit=20)
+    payload_errors = [event for event in anomalies if event.code == "invalid_payload_shape"]
+    assert payload_errors
+    assert "overview" in payload_errors[0].metadata_json

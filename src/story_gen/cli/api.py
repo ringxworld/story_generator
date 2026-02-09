@@ -7,6 +7,8 @@ import os
 
 import uvicorn
 
+from story_gen.adapters.observability import configure_runtime_logging
+
 
 def build_arg_parser() -> argparse.ArgumentParser:
     """Create CLI args for the local API server process."""
@@ -24,6 +26,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> None:
     """Parse CLI flags and start uvicorn with the app factory path."""
+    configure_runtime_logging()
     parser = build_arg_parser()
     parsed = parser.parse_args(argv)
     db_path = str(parsed.db_path).strip()

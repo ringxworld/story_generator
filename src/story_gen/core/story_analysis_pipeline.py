@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 from story_gen.core.dashboard_views import (
@@ -23,6 +24,8 @@ from story_gen.core.theme_arc_tracking import (
     track_theme_arc_signals,
 )
 from story_gen.core.timeline_composer import ComposedTimeline, compose_timeline
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -48,6 +51,12 @@ def run_story_analysis(
     target_language: str = "en",
 ) -> StoryAnalysisResult:
     """Run complete deterministic story analysis pipeline."""
+    logger.info(
+        "analysis.start story_id=%s source_type=%s target_language=%s",
+        story_id,
+        source_type,
+        target_language,
+    )
     artifact = ingest_story_text(
         IngestionRequest(
             source_type=source_type,
@@ -58,6 +67,12 @@ def run_story_analysis(
     translated_segments, alignments, source_language = translate_segments(
         segments=artifact.segments,
         target_language=target_language,
+    )
+    logger.info(
+        "analysis.translation story_id=%s segments=%s source_language=%s",
+        story_id,
+        len(translated_segments),
+        source_language,
     )
     events, entities = extract_events_and_entities(segments=translated_segments)
     beats = detect_story_beats(events=events)
@@ -90,6 +105,15 @@ def run_story_analysis(
         timeline_narrative=timeline.narrative_order,
     )
     graph_svg = export_graph_svg(nodes=dashboard.graph_nodes, edges=dashboard.graph_edges)
+    logger.info(
+        "analysis.complete story_id=%s events=%s beats=%s themes=%s insights=%s quality_passed=%s",
+        story_id,
+        len(events),
+        len(beats),
+        len(themes),
+        len(insights),
+        document.quality_gate.passed,
+    )
     return StoryAnalysisResult(
         document=document,
         dashboard=dashboard,

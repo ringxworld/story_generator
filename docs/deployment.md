@@ -81,5 +81,6 @@ S3-compatible note:
 - Object storage: MinIO now, Spaces or S3 later
 - Queue/jobs: start with in-process/background workers, add Redis queue as needed
 - Metrics/logging: start with stdout + file logs, add Prometheus/Loki/Grafana stack
+- Anomaly breadcrumbs: retain bounded SQLite anomaly events with startup pruning
 - Secrets/config: `.env` + host secrets now, move to managed secrets store later
 - Backups: snapshot database and object store on schedule
