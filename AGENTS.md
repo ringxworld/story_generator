@@ -98,3 +98,12 @@ When writing issue or PR text:
 - Avoid templated phrases like "This change does X" when a more natural sentence works.
 - Link issues with full URLs, not just `#123`.
 - State tradeoffs and test coverage explicitly, without hedging.
+
+## 9. Human-Facing PR Reviews
+
+When commenting or reviewing pull requests:
+
+- Use normal paragraph spacing and complete sentences.
+- Lead with the most important finding, then explain why it matters.
+- Avoid robotic checklists unless the author asked for one.
+- Call out missing tests and edge cases in plain language.
