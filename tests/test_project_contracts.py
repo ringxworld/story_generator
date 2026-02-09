@@ -240,6 +240,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0018 Wiki Docs + Product-First Pages:" in config
     assert "0020 Pages Hosted MkDocs Snapshot:" in config
     assert "0021 Pages Hosted Python API Reference:" in config
+    assert "0022 Dashboard Read-Model v1 Endpoints:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -358,6 +359,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
     assert (ROOT / "docs" / "architecture_diagrams.md").exists()
     assert (ROOT / "docs" / "javascripts" / "mermaid.js").exists()
+    assert (ROOT / "docs" / "adr" / "0022-dashboard-read-model-v1-endpoints.md").exists()
     architecture = _read("docs/architecture.md")
     adr_0019 = _read("docs/adr/0019-contract-registry-and-pipeline-governance.md")
     assert "## Schema Versioning Policy" in architecture

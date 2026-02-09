@@ -121,6 +121,9 @@ def test_api_root_reports_auth_and_story_endpoints() -> None:
     assert "/api/v1/stories/{story_id}/features/extract" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/analysis/run" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/overview" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/v1/overview" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/v1/timeline" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap" in payload["endpoints"]
     assert "/api/v1/essays" in payload["endpoints"]
     assert "/api/v1/essays/{essay_id}/evaluate" in payload["endpoints"]
 
@@ -214,15 +217,30 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
     overview = client.get(f"/api/v1/stories/{story_id}/dashboard/overview", headers=headers)
     assert overview.status_code == 200
     assert overview.json()["events_count"] >= 1
+    versioned_overview = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/v1/overview", headers=headers
+    )
+    assert versioned_overview.status_code == 200
+    assert versioned_overview.json() == overview.json()
 
     timeline = client.get(f"/api/v1/stories/{story_id}/dashboard/timeline", headers=headers)
     assert timeline.status_code == 200
     assert isinstance(timeline.json(), list)
     assert len(timeline.json()) >= 1
+    versioned_timeline = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/v1/timeline", headers=headers
+    )
+    assert versioned_timeline.status_code == 200
+    assert versioned_timeline.json() == timeline.json()
 
     heatmap = client.get(f"/api/v1/stories/{story_id}/dashboard/themes/heatmap", headers=headers)
     assert heatmap.status_code == 200
     assert isinstance(heatmap.json(), list)
+    versioned_heatmap = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap", headers=headers
+    )
+    assert versioned_heatmap.status_code == 200
+    assert versioned_heatmap.json() == heatmap.json()
 
     arcs = client.get(f"/api/v1/stories/{story_id}/dashboard/arcs", headers=headers)
     assert arcs.status_code == 200
@@ -277,6 +295,9 @@ def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     bob_dashboard = client.get(
         f"/api/v1/stories/{story_id}/dashboard/overview", headers=bob_headers
     )
+    bob_versioned_dashboard = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/v1/overview", headers=bob_headers
+    )
     assert bob_get.status_code == 404
     assert bob_put.status_code == 404
     assert bob_extract.status_code == 404
@@ -284,6 +305,7 @@ def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     assert bob_analysis_run.status_code == 404
     assert bob_analysis_latest.status_code == 404
     assert bob_dashboard.status_code == 404
+    assert bob_versioned_dashboard.status_code == 404
 
 
 def test_story_analysis_accepts_custom_source_text(tmp_path: Path) -> None:
@@ -568,6 +590,11 @@ def test_dashboard_payload_shape_error_records_anomaly(tmp_path: Path) -> None:
     bad_response = client.get(f"/api/v1/stories/{story_id}/dashboard/overview", headers=headers)
     assert bad_response.status_code == 500
     assert bad_response.json()["detail"] == "Invalid dashboard overview payload"
+    versioned_bad_response = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/v1/overview", headers=headers
+    )
+    assert versioned_bad_response.status_code == 500
+    assert versioned_bad_response.json()["detail"] == "Invalid dashboard overview payload"
 
     anomalies = SQLiteAnomalyStore(db_path=db_path).list_recent(limit=20)
     payload_errors = [event for event in anomalies if event.code == "invalid_payload_shape"]

@@ -44,10 +44,16 @@ uv run story-api --db-path work/local/story_gen.db
   - Returns latest persisted analysis run summary for that story.
 - `GET /api/v1/stories/{story_id}/dashboard/overview`
   - Returns big-picture card payload for dashboard.
+- `GET /api/v1/stories/{story_id}/dashboard/v1/overview`
+  - Versioned alias of dashboard overview payload for frontend contract pinning.
 - `GET /api/v1/stories/{story_id}/dashboard/timeline`
   - Returns timeline lane payloads for actual-time and narrative-order views.
+- `GET /api/v1/stories/{story_id}/dashboard/v1/timeline`
+  - Versioned alias of timeline lane payloads.
 - `GET /api/v1/stories/{story_id}/dashboard/themes/heatmap`
   - Returns theme-by-stage intensity cells.
+- `GET /api/v1/stories/{story_id}/dashboard/v1/themes/heatmap`
+  - Versioned alias of theme heatmap payload.
 - `GET /api/v1/stories/{story_id}/dashboard/arcs`
   - Returns arc chart points (character/conflict/emotion lanes).
 - `GET /api/v1/stories/{story_id}/dashboard/drilldown/{item_id}`
@@ -82,6 +88,16 @@ Static module reference pages are published to:
 - `https://ringxworld.github.io/story_generator/pydoc/`
 
 These pages are generated from Python source via `pdoc` during the Pages deploy workflow.
+
+## Dashboard Drilldown Payload Shape
+
+`GET /api/v1/stories/{story_id}/dashboard/drilldown/{item_id}` returns:
+
+- `item_id`: stable drilldown item key (for example `theme:<theme_id>`).
+- `item_type`: one of `insight:*`, `theme`, `arc`, `conflict`, `emotion`.
+- `title`: short display title for panel header.
+- `content`: narrative detail text for selected item.
+- `evidence_segment_ids`: ordered segment ids backing the drilldown claim.
 
 Auth flow in Swagger UI:
 

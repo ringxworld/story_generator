@@ -70,6 +70,7 @@ nav:
       - 0018 Wiki Docs + Product-First Pages: adr/0018-wiki-docs-and-product-first-pages.md
       - 0020 Pages Hosted MkDocs Snapshot: adr/0020-pages-hosted-mkdocs-snapshot.md
       - 0021 Pages Hosted Python API Reference: adr/0021-pages-hosted-python-api-reference.md
+      - 0022 Dashboard Read-Model v1 Endpoints: adr/0022-dashboard-read-model-v1-endpoints.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

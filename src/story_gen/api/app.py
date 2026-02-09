@@ -108,8 +108,11 @@ class ApiRootResponse(BaseModel):
             "/api/v1/stories/{story_id}/analysis/run",
             "/api/v1/stories/{story_id}/analysis/latest",
             "/api/v1/stories/{story_id}/dashboard/overview",
+            "/api/v1/stories/{story_id}/dashboard/v1/overview",
             "/api/v1/stories/{story_id}/dashboard/timeline",
+            "/api/v1/stories/{story_id}/dashboard/v1/timeline",
             "/api/v1/stories/{story_id}/dashboard/themes/heatmap",
+            "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap",
             "/api/v1/stories/{story_id}/dashboard/arcs",
             "/api/v1/stories/{story_id}/dashboard/drilldown/{item_id}",
             "/api/v1/stories/{story_id}/dashboard/graph",
@@ -678,6 +681,11 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         return _analysis_summary_response(run=run, document=document)
 
     @app.get(
+        "/api/v1/stories/{story_id}/dashboard/v1/overview",
+        response_model=DashboardOverviewResponse,
+        tags=["stories", "dashboard"],
+    )
+    @app.get(
         "/api/v1/stories/{story_id}/dashboard/overview",
         response_model=DashboardOverviewResponse,
         tags=["stories", "dashboard"],
@@ -698,6 +706,11 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         return DashboardOverviewResponse.model_validate(payload)
 
     @app.get(
+        "/api/v1/stories/{story_id}/dashboard/v1/timeline",
+        response_model=list[DashboardTimelineLaneResponse],
+        tags=["stories", "dashboard"],
+    )
+    @app.get(
         "/api/v1/stories/{story_id}/dashboard/timeline",
         response_model=list[DashboardTimelineLaneResponse],
         tags=["stories", "dashboard"],
@@ -717,6 +730,11 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         )
         return [DashboardTimelineLaneResponse.model_validate(item) for item in payload]
 
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap",
+        response_model=list[DashboardThemeHeatmapCellResponse],
+        tags=["stories", "dashboard"],
+    )
     @app.get(
         "/api/v1/stories/{story_id}/dashboard/themes/heatmap",
         response_model=list[DashboardThemeHeatmapCellResponse],
