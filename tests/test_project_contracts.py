@@ -25,6 +25,8 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "pr-checks:" in makefile
     assert "pr-merge:" in makefile
     assert "pr-auto:" in makefile
+    assert "clean:" in makefile
+    assert "clean-deep:" in makefile
     assert "collect-story:" in makefile
     assert "video-story:" in makefile
     assert "features:" in makefile
@@ -113,6 +115,7 @@ def test_native_cmake_scaffold_present() -> None:
 def test_native_quality_config_files_exist() -> None:
     assert (ROOT / ".clang-format").exists()
     assert (ROOT / ".clang-tidy").exists()
+    assert (ROOT / ".gitattributes").exists()
     assert (ROOT / ".pre-commit-config.yaml").exists()
     assert (ROOT / "CODEOWNERS").exists()
     assert (ROOT / "CONTRIBUTING.md").exists()
@@ -389,6 +392,13 @@ def test_pr_flow_supports_explicit_or_fallback_gh_binary() -> None:
     assert (ROOT / "web" / "public" / "icons" / "icon-512.png").exists()
     assert (ROOT / "docs" / "assets" / "brand" / "story-gen-mark.svg").exists()
     assert (ROOT / "docs" / "assets" / "brand" / "story-gen-favicon.svg").exists()
+
+
+def test_gitattributes_enforces_cross_platform_line_endings() -> None:
+    gitattributes = _read(".gitattributes")
+    assert "* text=auto eol=lf" in gitattributes
+    assert "*.ps1 text eol=crlf" in gitattributes
+    assert "*.png binary" in gitattributes
 
 
 def test_no_utils_module_names() -> None:

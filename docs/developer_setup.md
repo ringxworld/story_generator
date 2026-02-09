@@ -165,6 +165,13 @@ make docs-serve
 make build-site
 ```
 
+Cleanup generated artifacts:
+
+```bash
+make clean
+make clean-deep
+```
+
 Regenerate brand icon pack:
 
 ```bash

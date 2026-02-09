@@ -14,7 +14,7 @@ PR_MERGE_METHOD ?= squash
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck pr-open pr-checks pr-merge pr-auto deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck pr-open pr-checks pr-merge pr-auto deploy clean clean-deep
 
 help:
 	@echo "story_gen targets:"
@@ -75,7 +75,8 @@ help:
 	@echo "  make pr-merge             - merge PR after checks pass (optional PR_NUMBER)"
 	@echo "  make pr-auto              - open (if needed), wait for checks, then merge"
 	@echo "  make deploy               - run checks, build site, and push main"
-	@echo "  make clean                - remove local caches and generated site/"
+	@echo "  make clean                - remove local caches and generated build artifacts"
+	@echo "  make clean-deep           - clean plus local virtualenv + frontend dependencies"
 
 sync:
 	$(UV) sync --all-groups
@@ -246,4 +247,7 @@ deploy: quality build-site
 	git push origin main
 
 clean:
-	$(RUN) python -c "import shutil; [shutil.rmtree(p, ignore_errors=True) for p in ['.pytest_cache', '.mypy_cache', '.ruff_cache', 'site']]"
+	$(RUN) python -c "import pathlib, shutil; files=['.coverage']; dirs=['.pytest_cache', '.mypy_cache', '.ruff_cache', 'htmlcov', 'site', 'build', 'web/dist', 'web/coverage']; [pathlib.Path(f).unlink(missing_ok=True) for f in files]; [shutil.rmtree(d, ignore_errors=True) for d in dirs]"
+
+clean-deep: clean
+	$(RUN) python -c "import shutil; [shutil.rmtree(p, ignore_errors=True) for p in ['.venv', 'web/node_modules']]"
