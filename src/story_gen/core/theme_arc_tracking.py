@@ -19,7 +19,7 @@ from story_gen.core.story_schema import (
 )
 
 _THEME_KEYWORDS: dict[str, tuple[str, ...]] = {
-    # TODO(#1001): Replace keyword-based tagging with model-backed theme extraction.
+    # TODO(#6): Replace keyword-based tagging with model-backed theme extraction.
     "memory": ("memory", "remember", "archive", "history"),
     "conflict": ("fight", "conflict", "war", "battle"),
     "identity": ("identity", "name", "self", "origin"),
