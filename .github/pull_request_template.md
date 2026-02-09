@@ -9,7 +9,19 @@ Use full URLs so GitHub links them automatically.
 
 - https://github.com/ringxworld/story_generator/issues/<id>
 
-## What Changed
+## Full Mode (Larger/Riskier Change)
+
+Use this mode for larger, cross-cutting, or higher-risk PRs.
+
+### Motivation / Context
+
+Why this change is needed now.
+
+- What was broken, unclear, or fragile
+- What assumption is being corrected
+- What new capability this unlocks
+
+### What Changed
 
 Concrete, reviewable bullets.
 
@@ -17,14 +29,16 @@ Concrete, reviewable bullets.
 - Changed:
 - Removed:
 
-## Tasks Completed
+### Tradeoffs and Risks
 
-Mirror the concrete tasks finished in this PR. Checkboxes make review faster.
+Call out anything non-obvious.
 
-- [ ] Task completed:
-- [ ] Task completed:
+- Performance impacts:
+- Behavior changes:
+- Edge cases that still exist:
+- Things deliberately left out:
 
-## How This Was Tested
+### How This Was Tested
 
 Be honest and specific.
 
@@ -33,6 +47,23 @@ Be honest and specific.
 - Inputs used to validate behavior:
 - Not tested (if any):
 
-## Notes (Optional)
+### Follow-ups / Future Work (Optional)
 
-Use this for risk/tradeoffs/follow-ups only when it adds signal.
+- Cleanup opportunities:
+- Known gaps:
+- Ideas explicitly deferred:
+
+## Compact Mode (Small/Low-Risk Change)
+
+Use this mode for docs/chore/small-scope PRs.
+
+### Change Notes
+
+- What changed in plain language:
+- Why this small change matters:
+
+### Validation
+
+Be honest and specific.
+
+- Checks run (or reason skipped):
