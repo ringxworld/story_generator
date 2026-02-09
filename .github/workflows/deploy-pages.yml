@@ -32,9 +32,6 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v6
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -42,24 +39,38 @@ jobs:
           cache: "npm"
           cache-dependency-path: web/package-lock.json
 
-      - name: Install Python
-        run: uv python install 3.11
-
-      - name: Sync dependencies
-        run: uv sync --group dev
-
-      - name: Build docs site
-        run: uv run mkdocs build --strict
-
-      - name: Build offline studio demo
+      - name: Build product demo snapshot
         env:
           VITE_OFFLINE_DEMO: "true"
-          VITE_BASE_PATH: /${{ github.event.repository.name }}/studio/
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
         run: |
           npm ci --prefix web
           npm run --prefix web build
+          mkdir -p site
+          cp -R web/dist/. site/
           mkdir -p site/studio
           cp -R web/dist/. site/studio/
+
+      - name: Add wiki redirect page
+        run: |
+          mkdir -p site/docs
+          cat > site/docs/index.html <<'EOF'
+          <!doctype html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <title>Docs moved to wiki</title>
+            <meta http-equiv="refresh" content="0; url=https://github.com/${{ github.repository }}/wiki" />
+          </head>
+          <body>
+            <p>
+              Docs now live in the wiki:
+              <a href="https://github.com/${{ github.repository }}/wiki">open wiki</a>
+            </p>
+          </body>
+          </html>
+          EOF
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

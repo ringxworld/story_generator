@@ -13,6 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PR_TEMPLATE_PATH = REPO_ROOT / ".github" / "pull_request_template.md"
 PROTECTED_BRANCHES = {"main", "develop"}
 WINDOWS_GH_PATH = Path(r"C:\Program Files\GitHub CLI\gh.exe")
+DEFAULT_REVIEWER = "ringxworld"
 
 
 class PrFlowError(RuntimeError):
@@ -124,6 +125,8 @@ def open_pr(*, base: str, title: str | None) -> PullRequestRef:
     effective_title = (
         title.strip() if title and title.strip() else _default_title_for_branch(branch)
     )
+    reviewer = os.environ.get("PR_DEFAULT_REVIEWER", DEFAULT_REVIEWER).strip()
+    reviewers = [entry.strip() for entry in reviewer.split(",") if entry.strip()]
     completed = _run_or_raise(
         [
             _resolve_gh_binary(),
@@ -145,6 +148,24 @@ def open_pr(*, base: str, title: str | None) -> PullRequestRef:
     resolved = _resolve_current_pr()
     if resolved is None:
         raise PrFlowError("PR creation succeeded but PR lookup failed.")
+    for login in reviewers:
+        reviewer_result = _run(
+            [
+                _resolve_gh_binary(),
+                "pr",
+                "edit",
+                str(resolved.number),
+                "--add-reviewer",
+                login,
+            ],
+            capture_output=True,
+        )
+        if reviewer_result.returncode != 0:
+            message = reviewer_result.stderr.strip() if reviewer_result.stderr else ""
+            if "Review cannot be requested from pull request author" in message:
+                print(f"Skipped reviewer '{login}': reviewer is the PR author for {resolved.url}.")
+                continue
+            raise PrFlowError(message or f"Failed requesting reviewer '{login}'.")
     return resolved
 
 

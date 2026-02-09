@@ -21,6 +21,9 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "cpp-format:" in makefile
     assert "cpp-format-check:" in makefile
     assert "cpp-cppcheck:" in makefile
+    assert "wiki-sync:" in makefile
+    assert "wiki-sync-push:" in makefile
+    assert "contracts-export:" in makefile
     assert "pr-open:" in makefile
     assert "pr-checks:" in makefile
     assert "pr-merge:" in makefile
@@ -88,12 +91,15 @@ def test_deploy_workflow_requires_ci_success() -> None:
     assert "conclusion == 'success'" in workflow
     assert "head_branch == 'develop'" in workflow
     assert "head_branch == 'main'" in workflow
-    assert "uv sync --group dev" in workflow
-    assert "uv run mkdocs build --strict" in workflow
     assert "Setup Node" in workflow
-    assert "Build offline studio demo" in workflow
+    assert "Build product demo snapshot" in workflow
+    assert "VITE_BASE_PATH: /${{ github.event.repository.name }}/" in workflow
+    assert "cp -R web/dist/. site/" in workflow
     assert "npm run --prefix web build" in workflow
     assert "site/studio" in workflow
+    assert "Add wiki redirect page" in workflow
+    assert "site/docs/index.html" in workflow
+    assert "/wiki" in workflow
 
 
 def test_native_cmake_scaffold_present() -> None:
@@ -142,11 +148,10 @@ def test_pr_template_contains_required_sections() -> None:
     template = _read(".github/pull_request_template.md")
     assert "## Summary" in template
     assert "## Linked Issues" in template
-    assert "## Motivation / Context" in template
     assert "## What Changed" in template
-    assert "## Tradeoffs and Risks" in template
+    assert "## Tasks Completed" in template
     assert "## How This Was Tested" in template
-    assert "## Follow-ups / Future Work" in template
+    assert "## Notes (Optional)" in template
 
 
 def test_pr_template_workflow_exists_and_checks_sections() -> None:
@@ -155,11 +160,9 @@ def test_pr_template_workflow_exists_and_checks_sections() -> None:
     assert "name: pr-template" in workflow
     assert "## Summary" in workflow
     assert "## Linked Issues" in workflow
-    assert "## Motivation / Context" in workflow
     assert "## What Changed" in workflow
-    assert "## Tradeoffs and Risks" in workflow
+    assert "## Tasks Completed" in workflow
     assert "## How This Was Tested" in workflow
-    assert "## Follow-ups / Future Work" in workflow
     assert "story_generator/issues" in workflow
 
 
@@ -178,10 +181,12 @@ def test_mkdocs_configuration_exists() -> None:
     assert "site_name:" in config
     assert "nav:" in config
     assert "Architecture Diagrams:" in config
+    assert "Contracts Registry:" in config
     assert "API:" in config
     assert "Developer Setup:" in config
     assert "Good Essay Mode:" in config
     assert "Deployment:" in config
+    assert "Wiki Docs Sync:" in config
     assert "Observability:" in config
     assert "Studio:" in config
     assert "Droplet Stack:" in config
@@ -201,6 +206,8 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0015 Dark Mode Default and Theme Toggle:" in config
     assert "0016 Native Feature Metrics Acceleration Path:" in config
     assert "0017 Story Bundle Binary Format:" in config
+    assert "0019 Contract Registry and Pipeline Governance:" in config
+    assert "0018 Wiki Docs + Product-First Pages:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -295,12 +302,16 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0015-dark-mode-default-and-toggle.md").exists()
     assert (ROOT / "docs" / "adr" / "0016-native-feature-metrics-acceleration-path.md").exists()
     assert (ROOT / "docs" / "adr" / "0017-story-bundle-binary-format.md").exists()
+    assert (ROOT / "docs" / "adr" / "0019-contract-registry-and-pipeline-governance.md").exists()
+    assert (ROOT / "docs" / "contracts_registry.md").exists()
+    assert (ROOT / "docs" / "adr" / "0018-wiki-docs-and-product-first-pages.md").exists()
     assert (ROOT / "docs" / "story_bundle.md").exists()
     assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "graph_strategy.md").exists()
     assert (ROOT / "docs" / "studio.md").exists()
     assert (ROOT / "docs" / "developer_setup.md").exists()
     assert (ROOT / "docs" / "github_collaboration.md").exists()
+    assert (ROOT / "docs" / "wiki_docs.md").exists()
     assert (ROOT / "docs" / "essay_mode.md").exists()
     assert (ROOT / "docs" / "droplet_stack.md").exists()
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
@@ -369,6 +380,8 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "ops" / ".env.azure.example").exists()
     assert (ROOT / "tools" / "run_dev_tool.py").exists()
     assert (ROOT / "tools" / "pr_flow.py").exists()
+    assert (ROOT / "tools" / "sync_wiki.py").exists()
+    assert (ROOT / "tools" / "export_contract_registry.py").exists()
     assert (ROOT / ".dockerignore").exists()
     assert (ROOT / "docker-compose.yml").exists()
     assert (ROOT / "docker" / "api.Dockerfile").exists()
@@ -392,12 +405,15 @@ def test_pr_flow_supports_explicit_or_fallback_gh_binary() -> None:
     script = _read("tools/pr_flow.py")
     assert "GH_BIN" in script
     assert "GitHub CLI\\gh.exe" in script
+    assert "PR_DEFAULT_REVIEWER" in script
+    assert "Skipped reviewer" in script
     assert (ROOT / "web" / "public" / "icons" / "icon-16.png").exists()
     assert (ROOT / "web" / "public" / "icons" / "icon-32.png").exists()
     assert (ROOT / "web" / "public" / "icons" / "icon-192.png").exists()
     assert (ROOT / "web" / "public" / "icons" / "icon-512.png").exists()
     assert (ROOT / "docs" / "assets" / "brand" / "story-gen-mark.svg").exists()
     assert (ROOT / "docs" / "assets" / "brand" / "story-gen-favicon.svg").exists()
+    assert (ROOT / "work" / "contracts" / "story_pipeline_contract_registry.v1.json").exists()
 
 
 def test_gitattributes_enforces_cross_platform_line_endings() -> None:

@@ -29,6 +29,19 @@ One-command flow:
 make pr-auto
 ```
 
+## Wiki docs sync
+
+Docs are authored in `docs/` and mirrored into the repo wiki.
+
+```bash
+make wiki-sync       # update local wiki clone from docs/
+make wiki-sync-push  # publish synced docs to GitHub wiki
+```
+
+Wiki URL:
+
+- `https://github.com/ringxworld/story_generator/wiki`
+
 ## Pull request defaults in this repo
 
 - PR template: `.github/pull_request_template.md`
@@ -36,6 +49,17 @@ make pr-auto
 - Auto labels by changed area:
   - config: `.github/labeler.yml`
   - workflow: `.github/workflows/pr-labeler.yml`
+
+## Project board directives
+
+- Keep the roadmap board polished and readable.
+- Use human names for board/title/view/fields (replace placeholders like `View 1`).
+- Keep issue titles concise for quick scan value.
+- Keep board metadata current on active items:
+  - `Status`
+  - `Track`
+  - `Priority Band`
+- Move cards as soon as implementation state changes, not at end-of-day.
 
 ## Enforced merge policy
 
@@ -49,8 +73,7 @@ make pr-auto
   - `pr-template`
 - Required PR body sections are validated by workflow:
   - `Summary`
-  - `Motivation / Context`
+  - `Linked Issues`
   - `What Changed`
-  - `Tradeoffs and Risks`
+  - `Tasks Completed`
   - `How This Was Tested`
-  - `Follow-ups / Future Work`
