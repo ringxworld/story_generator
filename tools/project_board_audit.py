@@ -192,6 +192,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--roadmap-start", type=int, default=2, help="Inclusive start issue number."
     )
     parser.add_argument("--roadmap-end", type=int, default=11, help="Inclusive end issue number.")
+    parser.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="Output format.",
+    )
     return parser
 
 
@@ -215,14 +221,22 @@ def main() -> int:
         roadmap_end=args.roadmap_end,
     )
 
-    print("Project board audit")
-    print("===================")
-    for note in result.notes:
-        print(f"note: {note}")
-    for warning in result.warnings:
-        print(f"warning: {warning}")
-    for error in result.errors:
-        print(f"error: {error}")
+    if args.format == "json":
+        payload = {
+            "errors": result.errors,
+            "warnings": result.warnings,
+            "notes": result.notes,
+        }
+        print(json.dumps(payload, indent=2))
+    else:
+        print("Project board audit")
+        print("===================")
+        for note in result.notes:
+            print(f"note: {note}")
+        for warning in result.warnings:
+            print(f"warning: {warning}")
+        for error in result.errors:
+            print(f"error: {error}")
 
     return 1 if result.errors else 0
 

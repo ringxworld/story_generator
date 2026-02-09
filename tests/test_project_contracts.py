@@ -49,6 +49,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "frontend-quality:" in makefile
     assert "native-quality:" in makefile
     assert "web-coverage:" in makefile
+    assert "label-audit:" in makefile
 
 
 def test_ci_workflow_includes_code_quality_steps() -> None:
@@ -412,6 +413,9 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / ".github" / "ISSUE_TEMPLATE" / "config.yml").exists()
     assert (ROOT / ".github" / "workflows" / "pr-labeler.yml").exists()
     assert (ROOT / ".github" / "workflows" / "pr-template-check.yml").exists()
+    assert (ROOT / ".github" / "workflows" / "meta-audit-notify.yml").exists()
+    assert (ROOT / ".github" / "label-taxonomy.json").exists()
+    assert (ROOT / "tools" / "label_taxonomy_audit.py").exists()
     assert (ROOT / "web" / "public" / "favicon.svg").exists()
     assert (ROOT / "web" / "public" / "favicon.ico").exists()
     assert (ROOT / "web" / "public" / "site.webmanifest").exists()
