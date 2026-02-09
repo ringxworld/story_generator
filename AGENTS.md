@@ -107,3 +107,18 @@ When commenting or reviewing pull requests:
 - Lead with the most important finding, then explain why it matters.
 - Avoid robotic checklists unless the author asked for one.
 - Call out missing tests and edge cases in plain language.
+
+## 10. Human PR Status Comments
+
+When posting status comments on PRs:
+
+- Keep comments short (3 to 6 lines).
+- Use this order: `current state`, `why`, `next step`.
+- Name the branch or PR causing the blocker, not vague "baseline" language.
+- Prefer one clear sentence per point instead of long chained clauses.
+- If the result is uncertain, say what needs to happen to confirm it.
+
+Example tone:
+
+- Avoid: "CI failures on this PR are inherited from current develop baseline..."
+- Prefer: "This PR fails for the same reason `#1` is failing in `develop`. After `#1` merges, rebase this branch and rerun checks."
