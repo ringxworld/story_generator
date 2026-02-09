@@ -44,6 +44,7 @@ nav:
   - Studio: studio.md
   - Droplet Stack: droplet_stack.md
   - Feature Pipeline: feature_pipeline.md
+  - QA Evaluation: qa_evaluation.md
   - Story Bundle: story_bundle.md
   - Graph Strategy: graph_strategy.md
   - Storage Decision Matrix: storage_decision_matrix.md
@@ -78,6 +79,7 @@ nav:
       - 0025 Dashboard Interaction and Export Presets: adr/0025-dashboard-interaction-and-export-presets.md
       - 0026 Storage Adapter Boundary and Decision Spike: adr/0026-storage-adapter-boundary-and-decision-spike.md
       - 0027 Pipeline Ingestion Resilience and Canary Enforcement: adr/0027-pipeline-ingestion-resilience-and-canary.md
+      - 0028 QA Evaluation Harness and Calibration Gates: adr/0028-qa-evaluation-harness-and-calibration-gates.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

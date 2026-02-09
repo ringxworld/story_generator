@@ -46,8 +46,10 @@ def test_pre_push_checks_runs_expected_commands_in_order(
     assert executed[7][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "pytest"]
     assert executed[8][:3] == ["uv", "run", "story-pipeline-canary"]
     assert executed[8][-1] == "--strict"
-    assert executed[9][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "mkdocs"]
-    assert executed[9][-2:] == ["build", "--strict"]
+    assert executed[9][:3] == ["uv", "run", "story-qa-eval"]
+    assert executed[9][-2:] == ["--output", "work/qa/evaluation_summary.json"]
+    assert executed[10][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "mkdocs"]
+    assert executed[10][-2:] == ["build", "--strict"]
     assert ["npm", "run", "--prefix", "web", "typecheck"] in executed
     assert ["npm", "run", "--prefix", "web", "test:coverage"] in executed
     assert ["npm", "run", "--prefix", "web", "build"] in executed

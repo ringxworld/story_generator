@@ -26,6 +26,7 @@ story-blueprint = "story_gen.cli.blueprint:main"
 story-features = "story_gen.cli.features:main"
 story-dashboard-export = "story_gen.cli.dashboard_export:main"
 story-pipeline-canary = "story_gen.cli.pipeline_canary:main"
+story-qa-eval = "story_gen.cli.qa_evaluation:main"
 
 [dependency-groups]
 dev = [

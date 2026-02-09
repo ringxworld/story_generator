@@ -37,6 +37,16 @@ def main() -> None:
     run_tool("mypy")
     run_tool("pytest")
     run([uv_executable, "run", "story-pipeline-canary", "--strict"])
+    run(
+        [
+            uv_executable,
+            "run",
+            "story-qa-eval",
+            "--strict",
+            "--output",
+            "work/qa/evaluation_summary.json",
+        ]
+    )
     run_tool("mkdocs", "build", "--strict")
     web_package = Path("web") / "package.json"
     if web_package.exists():

@@ -63,6 +63,17 @@ jobs:
       - name: Pipeline canary
         run: uv run story-pipeline-canary --strict
 
+      - name: Story QA evaluation harness
+        run: uv run story-qa-eval --strict --output work/qa/evaluation_summary.json
+
+      - name: Upload story QA evaluation summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: story-qa-evaluation-summary
+          path: work/qa/evaluation_summary.json
+          if-no-files-found: error
+
       - name: Docs build
         run: uv run mkdocs build --strict
 

@@ -35,6 +35,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "collect-story:" in makefile
     assert "video-story:" in makefile
     assert "pipeline-canary:" in makefile
+    assert "qa-eval:" in makefile
     assert "features:" in makefile
     assert "dev-stack-hot:" in makefile
     assert "stack-up-hot:" in makefile
@@ -67,6 +68,9 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "uv run mypy" in workflow
     assert "uv run pytest" in workflow
     assert "uv run story-pipeline-canary --strict" in workflow
+    assert "uv run story-qa-eval --strict --output work/qa/evaluation_summary.json" in workflow
+    assert "Upload story QA evaluation summary" in workflow
+    assert "story-qa-evaluation-summary" in workflow
     assert "uv run mkdocs build --strict" in workflow
     assert "uv run python tools/check_imports.py" in workflow
     assert "uv run python tools/check_contract_drift.py" in workflow
@@ -209,6 +213,7 @@ def test_pyproject_exposes_story_collection_entrypoints() -> None:
     assert 'story-features = "story_gen.cli.features:main"' in pyproject
     assert 'story-dashboard-export = "story_gen.cli.dashboard_export:main"' in pyproject
     assert 'story-pipeline-canary = "story_gen.cli.pipeline_canary:main"' in pyproject
+    assert 'story-qa-eval = "story_gen.cli.qa_evaluation:main"' in pyproject
 
 
 def test_mkdocs_configuration_exists() -> None:
@@ -227,6 +232,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "Studio:" in config
     assert "Droplet Stack:" in config
     assert "Feature Pipeline:" in config
+    assert "QA Evaluation:" in config
     assert "Story Bundle:" in config
     assert "Graph Strategy:" in config
     assert "Architecture:" in config
@@ -249,6 +255,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0022 Dashboard PNG Export Surface:" in config
     assert "0023 Dashboard Read-Model v1 Endpoints:" in config
     assert "0024 Dashboard Timeline and Heatmap Export Surfaces:" in config
+    assert "0028 QA Evaluation Harness and Calibration Gates:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -291,6 +298,8 @@ def test_pre_push_checks_include_docs_and_cpp_format() -> None:
     assert 'run_tool("pre-commit", "run", "--all-files")' in checks
     assert "uv executable not found in PATH" in checks
     assert "docker executable not found in PATH" in checks
+    assert '"story-qa-eval"' in checks
+    assert '"work/qa/evaluation_summary.json"' in checks
     assert 'run_tool("mkdocs", "build", "--strict")' in checks
     assert '"npm", "run", "--prefix", "web", "typecheck"' in checks
     assert '"npm", "run", "--prefix", "web", "test:coverage"' in checks
@@ -359,6 +368,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (
         ROOT / "docs" / "adr" / "0024-dashboard-timeline-and-heatmap-export-surfaces.md"
     ).exists()
+    assert (ROOT / "docs" / "adr" / "0028-qa-evaluation-harness-and-calibration-gates.md").exists()
     assert (ROOT / "docs" / "story_bundle.md").exists()
     assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "graph_strategy.md").exists()
@@ -370,6 +380,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "essay_mode.md").exists()
     assert (ROOT / "docs" / "droplet_stack.md").exists()
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
+    assert (ROOT / "docs" / "qa_evaluation.md").exists()
     assert (ROOT / "docs" / "architecture_diagrams.md").exists()
     assert (ROOT / "docs" / "javascripts" / "mermaid.js").exists()
     architecture = _read("docs/architecture.md")
