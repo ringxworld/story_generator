@@ -67,6 +67,18 @@ Wiki URL:
   - `Priority Band`
 - Move cards as soon as implementation state changes, not at end-of-day.
 
+Audit command:
+
+```bash
+make project-audit
+```
+
+Manual rename fallback:
+
+- GitHub API cannot currently rename a Project view.
+- If the default view is still `View 1`, use:
+  `Project -> View options (...) -> Rename -> Roadmap Board`
+
 ## Enforced merge policy
 
 - Pull requests are required for `develop` and `main`.
