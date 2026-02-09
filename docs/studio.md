@@ -12,6 +12,11 @@ GitHub Pages now publishes a static offline demo build of the studio at:
 This mode does not call the backend. It renders representative story analysis
 dashboard data so visitors can explore the UX end-to-end.
 
+Theme behavior:
+
+- Dark mode is the default.
+- A header toggle switches between dark and light mode.
+
 ## Run locally
 
 1. Start API:

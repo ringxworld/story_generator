@@ -99,6 +99,11 @@ Typography:
 - Section headings: `Alegreya`
 - Code: `JetBrains Mono`
 
+Theme behavior:
+
+- Dark mode is the default for both studio and docs.
+- Both surfaces expose a runtime light/dark toggle.
+
 Icon system:
 
 - Branded source assets: `web/public/brand/story-gen-mark.svg`

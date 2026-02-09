@@ -9,9 +9,18 @@ theme:
   logo: assets/brand/story-gen-mark.svg
   favicon: assets/brand/story-gen-favicon.svg
   palette:
+    - scheme: slate
+      primary: brown
+      accent: orange
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
     - scheme: default
       primary: brown
       accent: orange
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
   font:
     text: Source Sans 3
     code: JetBrains Mono
@@ -50,6 +59,7 @@ nav:
       - 0012 Offline Studio Demo on Pages: adr/0012-offline-studio-demo-on-github-pages.md
       - 0013 Bounded Observability and Anomaly Retention: adr/0013-bounded-observability-and-anomaly-retention.md
       - 0014 Graph Layout Contract and Storage Evaluation: adr/0014-graph-layout-contract-and-storage-evaluation.md
+      - 0015 Dark Mode Default and Theme Toggle: adr/0015-dark-mode-default-and-toggle.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

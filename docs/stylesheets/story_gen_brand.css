@@ -10,6 +10,9 @@
   --story-accent: #a45b2a;
   --story-accent-strong: #7e441d;
   --story-focus: #d47e3a;
+  --story-bg-start: #f2e9d8;
+  --story-bg-end: #faf6ef;
+  --story-bg-glow: rgba(164, 91, 42, 0.12);
 }
 
 [data-md-color-scheme="default"] {
@@ -21,11 +24,33 @@
   --md-default-fg-color: var(--story-ink);
 }
 
+[data-md-color-scheme="slate"] {
+  --story-paper: #1d1914;
+  --story-parchment: #2b241c;
+  --story-ink: #f0e3ca;
+  --story-border: #5b4a34;
+  --story-primary: #3b5d50;
+  --story-primary-strong: #2a4339;
+  --story-accent: #c57943;
+  --story-accent-strong: #e0a777;
+  --story-focus: #e79d5d;
+  --story-bg-start: #13100c;
+  --story-bg-end: #1b1712;
+  --story-bg-glow: rgba(197, 121, 67, 0.14);
+
+  --md-primary-fg-color: var(--story-primary);
+  --md-primary-fg-color--light: #4c7667;
+  --md-primary-fg-color--dark: #253a32;
+  --md-accent-fg-color: var(--story-accent);
+  --md-default-bg-color: #15120e;
+  --md-default-fg-color: var(--story-ink);
+}
+
 body {
   font-family: "Source Sans 3", "Segoe UI", sans-serif;
   background:
-    radial-gradient(circle at top right, rgba(164, 91, 42, 0.12), transparent 45%),
-    linear-gradient(180deg, #f2e9d8 0%, #faf6ef 100%);
+    radial-gradient(circle at top right, var(--story-bg-glow), transparent 45%),
+    linear-gradient(180deg, var(--story-bg-start) 0%, var(--story-bg-end) 100%);
 }
 
 .md-header {

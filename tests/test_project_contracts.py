@@ -149,9 +149,13 @@ def test_mkdocs_configuration_exists() -> None:
     assert "ADR:" in config
     assert "logo: assets/brand/story-gen-mark.svg" in config
     assert "favicon: assets/brand/story-gen-favicon.svg" in config
+    assert "scheme: slate" in config
+    assert "Switch to light mode" in config
+    assert "Switch to dark mode" in config
     assert "0012 Offline Studio Demo on Pages:" in config
     assert "0013 Bounded Observability and Anomaly Retention:" in config
     assert "0014 Graph Layout Contract and Storage Evaluation:" in config
+    assert "0015 Dark Mode Default and Theme Toggle:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -237,6 +241,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0012-offline-studio-demo-on-github-pages.md").exists()
     assert (ROOT / "docs" / "adr" / "0013-bounded-observability-and-anomaly-retention.md").exists()
     assert (ROOT / "docs" / "adr" / "0014-graph-layout-contract-and-storage-evaluation.md").exists()
+    assert (ROOT / "docs" / "adr" / "0015-dark-mode-default-and-toggle.md").exists()
     assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "graph_strategy.md").exists()
     assert (ROOT / "docs" / "studio.md").exists()
