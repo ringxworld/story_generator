@@ -19,7 +19,4 @@ Start from `0000-template.md`.
 Latest ADR:
 
 - `0019-contract-registry-and-pipeline-governance.md`
-
-Latest ADR:
-
-- `0018-wiki-docs-and-product-first-pages.md`
+- `0020-pages-hosted-mkdocs-snapshot.md`

@@ -1,7 +1,7 @@
 # Wiki Docs Sync
 
-Long-form docs are authored in-repo under `docs/` and mirrored to the
-GitHub wiki.
+Long-form docs are authored in-repo under `docs/`, published as a static
+snapshot on GitHub Pages under `/docs/`, and mirrored to the GitHub wiki.
 
 ## Why this split
 
@@ -27,3 +27,4 @@ make wiki-sync-push
 
 - Wiki: `https://github.com/ringxworld/story_generator/wiki`
 - Product demo (Pages): `https://ringxworld.github.io/story_generator/`
+- Hosted docs (Pages): `https://ringxworld.github.io/story_generator/docs/`

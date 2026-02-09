@@ -4,6 +4,10 @@
 
 Accepted
 
+> Note: The `/docs` redirect portion of this ADR is superseded by
+> `0020-pages-hosted-mkdocs-snapshot.md`. Pages now hosts a static MkDocs
+> snapshot under `/docs/` while wiki sync remains in place.
+
 ## Problem
 
 The repository has two public documentation surfaces:
