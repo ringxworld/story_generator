@@ -107,3 +107,12 @@ When commenting or reviewing pull requests:
 - Lead with the most important finding, then explain why it matters.
 - Avoid robotic checklists unless the author asked for one.
 - Call out missing tests and edge cases in plain language.
+
+## 10. Project Board Hygiene
+
+Treat the GitHub Projects page as a first-class planning surface:
+
+- Keep project names, view names, and field names human-readable.
+- Keep issue titles concise so board scans are clear.
+- Keep `Status`, `Track`, and `Priority Band` up to date as work moves.
+- Avoid placeholder names (for example: `View 1`) once a board is active.
