@@ -107,3 +107,12 @@ When commenting or reviewing pull requests:
 - Lead with the most important finding, then explain why it matters.
 - Avoid robotic checklists unless the author asked for one.
 - Call out missing tests and edge cases in plain language.
+
+## 10. PR Body Flexibility and Reviewer Assignment
+
+When creating PRs:
+
+- Use the full PR structure for large or risky work.
+- Use a compact PR structure for docs/chore/small-scope work when context can be concise.
+- Always include `Summary` and `Linked Issues`.
+- Request reviewer `ringxworld` by default (or assign as assignee when self-review is blocked).

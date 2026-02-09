@@ -13,26 +13,53 @@ jobs:
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          required_sections=(
-            "## Summary"
-            "## Linked Issues"
-            "## Motivation / Context"
-            "## What Changed"
-            "## Tradeoffs and Risks"
-            "## How This Was Tested"
-            "## Follow-ups / Future Work"
-          )
+          has_heading() {
+            local heading="$1"
+            grep -Eiq "^[[:space:]]*#{2,3}[[:space:]]*${heading}[[:space:]]*$" <<<"$PR_BODY"
+          }
 
-          missing=0
-          for section in "${required_sections[@]}"; do
-            if ! grep -Fq "$section" <<<"$PR_BODY"; then
-              echo "Missing required PR section: $section"
-              missing=1
+          # Always required for traceability.
+          if ! has_heading "Summary"; then
+            echo "Missing required PR section: Summary"
+            exit 1
+          fi
+          if ! has_heading "Linked Issues"; then
+            echo "Missing required PR section: Linked Issues"
+            exit 1
+          fi
+
+          # Full mode supports larger/riskier changes.
+          full_sections=(
+            "Motivation / Context"
+            "What Changed"
+            "Tradeoffs and Risks"
+            "How This Was Tested"
+            "Follow-ups / Future Work"
+          )
+          full_missing=0
+          for section in "${full_sections[@]}"; do
+            if ! has_heading "$section"; then
+              full_missing=1
+              break
             fi
           done
 
-          if [ "$missing" -ne 0 ]; then
+          # Compact mode supports docs/chore/small diffs.
+          compact_sections=(
+            "Change Notes"
+            "Validation"
+          )
+          compact_missing=0
+          for section in "${compact_sections[@]}"; do
+            if ! has_heading "$section"; then
+              compact_missing=1
+              break
+            fi
+          done
+
+          if [ "$full_missing" -ne 0 ] && [ "$compact_missing" -ne 0 ]; then
             echo "PR template requirements not satisfied."
+            echo "Provide either full mode sections or compact mode sections."
             exit 1
           fi
 

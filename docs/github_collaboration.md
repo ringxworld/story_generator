@@ -29,6 +29,12 @@ One-command flow:
 make pr-auto
 ```
 
+Default reviewer behavior:
+
+- `tools/pr_flow.py` requests reviewer `ringxworld` by default.
+- Override with `PR_DEFAULT_REVIEWER=<login>` or `--reviewer <login>`.
+- If GitHub blocks self-review requests, the same login is added as PR assignee.
+
 ## Pull request defaults in this repo
 
 - PR template: `.github/pull_request_template.md`
@@ -48,9 +54,7 @@ make pr-auto
   - `pages`
   - `pr-template`
 - Required PR body sections are validated by workflow:
-  - `Summary`
-  - `Motivation / Context`
-  - `What Changed`
-  - `Tradeoffs and Risks`
-  - `How This Was Tested`
-  - `Follow-ups / Future Work`
+  - Always required: `Summary`, `Linked Issues`
+  - Choose one mode:
+  - Full mode: `Motivation / Context`, `What Changed`, `Tradeoffs and Risks`, `How This Was Tested`, `Follow-ups / Future Work`
+  - Compact mode: `Change Notes`, `Validation`

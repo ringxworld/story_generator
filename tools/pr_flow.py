@@ -13,6 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PR_TEMPLATE_PATH = REPO_ROOT / ".github" / "pull_request_template.md"
 PROTECTED_BRANCHES = {"main", "develop"}
 WINDOWS_GH_PATH = Path(r"C:\Program Files\GitHub CLI\gh.exe")
+DEFAULT_REVIEWER = "ringxworld"
 
 
 class PrFlowError(RuntimeError):
@@ -111,10 +112,60 @@ def _resolve_pr_ref(explicit: str | None) -> str:
     return str(current.number)
 
 
-def open_pr(*, base: str, title: str | None) -> PullRequestRef:
+def _resolve_default_reviewer() -> str | None:
+    reviewer = os.environ.get("PR_DEFAULT_REVIEWER", DEFAULT_REVIEWER).strip()
+    return reviewer or None
+
+
+def _normalize_reviewers(reviewers: list[str] | None) -> list[str]:
+    if reviewers:
+        cleaned = [reviewer.strip() for reviewer in reviewers if reviewer.strip()]
+    else:
+        default_reviewer = _resolve_default_reviewer()
+        cleaned = [default_reviewer] if default_reviewer else []
+
+    deduped: list[str] = []
+    for reviewer in cleaned:
+        if reviewer not in deduped:
+            deduped.append(reviewer)
+    return deduped
+
+
+def _request_reviewers(*, pr_ref: str, reviewers: list[str]) -> None:
+    if not reviewers:
+        return
+
+    gh = _resolve_gh_binary()
+    for reviewer in reviewers:
+        review_request = _run(
+            [gh, "pr", "edit", pr_ref, "--add-reviewer", reviewer],
+            capture_output=True,
+        )
+        if review_request.returncode == 0:
+            print(f"Requested reviewer '{reviewer}' on PR {pr_ref}.")
+            continue
+
+        stderr = review_request.stderr.strip() if review_request.stderr else ""
+        stdout = review_request.stdout.strip() if review_request.stdout else ""
+        message = stderr or stdout or "unknown error while adding reviewer"
+        print(f"Reviewer request skipped for '{reviewer}' on PR {pr_ref}: {message}")
+
+        # GitHub does not allow requesting review from the PR author. Fallback to assignee.
+        if "author" in message.lower():
+            assignee_request = _run(
+                [gh, "pr", "edit", pr_ref, "--add-assignee", reviewer],
+                capture_output=True,
+            )
+            if assignee_request.returncode == 0:
+                print(f"Added '{reviewer}' as assignee on PR {pr_ref}.")
+
+
+def open_pr(*, base: str, title: str | None, reviewers: list[str] | None) -> PullRequestRef:
     branch = _ensure_feature_branch()
+    selected_reviewers = _normalize_reviewers(reviewers)
     existing = _resolve_current_pr()
     if existing is not None:
+        _request_reviewers(pr_ref=str(existing.number), reviewers=selected_reviewers)
         print(f"PR already exists: {existing.url}")
         return existing
 
@@ -145,6 +196,7 @@ def open_pr(*, base: str, title: str | None) -> PullRequestRef:
     resolved = _resolve_current_pr()
     if resolved is None:
         raise PrFlowError("PR creation succeeded but PR lookup failed.")
+    _request_reviewers(pr_ref=str(resolved.number), reviewers=selected_reviewers)
     return resolved
 
 
@@ -175,9 +227,16 @@ def merge_pr(*, pr: str | None, merge_method: str) -> None:
     print(f"Merged PR {pr_ref} with method '{merge_method}'.")
 
 
-def auto_flow(*, base: str, title: str | None, pr: str | None, merge_method: str) -> None:
+def auto_flow(
+    *,
+    base: str,
+    title: str | None,
+    pr: str | None,
+    merge_method: str,
+    reviewers: list[str] | None,
+) -> None:
     if pr is None:
-        open_pr(base=base, title=title)
+        open_pr(base=base, title=title, reviewers=reviewers)
     merge_pr(pr=pr, merge_method=merge_method)
 
 
@@ -188,6 +247,15 @@ def build_parser() -> argparse.ArgumentParser:
     open_parser = subparsers.add_parser("open", help="Open PR from current feature branch.")
     open_parser.add_argument("--base", default="develop")
     open_parser.add_argument("--title", default=None)
+    open_parser.add_argument(
+        "--reviewer",
+        action="append",
+        default=None,
+        help=(
+            "GitHub login to request as reviewer. Repeat for multiple reviewers. "
+            "Defaults to PR_DEFAULT_REVIEWER or ringxworld."
+        ),
+    )
 
     checks_parser = subparsers.add_parser("checks", help="Watch PR checks until completion.")
     checks_parser.add_argument("--pr", default=None)
@@ -205,6 +273,15 @@ def build_parser() -> argparse.ArgumentParser:
     auto_parser.add_argument("--title", default=None)
     auto_parser.add_argument("--pr", default=None)
     auto_parser.add_argument(
+        "--reviewer",
+        action="append",
+        default=None,
+        help=(
+            "GitHub login to request as reviewer. Repeat for multiple reviewers. "
+            "Defaults to PR_DEFAULT_REVIEWER or ringxworld."
+        ),
+    )
+    auto_parser.add_argument(
         "--merge-method",
         default="squash",
         choices=("merge", "squash", "rebase"),
@@ -216,7 +293,7 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
     if args.command == "open":
-        open_pr(base=args.base, title=args.title)
+        open_pr(base=args.base, title=args.title, reviewers=args.reviewer)
         return
     if args.command == "checks":
         watch_checks(pr=args.pr)
@@ -230,6 +307,7 @@ def main() -> None:
             title=args.title,
             pr=args.pr,
             merge_method=args.merge_method,
+            reviewers=args.reviewer,
         )
         return
     raise PrFlowError(f"Unsupported command: {args.command}")
