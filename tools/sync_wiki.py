@@ -201,7 +201,7 @@ def _write_manifest(wiki_dir: Path, managed_files: list[str], repo_slug: str) ->
     )
 
 
-def _sync_checkout(wiki_dir: Path, wiki_remote: str) -> None:
+def _sync_checkout(wiki_dir: Path, wiki_remote: str) -> bool:
     if not shutil.which("git"):
         raise WikiSyncError("`git` executable is required")
 
@@ -209,7 +209,7 @@ def _sync_checkout(wiki_dir: Path, wiki_remote: str) -> None:
         _run_or_raise(["git", "fetch", "origin"], cwd=wiki_dir)
         # Wiki repos default to `master`. If it differs, a fast-forward pull still works.
         _run_or_raise(["git", "pull", "--ff-only", "origin"], cwd=wiki_dir)
-        return
+        return True
 
     wiki_dir.parent.mkdir(parents=True, exist_ok=True)
     clone = _run(
@@ -218,7 +218,7 @@ def _sync_checkout(wiki_dir: Path, wiki_remote: str) -> None:
         capture_output=True,
     )
     if clone.returncode == 0:
-        return
+        return True
 
     stderr = clone.stderr.strip() if clone.stderr else ""
     stdout = clone.stdout.strip() if clone.stdout else ""
@@ -294,8 +294,24 @@ def main() -> None:
     wiki_remote = args.wiki_remote or _wiki_remote_from_origin(origin_url)
     wiki_dir = Path(args.wiki_dir).resolve()
 
-    _sync_checkout(wiki_dir, wiki_remote)
+    git_backed = False
+    try:
+        git_backed = _sync_checkout(wiki_dir, wiki_remote)
+    except WikiSyncError as error:
+        if args.push:
+            raise
+        message = str(error)
+        if "Wiki remote is not available yet" not in message:
+            raise
+        wiki_dir.mkdir(parents=True, exist_ok=True)
+        print(message)
+        print(f"Continuing with local export mode at {wiki_dir}.")
+
     _apply_sync(wiki_dir, _pages_to_sync(repo_slug), repo_slug)
+
+    if not git_backed:
+        print(f"Wiki files synchronized locally at {wiki_dir}. Re-run with --push to publish.")
+        return
 
     if not _has_changes(wiki_dir):
         print(f"Wiki already up to date: {wiki_dir}")
