@@ -1,0 +1,147 @@
+name: Meta Audit Notify
+
+on:
+  schedule:
+    - cron: "35 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: meta-audit-notify
+  cancel-in-progress: false
+
+jobs:
+  audit-and-notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
+
+      - name: Install Python
+        run: uv python install 3.11
+
+      - name: Run project board audit
+        id: board
+        continue-on-error: true
+        run: |
+          uv run python tools/project_board_audit.py \
+            --owner "${{ github.repository_owner }}" \
+            --project-number 2 \
+            --format json > board-audit.json
+
+      - name: Run label taxonomy audit
+        id: labels
+        continue-on-error: true
+        run: |
+          uv run python tools/label_taxonomy_audit.py \
+            --repo "${{ github.repository }}" \
+            --format json > label-audit.json
+
+      - name: Build findings
+        id: findings
+        env:
+          BOARD_OUTCOME: ${{ steps.board.outcome }}
+          LABEL_OUTCOME: ${{ steps.labels.outcome }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          def load(path: str) -> dict[str, list[str]]:
+              file_path = Path(path)
+              if not file_path.exists():
+                  return {"errors": [f"audit output missing: {path}"], "warnings": [], "notes": []}
+              return json.loads(file_path.read_text(encoding="utf-8"))
+
+          board = load("board-audit.json")
+          labels = load("label-audit.json")
+
+          sections: list[str] = []
+          has_findings = False
+
+          for name, payload, outcome in (
+              ("Project board audit", board, os.environ.get("BOARD_OUTCOME", "unknown")),
+              ("Label taxonomy audit", labels, os.environ.get("LABEL_OUTCOME", "unknown")),
+          ):
+              sections.append(f"### {name} (`{outcome}`)")
+              errors = payload.get("errors", [])
+              warnings = payload.get("warnings", [])
+              notes = payload.get("notes", [])
+              if errors:
+                  has_findings = True
+                  sections.append("- Errors:")
+                  for item in errors:
+                      sections.append(f"  - {item}")
+              if warnings:
+                  has_findings = True
+                  sections.append("- Warnings:")
+                  for item in warnings:
+                      sections.append(f"  - {item}")
+              if not errors and not warnings:
+                  sections.append("- No warnings or errors.")
+              if notes:
+                  sections.append("- Notes:")
+                  for item in notes:
+                      sections.append(f"  - {item}")
+              sections.append("")
+
+          summary = "\n".join(sections).strip()
+          output_path = Path(os.environ["GITHUB_OUTPUT"])
+          with output_path.open("a", encoding="utf-8") as handle:
+              handle.write(f"has_findings={'true' if has_findings else 'false'}\n")
+              handle.write("summary<<EOF\n")
+              handle.write(summary + "\n")
+              handle.write("EOF\n")
+          PY
+
+      - name: Upsert manual intervention tracker issue
+        if: steps.findings.outputs.has_findings == 'true'
+        uses: actions/github-script@v8
+        env:
+          FINDINGS: ${{ steps.findings.outputs.summary }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          script: |
+            const marker = "[manual-intervention-tracker]";
+            const title = `${marker} Meta audit findings`;
+            const body = [
+              "@ringxworld manual intervention may be required.",
+              "",
+              process.env.FINDINGS,
+              "",
+              `Run: ${process.env.RUN_URL}`,
+            ].join("\n");
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              per_page: 100,
+            });
+            const existing = issues.find(
+              (issue) => issue.title === title && !issue.pull_request,
+            );
+
+            if (existing) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body,
+              });
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+            });

@@ -73,6 +73,18 @@ Audit command:
 make project-audit
 ```
 
+Label taxonomy audit:
+
+```bash
+make label-audit
+```
+
+Automated manual-intervention tracker:
+
+- `.github/workflows/meta-audit-notify.yml` runs on schedule and manual dispatch.
+- It audits project board hygiene and label taxonomy drift.
+- If warnings/errors are found, one tracker issue is created/updated (no duplicates).
+
 Manual rename fallback:
 
 - GitHub API cannot currently rename a Project view.
