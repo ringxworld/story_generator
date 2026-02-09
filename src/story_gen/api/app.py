@@ -40,6 +40,8 @@ from story_gen.api.contracts import (
     DashboardGraphPngExportResponse,
     DashboardGraphResponse,
     DashboardOverviewResponse,
+    DashboardPngExportResponse,
+    DashboardSvgExportResponse,
     DashboardThemeHeatmapCellResponse,
     DashboardTimelineLaneResponse,
     EssayBlueprint,
@@ -61,7 +63,17 @@ from story_gen.api.contracts import (
     StoryUpdateRequest,
     UserResponse,
 )
-from story_gen.core.dashboard_views import GraphEdge, GraphNode, export_graph_png
+from story_gen.core.dashboard_views import (
+    GraphEdge,
+    GraphNode,
+    ThemeHeatmapCell,
+    TimelineLaneView,
+    export_graph_png,
+    export_theme_heatmap_png,
+    export_theme_heatmap_svg,
+    export_timeline_png,
+    export_timeline_svg,
+)
 from story_gen.core.essay_quality import (
     EssayDraftInput,
     EssayPolicySpec,
@@ -114,8 +126,12 @@ class ApiRootResponse(BaseModel):
             "/api/v1/stories/{story_id}/dashboard/v1/overview",
             "/api/v1/stories/{story_id}/dashboard/timeline",
             "/api/v1/stories/{story_id}/dashboard/v1/timeline",
+            "/api/v1/stories/{story_id}/dashboard/timeline/export.svg",
+            "/api/v1/stories/{story_id}/dashboard/timeline/export.png",
             "/api/v1/stories/{story_id}/dashboard/themes/heatmap",
             "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap",
+            "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg",
+            "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png",
             "/api/v1/stories/{story_id}/dashboard/arcs",
             "/api/v1/stories/{story_id}/dashboard/drilldown/{item_id}",
             "/api/v1/stories/{story_id}/dashboard/graph",
@@ -486,6 +502,103 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         )
         raise HTTPException(status_code=500, detail=f"Invalid dashboard {key} payload")
 
+    def dashboard_timeline_lanes(
+        *,
+        dashboard: dict[str, object],
+        story: StoredStory,
+    ) -> list[DashboardTimelineLaneResponse]:
+        payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="timeline_lanes",
+            story_id=story.story_id,
+            expected="array",
+        )
+        return [DashboardTimelineLaneResponse.model_validate(item) for item in payload]
+
+    def dashboard_theme_heatmap_cells(
+        *,
+        dashboard: dict[str, object],
+        story: StoredStory,
+    ) -> list[DashboardThemeHeatmapCellResponse]:
+        payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="theme_heatmap",
+            story_id=story.story_id,
+            expected="array",
+        )
+        return [DashboardThemeHeatmapCellResponse.model_validate(item) for item in payload]
+
+    def dashboard_graph_projection(
+        *,
+        dashboard: dict[str, object],
+        story: StoredStory,
+    ) -> tuple[list[DashboardGraphNodeResponse], list[DashboardGraphEdgeResponse]]:
+        node_payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="graph_nodes",
+            story_id=story.story_id,
+            expected="array",
+        )
+        edge_payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="graph_edges",
+            story_id=story.story_id,
+            expected="array",
+        )
+        nodes = [DashboardGraphNodeResponse.model_validate(item) for item in node_payload]
+        edges = [DashboardGraphEdgeResponse.model_validate(item) for item in edge_payload]
+        return nodes, edges
+
+    def to_timeline_lane_views(
+        lanes: list[DashboardTimelineLaneResponse],
+    ) -> list[TimelineLaneView]:
+        converted: list[TimelineLaneView] = []
+        for lane in lanes:
+            items: list[dict[str, str | int | None]] = []
+            for item in lane.items:
+                normalized: dict[str, str | int | None] = {}
+                for key, value in item.items():
+                    if isinstance(value, (str, int)) or value is None:
+                        normalized[str(key)] = value
+                    else:
+                        normalized[str(key)] = str(value)
+                items.append(normalized)
+            converted.append(TimelineLaneView(lane=lane.lane, items=items))
+        return converted
+
+    def to_theme_heatmap_cells(
+        *,
+        cells: list[DashboardThemeHeatmapCellResponse],
+        story: StoredStory,
+    ) -> list[ThemeHeatmapCell]:
+        allowed_stages = {"setup", "escalation", "climax", "resolution"}
+        converted: list[ThemeHeatmapCell] = []
+        for cell in cells:
+            if cell.stage not in allowed_stages:
+                record_anomaly(
+                    scope="dashboard",
+                    code="invalid_payload_shape",
+                    severity="error",
+                    message="Theme heatmap stage must be a known story stage.",
+                    metadata={
+                        "story_id": story.story_id,
+                        "dashboard_key": "theme_heatmap",
+                        "field": "stage",
+                        "value": cell.stage,
+                    },
+                )
+                raise HTTPException(
+                    status_code=500, detail="Invalid dashboard theme_heatmap payload"
+                )
+            converted.append(
+                ThemeHeatmapCell(
+                    theme=cell.theme,
+                    stage=cast(StoryStage, cell.stage),
+                    intensity=cell.intensity,
+                )
+            )
+        return converted
+
     def current_user(
         credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
     ) -> StoredUser:
@@ -726,13 +839,39 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="timeline_lanes",
-            story_id=story.story_id,
-            expected="array",
-        )
-        return [DashboardTimelineLaneResponse.model_validate(item) for item in payload]
+        return dashboard_timeline_lanes(dashboard=dashboard, story=story)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/timeline/export.svg",
+        response_model=DashboardSvgExportResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_timeline_export_svg(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardSvgExportResponse:
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
+        _, _, dashboard, _ = latest
+        lanes = dashboard_timeline_lanes(dashboard=dashboard, story=story)
+        svg = export_timeline_svg(lanes=to_timeline_lane_views(lanes))
+        return DashboardSvgExportResponse(svg=svg)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/timeline/export.png",
+        response_model=DashboardPngExportResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_timeline_export_png(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardPngExportResponse:
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
+        _, _, dashboard, _ = latest
+        lanes = dashboard_timeline_lanes(dashboard=dashboard, story=story)
+        png_bytes = export_timeline_png(lanes=to_timeline_lane_views(lanes))
+        return DashboardPngExportResponse(png_base64=base64.b64encode(png_bytes).decode("ascii"))
 
     @app.get(
         "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap",
@@ -751,13 +890,39 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="theme_heatmap",
-            story_id=story.story_id,
-            expected="array",
-        )
-        return [DashboardThemeHeatmapCellResponse.model_validate(item) for item in payload]
+        return dashboard_theme_heatmap_cells(dashboard=dashboard, story=story)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg",
+        response_model=DashboardSvgExportResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_theme_heatmap_export_svg(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardSvgExportResponse:
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
+        _, _, dashboard, _ = latest
+        cells = dashboard_theme_heatmap_cells(dashboard=dashboard, story=story)
+        svg = export_theme_heatmap_svg(cells=to_theme_heatmap_cells(cells=cells, story=story))
+        return DashboardSvgExportResponse(svg=svg)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png",
+        response_model=DashboardPngExportResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_theme_heatmap_export_png(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardPngExportResponse:
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
+        _, _, dashboard, _ = latest
+        cells = dashboard_theme_heatmap_cells(dashboard=dashboard, story=story)
+        png_bytes = export_theme_heatmap_png(cells=to_theme_heatmap_cells(cells=cells, story=story))
+        return DashboardPngExportResponse(png_base64=base64.b64encode(png_bytes).decode("ascii"))
 
     @app.get(
         "/api/v1/stories/{story_id}/dashboard/arcs",
@@ -829,20 +994,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        node_payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="graph_nodes",
-            story_id=story.story_id,
-            expected="array",
-        )
-        edge_payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="graph_edges",
-            story_id=story.story_id,
-            expected="array",
-        )
-        nodes = [DashboardGraphNodeResponse.model_validate(item) for item in node_payload]
-        edges = [DashboardGraphEdgeResponse.model_validate(item) for item in edge_payload]
+        nodes, edges = dashboard_graph_projection(dashboard=dashboard, story=story)
         return DashboardGraphResponse(nodes=nodes, edges=edges)
 
     @app.get(
@@ -871,20 +1023,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        node_payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="graph_nodes",
-            story_id=story.story_id,
-            expected="array",
-        )
-        edge_payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="graph_edges",
-            story_id=story.story_id,
-            expected="array",
-        )
-        nodes = [DashboardGraphNodeResponse.model_validate(item) for item in node_payload]
-        edges = [DashboardGraphEdgeResponse.model_validate(item) for item in edge_payload]
+        nodes, edges = dashboard_graph_projection(dashboard=dashboard, story=story)
         png_bytes = export_graph_png(
             nodes=[
                 GraphNode(

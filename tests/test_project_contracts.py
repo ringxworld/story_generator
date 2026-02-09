@@ -243,6 +243,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0021 Pages Hosted Python API Reference:" in config
     assert "0022 Dashboard PNG Export Surface:" in config
     assert "0023 Dashboard Read-Model v1 Endpoints:" in config
+    assert "0024 Dashboard Timeline and Heatmap Export Surfaces:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -350,6 +351,9 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0018-wiki-docs-and-product-first-pages.md").exists()
     assert (ROOT / "docs" / "adr" / "0022-dashboard-png-export-surface.md").exists()
     assert (ROOT / "docs" / "adr" / "0023-dashboard-read-model-v1-endpoints.md").exists()
+    assert (
+        ROOT / "docs" / "adr" / "0024-dashboard-timeline-and-heatmap-export-surfaces.md"
+    ).exists()
     assert (ROOT / "docs" / "story_bundle.md").exists()
     assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "graph_strategy.md").exists()

@@ -214,6 +214,241 @@ def export_graph_png(*, nodes: list[GraphNode], edges: list[GraphEdge]) -> bytes
     return _encode_png(width=width, height=height, rgba=bytes(canvas))
 
 
+def export_timeline_svg(*, lanes: list[TimelineLaneView]) -> str:
+    """Export timeline lanes to deterministic SVG text."""
+    width = 960
+    lane_count = max(len(lanes), 1)
+    height = 180 + lane_count * 140
+    stage_width = width - 220
+    lane_rows: list[str] = []
+    lane_labels: list[str] = []
+    markers: list[str] = []
+    item_labels: list[str] = []
+
+    lane_spacing = max(
+        1, stage_width // max(1, max((len(lane.items) for lane in lanes), default=1))
+    )
+    for lane_index, lane in enumerate(lanes):
+        y = 120 + lane_index * 140
+        lane_labels.append(
+            f'<text x="38" y="{y + 6}" fill="#163229" font-size="15">{escape(lane.lane)}</text>'
+        )
+        lane_rows.append(
+            f'<line x1="210" y1="{y}" x2="{width - 40}" y2="{y}" stroke="#8BA49B" stroke-width="2" />'
+        )
+        for item_index, item in enumerate(lane.items):
+            x = min(width - 40, 210 + lane_spacing // 2 + item_index * lane_spacing)
+            label_raw = str(item.get("label", "event"))
+            label = label_raw if len(label_raw) <= 22 else f"{label_raw[:19]}..."
+            has_time = item.get("time") is not None
+            fill = "#2E5E4E" if has_time else "#4A6E9B"
+            markers.append(
+                f'<circle cx="{x}" cy="{y}" r="9" fill="{fill}" stroke="#173629" stroke-width="2" />'
+            )
+            item_labels.append(
+                f'<text x="{x}" y="{y + 30}" text-anchor="middle" fill="#163229" font-size="12">{escape(label)}</text>'
+            )
+
+    legend = [
+        '<rect x="38" y="28" width="18" height="18" fill="#2E5E4E" />',
+        '<text x="64" y="42" fill="#163229" font-size="12">timestamp present</text>',
+        '<rect x="220" y="28" width="18" height="18" fill="#4A6E9B" />',
+        '<text x="246" y="42" fill="#163229" font-size="12">timestamp missing</text>',
+    ]
+    if not lanes:
+        item_labels.append(
+            '<text x="40" y="120" fill="#163229" font-size="14">No timeline lanes available.</text>'
+        )
+    body = "\n".join(legend + lane_rows + lane_labels + markers + item_labels)
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}"><rect width="100%" height="100%" fill="#EEF5F2" />'
+        f'<text x="38" y="84" fill="#10231C" font-size="24">Timeline Export</text>{body}</svg>'
+    )
+
+
+def export_timeline_png(*, lanes: list[TimelineLaneView]) -> bytes:
+    """Export timeline lanes to deterministic PNG bytes."""
+    width = 960
+    lane_count = max(len(lanes), 1)
+    height = 180 + lane_count * 140
+    canvas = bytearray(width * height * 4)
+    _fill_canvas(canvas=canvas, width=width, height=height, color=(0xEE, 0xF5, 0xF2, 0xFF))
+    _draw_rect(
+        canvas=canvas,
+        width=width,
+        height=height,
+        x=32,
+        y=26,
+        rect_width=20,
+        rect_height=20,
+        color=(0x2E, 0x5E, 0x4E, 0xFF),
+    )
+    _draw_rect(
+        canvas=canvas,
+        width=width,
+        height=height,
+        x=216,
+        y=26,
+        rect_width=20,
+        rect_height=20,
+        color=(0x4A, 0x6E, 0x9B, 0xFF),
+    )
+    if lanes:
+        stage_width = width - 220
+        lane_spacing = max(
+            1, stage_width // max(1, max((len(lane.items) for lane in lanes), default=1))
+        )
+        for lane_index, lane in enumerate(lanes):
+            y = 120 + lane_index * 140
+            _draw_line(
+                canvas=canvas,
+                width=width,
+                height=height,
+                start=(210, y),
+                end=(width - 40, y),
+                color=(0x8B, 0xA4, 0x9B, 0xFF),
+                thickness=2,
+            )
+            for item_index, item in enumerate(lane.items):
+                x = min(width - 40, 210 + lane_spacing // 2 + item_index * lane_spacing)
+                fill = (
+                    (0x2E, 0x5E, 0x4E, 0xFF)
+                    if item.get("time") is not None
+                    else (0x4A, 0x6E, 0x9B, 0xFF)
+                )
+                _draw_filled_circle(
+                    canvas=canvas,
+                    width=width,
+                    height=height,
+                    center=(x, y),
+                    radius=9,
+                    color=fill,
+                )
+                _draw_circle_stroke(
+                    canvas=canvas,
+                    width=width,
+                    height=height,
+                    center=(x, y),
+                    radius=9,
+                    stroke_width=2,
+                    color=(0x17, 0x36, 0x29, 0xFF),
+                )
+    return _encode_png(width=width, height=height, rgba=bytes(canvas))
+
+
+def export_theme_heatmap_svg(*, cells: list[ThemeHeatmapCell]) -> str:
+    """Export theme heatmap cells to deterministic SVG text."""
+    ordered_cells = sorted(cells, key=lambda cell: (cell.theme, cell.stage))
+    themes = sorted({cell.theme for cell in ordered_cells})
+    stages: list[StoryStage] = ["setup", "escalation", "climax", "resolution"]
+
+    width = 980
+    height = 220 + max(len(themes), 1) * 56
+    cell_width = 150
+    cell_height = 42
+    grid_start_x = 280
+    grid_start_y = 110
+    values: dict[tuple[str, StoryStage], float] = {
+        (cell.theme, cell.stage): cell.intensity for cell in ordered_cells
+    }
+
+    headers = [
+        f'<text x="{grid_start_x + index * cell_width + 10}" y="92" fill="#163229" font-size="13">{stage}</text>'
+        for index, stage in enumerate(stages)
+    ]
+    rows: list[str] = []
+    labels: list[str] = []
+    for row_index, theme in enumerate(themes):
+        y = grid_start_y + row_index * cell_height
+        labels.append(
+            f'<text x="34" y="{y + 26}" fill="#163229" font-size="14">{escape(theme)}</text>'
+        )
+        for col_index, stage in enumerate(stages):
+            x = grid_start_x + col_index * cell_width
+            intensity = max(0.0, min(1.0, values.get((theme, stage), 0.0)))
+            fill = _rgb_hex(_heatmap_color(intensity))
+            rows.append(
+                f'<rect x="{x}" y="{y}" width="{cell_width - 8}" height="{cell_height - 8}" fill="{fill}" stroke="#D9E7E1" stroke-width="1" />'
+            )
+
+    legend = [
+        '<text x="34" y="48" fill="#163229" font-size="12">Low</text>',
+        '<rect x="72" y="34" width="26" height="14" fill="#EEF5F2" stroke="#D9E7E1" />',
+        '<rect x="100" y="34" width="26" height="14" fill="#CBE2D8" stroke="#D9E7E1" />',
+        '<rect x="128" y="34" width="26" height="14" fill="#A4CFC0" stroke="#D9E7E1" />',
+        '<rect x="156" y="34" width="26" height="14" fill="#7AB9A5" stroke="#D9E7E1" />',
+        '<rect x="184" y="34" width="26" height="14" fill="#2E5E4E" stroke="#D9E7E1" />',
+        '<text x="218" y="48" fill="#163229" font-size="12">High</text>',
+    ]
+    if not themes:
+        labels.append(
+            '<text x="34" y="132" fill="#163229" font-size="14">No heatmap cells available.</text>'
+        )
+    body = "\n".join(legend + headers + labels + rows)
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}"><rect width="100%" height="100%" fill="#F4F9F7" />'
+        f'<text x="34" y="84" fill="#10231C" font-size="24">Theme Heatmap Export</text>{body}</svg>'
+    )
+
+
+def export_theme_heatmap_png(*, cells: list[ThemeHeatmapCell]) -> bytes:
+    """Export theme heatmap cells to deterministic PNG bytes."""
+    ordered_cells = sorted(cells, key=lambda cell: (cell.theme, cell.stage))
+    themes = sorted({cell.theme for cell in ordered_cells})
+    stages: list[StoryStage] = ["setup", "escalation", "climax", "resolution"]
+    width = 980
+    height = 220 + max(len(themes), 1) * 56
+    cell_width = 150
+    cell_height = 42
+    grid_start_x = 280
+    grid_start_y = 110
+    values: dict[tuple[str, StoryStage], float] = {
+        (cell.theme, cell.stage): cell.intensity for cell in ordered_cells
+    }
+
+    canvas = bytearray(width * height * 4)
+    _fill_canvas(canvas=canvas, width=width, height=height, color=(0xF4, 0xF9, 0xF7, 0xFF))
+    for index, color in enumerate(
+        [
+            (0xEE, 0xF5, 0xF2, 0xFF),
+            (0xCB, 0xE2, 0xD8, 0xFF),
+            (0xA4, 0xCF, 0xC0, 0xFF),
+            (0x7A, 0xB9, 0xA5, 0xFF),
+            (0x2E, 0x5E, 0x4E, 0xFF),
+        ]
+    ):
+        _draw_rect(
+            canvas=canvas,
+            width=width,
+            height=height,
+            x=72 + index * 28,
+            y=34,
+            rect_width=26,
+            rect_height=14,
+            color=color,
+        )
+
+    for row_index, theme in enumerate(themes):
+        y = grid_start_y + row_index * cell_height
+        for col_index, stage in enumerate(stages):
+            x = grid_start_x + col_index * cell_width
+            intensity = max(0.0, min(1.0, values.get((theme, stage), 0.0)))
+            _draw_rect(
+                canvas=canvas,
+                width=width,
+                height=height,
+                x=x,
+                y=y,
+                rect_width=cell_width - 8,
+                rect_height=cell_height - 8,
+                color=_heatmap_color(intensity),
+            )
+
+    return _encode_png(width=width, height=height, rgba=bytes(canvas))
+
+
 def _graph_node_positions(
     *, nodes: list[GraphNode], width: int, height: int
 ) -> dict[str, tuple[int, int]]:
@@ -243,6 +478,29 @@ def _fill_canvas(
     for y in range(height):
         offset = y * width * 4
         canvas[offset : offset + width * 4] = row
+
+
+def _draw_rect(
+    *,
+    canvas: bytearray,
+    width: int,
+    height: int,
+    x: int,
+    y: int,
+    rect_width: int,
+    rect_height: int,
+    color: tuple[int, int, int, int],
+) -> None:
+    for row in range(y, y + rect_height):
+        if not (0 <= row < height):
+            continue
+        start_x = max(0, x)
+        end_x = min(width, x + rect_width)
+        if start_x >= end_x:
+            continue
+        offset = (row * width + start_x) * 4
+        pixel_count = end_x - start_x
+        canvas[offset : offset + pixel_count * 4] = bytes(color) * pixel_count
 
 
 def _draw_line(
@@ -349,6 +607,26 @@ def _set_pixel(
 def _png_chunk(tag: bytes, payload: bytes) -> bytes:
     crc = binascii.crc32(tag + payload) & 0xFFFFFFFF
     return struct.pack(">I", len(payload)) + tag + payload + struct.pack(">I", crc)
+
+
+def _heatmap_color(intensity: float) -> tuple[int, int, int, int]:
+    bounded = max(0.0, min(1.0, intensity))
+    low = (0xEE, 0xF5, 0xF2)
+    high = (0x2E, 0x5E, 0x4E)
+    return (
+        _interpolate_channel(low[0], high[0], bounded),
+        _interpolate_channel(low[1], high[1], bounded),
+        _interpolate_channel(low[2], high[2], bounded),
+        0xFF,
+    )
+
+
+def _interpolate_channel(start: int, end: int, ratio: float) -> int:
+    return int(round(start + (end - start) * ratio))
+
+
+def _rgb_hex(color: tuple[int, int, int, int]) -> str:
+    return f"#{color[0]:02X}{color[1]:02X}{color[2]:02X}"
 
 
 def _encode_png(*, width: int, height: int, rgba: bytes) -> bytes:

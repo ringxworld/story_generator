@@ -50,10 +50,18 @@ uv run story-api --db-path work/local/story_gen.db
   - Returns timeline lane payloads for actual-time and narrative-order views.
 - `GET /api/v1/stories/{story_id}/dashboard/v1/timeline`
   - Versioned alias of timeline lane payloads.
+- `GET /api/v1/stories/{story_id}/dashboard/timeline/export.svg`
+  - Returns deterministic SVG export payload for timeline lanes.
+- `GET /api/v1/stories/{story_id}/dashboard/timeline/export.png`
+  - Returns deterministic PNG export payload (`png_base64`) for timeline lanes.
 - `GET /api/v1/stories/{story_id}/dashboard/themes/heatmap`
   - Returns theme-by-stage intensity cells.
 - `GET /api/v1/stories/{story_id}/dashboard/v1/themes/heatmap`
   - Versioned alias of theme heatmap payload.
+- `GET /api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg`
+  - Returns deterministic SVG export payload for theme heatmaps.
+- `GET /api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png`
+  - Returns deterministic PNG export payload (`png_base64`) for theme heatmaps.
 - `GET /api/v1/stories/{story_id}/dashboard/arcs`
   - Returns arc chart points (character/conflict/emotion lanes).
 - `GET /api/v1/stories/{story_id}/dashboard/drilldown/{item_id}`
@@ -128,6 +136,7 @@ uv run story-dashboard-export \
   --db-path work/local/story_gen.db \
   --story-id <story-id> \
   --owner-id <owner-id> \
+  --view timeline \
   --format png \
-  --output work/exports/<story-id>-graph.png
+  --output work/exports/<story-id>-timeline.png
 ```

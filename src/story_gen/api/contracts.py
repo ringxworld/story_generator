@@ -369,18 +369,26 @@ class DashboardGraphResponse(ContractModel):
     edges: list[DashboardGraphEdgeResponse]
 
 
-class DashboardGraphExportResponse(ContractModel):
-    """Graph export payload."""
+class DashboardSvgExportResponse(ContractModel):
+    """SVG export payload."""
 
     format: Literal["svg"] = "svg"
     svg: str
 
 
-class DashboardGraphPngExportResponse(ContractModel):
-    """Graph PNG export payload."""
+class DashboardPngExportResponse(ContractModel):
+    """PNG export payload."""
 
     format: Literal["png"] = "png"
     png_base64: str
+
+
+class DashboardGraphExportResponse(DashboardSvgExportResponse):
+    """Graph export payload."""
+
+
+class DashboardGraphPngExportResponse(DashboardPngExportResponse):
+    """Graph PNG export payload."""
 
 
 class EssaySectionRequirement(ContractModel):
