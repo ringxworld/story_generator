@@ -1,14 +1,26 @@
 # story_gen
 
 ```text
-   ____  _
-  / ___|| |_ ___  _ __ _   _
-  \___ \| __/ _ \| '__| | | |
-   ___) | || (_) | |  | |_| |
-  |____/ \__\___/|_|   \__, |
-                        |___/
-
-      [ story intelligence ]
+          .-========================-.
+         /   /\/\  RAW STORY  /\/\   \
+        /___/____\___________/____\___\
+        \   \    /  scenes   \    /   /
+         \___\__/__voices_____\__/___/
+                 \   |   |   /
+                  \  |   |  /
+                   \ |   | /
+                [events][beats][themes]
+                       \ | /
+                    .---***---.
+                   / timeline  \
+                  / arcs + tone \
+                  \  conflicts  /
+                   '---+---+---'
+                       |
+                 .-----v------.
+                 | synthesis  |
+                 | new signal |
+                 '------------'
 ```
 
 [![CI](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml)
