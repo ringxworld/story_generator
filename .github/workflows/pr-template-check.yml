@@ -16,11 +16,9 @@ jobs:
           required_sections=(
             "## Summary"
             "## Linked Issues"
-            "## Motivation / Context"
             "## What Changed"
-            "## Tradeoffs and Risks"
+            "## Tasks Completed"
             "## How This Was Tested"
-            "## Follow-ups / Future Work"
           )
 
           missing=0

@@ -9,30 +9,20 @@ Use full URLs so GitHub links them automatically.
 
 - https://github.com/ringxworld/story_generator/issues/<id>
 
-## Motivation / Context
-
-Why this change is needed now.
-
-- What was broken, unclear, or fragile
-- What assumption is being corrected
-- What new capability this unlocks
-
 ## What Changed
 
 Concrete, reviewable bullets.
 
 - Added:
+- Changed:
 - Removed:
-- Refactored:
 
-## Tradeoffs and Risks
+## Tasks Completed
 
-Call out anything non-obvious.
+Mirror the concrete tasks finished in this PR. Checkboxes make review faster.
 
-- Performance impacts:
-- Behavior changes:
-- Edge cases that still exist:
-- Things deliberately left out:
+- [ ] Task completed:
+- [ ] Task completed:
 
 ## How This Was Tested
 
@@ -43,10 +33,6 @@ Be honest and specific.
 - Inputs used to validate behavior:
 - Not tested (if any):
 
-## Follow-ups / Future Work
+## Notes (Optional)
 
-Optional. Only include if relevant.
-
-- Cleanup opportunities:
-- Known gaps:
-- Ideas explicitly deferred:
+Use this for risk/tradeoffs/follow-ups only when it adds signal.
