@@ -1,0 +1,53 @@
+name: Project Board Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "5 * * * *"
+  issues:
+    types:
+      - opened
+      - reopened
+      - labeled
+      - unlabeled
+      - closed
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - closed
+
+permissions:
+  contents: read
+  repository-projects: write
+  issues: read
+  pull-requests: read
+
+concurrency:
+  group: project-board-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
+
+      - name: Install Python
+        run: uv python install 3.11
+
+      - name: Sync project board cards
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          uv run python tools/project_board_sync.py \
+            --owner "${{ github.repository_owner }}" \
+            --repo "${{ github.repository }}" \
+            --project-number 2 \
+            --roadmap-label "Roadmap"
