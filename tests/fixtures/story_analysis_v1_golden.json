@@ -1,0 +1,170 @@
+{
+  "schema_version": "story_analysis.v1",
+  "story_id": "story-golden-001",
+  "source_language": "en",
+  "target_language": "en",
+  "raw_segments": [
+    {
+      "segment_id": "seg_001",
+      "source_type": "text",
+      "original_text": "Rhea opens the archive ledger.",
+      "normalized_text": "rhea opens the archive ledger.",
+      "language_code": "en",
+      "translated_text": null,
+      "segment_index": 1,
+      "char_start": 0,
+      "char_end": 31
+    }
+  ],
+  "extracted_events": [
+    {
+      "event_id": "evt_001",
+      "summary": "Rhea discovers the ledger.",
+      "segment_id": "seg_001",
+      "narrative_order": 1,
+      "event_time_utc": null,
+      "entity_names": [
+        "Rhea",
+        "archive ledger"
+      ],
+      "confidence": {
+        "method": "heuristic",
+        "score": 0.82
+      },
+      "provenance": {
+        "source_segment_ids": [
+          "seg_001"
+        ],
+        "created_at_utc": "2026-02-09T00:00:00+00:00",
+        "generator": "story-analysis-pipeline",
+        "generator_version": "v1"
+      }
+    }
+  ],
+  "story_beats": [
+    {
+      "beat_id": "beat_001",
+      "stage": "setup",
+      "order_index": 1,
+      "summary": "Discovery of a hidden family record.",
+      "timestamp_utc": null,
+      "evidence_segment_ids": [
+        "seg_001"
+      ],
+      "confidence": {
+        "method": "rule-based",
+        "score": 0.78
+      },
+      "provenance": {
+        "source_segment_ids": [
+          "seg_001"
+        ],
+        "created_at_utc": "2026-02-09T00:00:01+00:00",
+        "generator": "beat-detector",
+        "generator_version": "v1"
+      }
+    }
+  ],
+  "theme_signals": [
+    {
+      "theme_id": "theme_truth",
+      "label": "Truth and memory",
+      "stage": "setup",
+      "strength": 0.64,
+      "direction": "emerging",
+      "evidence_segment_ids": [
+        "seg_001"
+      ],
+      "confidence": {
+        "method": "theme-heuristic",
+        "score": 0.73
+      },
+      "provenance": {
+        "source_segment_ids": [
+          "seg_001"
+        ],
+        "created_at_utc": "2026-02-09T00:00:02+00:00",
+        "generator": "theme-tracker",
+        "generator_version": "v1"
+      }
+    }
+  ],
+  "entity_mentions": [
+    {
+      "entity_id": "entity_rhea",
+      "name": "Rhea",
+      "entity_type": "character",
+      "mention_count": 1,
+      "segment_ids": [
+        "seg_001"
+      ],
+      "confidence": {
+        "method": "entity-linker",
+        "score": 0.9
+      },
+      "provenance": {
+        "source_segment_ids": [
+          "seg_001"
+        ],
+        "created_at_utc": "2026-02-09T00:00:03+00:00",
+        "generator": "entity-extractor",
+        "generator_version": "v1"
+      }
+    }
+  ],
+  "timeline_points": [
+    {
+      "point_id": "point_001",
+      "source_id": "evt_001",
+      "source_type": "event",
+      "label": "Rhea discovers the ledger.",
+      "narrative_order": 1,
+      "actual_time_utc": null,
+      "stage": "setup",
+      "confidence": {
+        "method": "timeline-merge",
+        "score": 0.8
+      },
+      "provenance": {
+        "source_segment_ids": [
+          "seg_001"
+        ],
+        "created_at_utc": "2026-02-09T00:00:04+00:00",
+        "generator": "timeline-composer",
+        "generator_version": "v1"
+      }
+    }
+  ],
+  "insights": [
+    {
+      "insight_id": "insight_001",
+      "granularity": "macro",
+      "title": "Truth surfaces through archival evidence",
+      "content": "The story frames discovery of records as the catalyst for broader change.",
+      "stage": "setup",
+      "beat_id": "beat_001",
+      "evidence_segment_ids": [
+        "seg_001"
+      ],
+      "confidence": {
+        "method": "insight-scorer",
+        "score": 0.76
+      },
+      "provenance": {
+        "source_segment_ids": [
+          "seg_001"
+        ],
+        "created_at_utc": "2026-02-09T00:00:05+00:00",
+        "generator": "insight-engine",
+        "generator_version": "v1"
+      }
+    }
+  ],
+  "quality_gate": {
+    "passed": true,
+    "confidence_floor": 0.7,
+    "hallucination_risk": 0.12,
+    "translation_quality": 1.0,
+    "reasons": []
+  }
+}
