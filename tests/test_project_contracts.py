@@ -13,6 +13,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "hooks-install:" in makefile
     assert "hooks-run:" in makefile
     assert "quality:" in makefile
+    assert "contracts-check:" in makefile
     assert "deploy: quality build-site" in makefile
     assert "cpp-configure:" in makefile
     assert "cpp-build:" in makefile
@@ -66,6 +67,7 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "uv run pytest" in workflow
     assert "uv run mkdocs build --strict" in workflow
     assert "uv run python tools/check_imports.py" in workflow
+    assert "uv run python tools/check_contract_drift.py" in workflow
     assert "Configure CMake" in workflow
     assert "Run native tests" in workflow
     assert "Install native quality tools" in workflow

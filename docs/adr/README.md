@@ -24,3 +24,4 @@ Latest ADR:
 - `0023-dashboard-read-model-v1-endpoints.md`
 - `0024-dashboard-timeline-and-heatmap-export-surfaces.md`
 - `0025-dashboard-interaction-and-export-presets.md`
+- `0026-storage-adapter-boundary-and-decision-spike.md`

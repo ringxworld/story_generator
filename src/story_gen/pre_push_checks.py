@@ -31,6 +31,7 @@ def main() -> None:
         raise SystemExit("uv executable not found in PATH")
     run([uv_executable, "lock", "--check"])
     run([sys.executable, str(REPO_ROOT / "tools" / "check_imports.py")])
+    run([sys.executable, str(REPO_ROOT / "tools" / "check_contract_drift.py")])
     run_tool("ruff", "check", ".")
     run_tool("ruff", "format", "--check", ".")
     run_tool("mypy")

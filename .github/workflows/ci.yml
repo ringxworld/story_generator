@@ -42,6 +42,9 @@ jobs:
       - name: Import boundary check
         run: uv run python tools/check_imports.py
 
+      - name: Contract drift check
+        run: uv run python tools/check_contract_drift.py
+
       - name: Lockfile check
         run: uv lock --check
 

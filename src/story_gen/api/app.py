@@ -22,11 +22,12 @@ from pydantic import BaseModel, Field
 from story_gen.adapters.sqlite_anomaly_store import SQLiteAnomalyStore
 from story_gen.adapters.sqlite_essay_store import SQLiteEssayStore, StoredEssay
 from story_gen.adapters.sqlite_feature_store import SQLiteFeatureStore, StoredFeatureRun
-from story_gen.adapters.sqlite_story_analysis_store import (
-    SQLiteStoryAnalysisStore,
-    StoredAnalysisRun,
-)
 from story_gen.adapters.sqlite_story_store import SQLiteStoryStore, StoredStory, StoredUser
+from story_gen.adapters.story_analysis_store_factory import (
+    StoryAnalysisStorePort,
+    create_story_analysis_store,
+)
+from story_gen.adapters.story_analysis_store_types import StoredAnalysisRun
 from story_gen.api.contracts import (
     AuthLoginRequest,
     AuthRegisterRequest,
@@ -340,7 +341,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     effective_db_path = _resolve_db_path(db_path)
     store = SQLiteStoryStore(db_path=effective_db_path)
     feature_store = SQLiteFeatureStore(db_path=effective_db_path)
-    analysis_store = SQLiteStoryAnalysisStore(db_path=effective_db_path)
+    analysis_store: StoryAnalysisStorePort = create_story_analysis_store(db_path=effective_db_path)
     essay_store = SQLiteEssayStore(db_path=effective_db_path)
     anomaly_store = SQLiteAnomalyStore(db_path=effective_db_path)
     anomaly_retention_days = _int_env(
