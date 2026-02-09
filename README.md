@@ -105,3 +105,4 @@ make docker-ci     # run full CI-quality checks in Docker
 - Contribution process: `CONTRIBUTING.md`
 - Security reporting: `SECURITY.md`
 - Collaboration flow (`develop` + release `main`): `docs/github_collaboration.md`
+- PR automation helpers: `make pr-open`, `make pr-checks`, `make pr-merge`, `make pr-auto`

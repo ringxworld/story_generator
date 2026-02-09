@@ -7,10 +7,14 @@ VIDEO_URL ?=
 VIDEO_ARGS ?=
 CPP_BUILD_DIR ?= build/cpp
 CPP_CONFIG ?= Release
+PR_BASE ?= develop
+PR_TITLE ?=
+PR_NUMBER ?=
+PR_MERGE_METHOD ?= squash
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck deploy clean
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck pr-open pr-checks pr-merge pr-auto deploy clean
 
 help:
 	@echo "story_gen targets:"
@@ -66,6 +70,10 @@ help:
 	@echo "  make cpp-format           - format C++ files with clang-format"
 	@echo "  make cpp-format-check     - verify C++ formatting"
 	@echo "  make cpp-cppcheck         - run cppcheck on C++ sources"
+	@echo "  make pr-open              - open a PR from current feature branch to PR_BASE"
+	@echo "  make pr-checks            - watch PR checks until completion (optional PR_NUMBER)"
+	@echo "  make pr-merge             - merge PR after checks pass (optional PR_NUMBER)"
+	@echo "  make pr-auto              - open (if needed), wait for checks, then merge"
 	@echo "  make deploy               - run checks, build site, and push main"
 	@echo "  make clean                - remove local caches and generated site/"
 
@@ -221,6 +229,18 @@ cpp-format-check:
 
 cpp-cppcheck:
 	cppcheck --enable=warning,style,performance,portability --error-exitcode=2 cpp
+
+pr-open:
+	$(RUN) python tools/pr_flow.py open --base $(PR_BASE) $(if $(PR_TITLE),--title "$(PR_TITLE)",)
+
+pr-checks:
+	$(RUN) python tools/pr_flow.py checks $(if $(PR_NUMBER),--pr $(PR_NUMBER),)
+
+pr-merge:
+	$(RUN) python tools/pr_flow.py merge --merge-method $(PR_MERGE_METHOD) $(if $(PR_NUMBER),--pr $(PR_NUMBER),)
+
+pr-auto:
+	$(RUN) python tools/pr_flow.py auto --base $(PR_BASE) --merge-method $(PR_MERGE_METHOD) $(if $(PR_TITLE),--title "$(PR_TITLE)",) $(if $(PR_NUMBER),--pr $(PR_NUMBER),)
 
 deploy: quality build-site
 	git push origin main

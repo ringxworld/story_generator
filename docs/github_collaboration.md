@@ -13,6 +13,22 @@ This repository now follows a staged branch model:
 4. Merge into `develop` after CI passes.
 5. Promote `develop` into `main` only for release candidates.
 
+## Automated PR flow
+
+From a feature branch, use:
+
+```bash
+make pr-open    # create PR against develop with template
+make pr-checks  # watch required checks
+make pr-merge   # merge only after checks pass
+```
+
+One-command flow:
+
+```bash
+make pr-auto
+```
+
 ## Pull request defaults in this repo
 
 - PR template: `.github/pull_request_template.md`
@@ -21,15 +37,20 @@ This repository now follows a staged branch model:
   - config: `.github/labeler.yml`
   - workflow: `.github/workflows/pr-labeler.yml`
 
-## GitHub settings that must be configured in the web UI
+## Enforced merge policy
 
-These cannot be reliably enforced from repository files alone:
-
-- set default branch to `develop`
-- protect `develop` and `main`
-- require PR reviews and passing checks before merge
-- enable/disallow wiki based on team preference
-- create and configure GitHub Projects boards
-
-Use the templates/workflows in this repo as the in-repo baseline, then finish
-org/repo-level controls in GitHub settings.
+- Pull requests are required for `develop` and `main`.
+- Required checks must pass before merge:
+  - `quality`
+  - `frontend`
+  - `native`
+  - `docker`
+  - `pages`
+  - `pr-template`
+- Required PR body sections are validated by workflow:
+  - `Summary`
+  - `Motivation / Context`
+  - `What Changed`
+  - `Tradeoffs and Risks`
+  - `How This Was Tested`
+  - `Follow-ups / Future Work`
