@@ -376,6 +376,13 @@ class DashboardGraphExportResponse(ContractModel):
     svg: str
 
 
+class DashboardGraphPngExportResponse(ContractModel):
+    """Graph PNG export payload."""
+
+    format: Literal["png"] = "png"
+    png_base64: str
+
+
 class EssaySectionRequirement(ContractModel):
     """Expected section contract for a structured essay."""
 

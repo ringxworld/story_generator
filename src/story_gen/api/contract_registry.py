@@ -140,6 +140,14 @@ def _schema_contracts() -> list[SchemaContractRecord]:
             description="Graph export contract used for static SVG output.",
         ),
         SchemaContractRecord(
+            contract_id="dashboard.graph_export_png",
+            schema_version=DASHBOARD_SCHEMA_VERSION,
+            model_path="story_gen.api.contracts.DashboardGraphPngExportResponse",
+            category="response",
+            owner="api",
+            description="Graph export contract used for deterministic PNG output.",
+        ),
+        SchemaContractRecord(
             contract_id="pipeline.raw_segment",
             schema_version=STORY_SCHEMA_VERSION,
             model_path="story_gen.core.story_schema.RawSegment",

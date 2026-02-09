@@ -68,6 +68,7 @@ nav:
       - 0019 Contract Registry and Pipeline Governance: adr/0019-contract-registry-and-pipeline-governance.md
       - 0018 Wiki Docs + Product-First Pages: adr/0018-wiki-docs-and-product-first-pages.md
       - 0020 Pages Hosted MkDocs Snapshot: adr/0020-pages-hosted-mkdocs-snapshot.md
+      - 0021 Dashboard PNG Export Surface: adr/0021-dashboard-png-export-surface.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

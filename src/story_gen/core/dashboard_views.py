@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import binascii
+import struct
+import zlib
 from dataclasses import dataclass
 from html import escape
 
@@ -134,23 +137,12 @@ def export_graph_svg(*, nodes: list[GraphNode], edges: list[GraphEdge]) -> str:
     """Export graph projection to deterministic SVG text."""
     width = 900
     height = 520
-    x_step = max(100, width // max(len(nodes), 1))
-    node_coords: dict[str, tuple[int, int]] = {}
+    node_coords = _graph_node_positions(nodes=nodes, width=width, height=height)
     circles: list[str] = []
     labels: list[str] = []
 
-    for index, node in enumerate(nodes, start=1):
-        x = node.layout_x if node.layout_x is not None else min(width - 40, 40 + index * x_step)
-        y = (
-            node.layout_y
-            if node.layout_y is not None
-            else 120
-            if node.group == "theme"
-            else 260
-            if node.group == "beat"
-            else 390
-        )
-        node_coords[node.id] = (x, y)
+    for node in nodes:
+        x, y = node_coords[node.id]
         circles.append(
             f'<circle cx="{x}" cy="{y}" r="16" fill="#2E5E4E" stroke="#173629" stroke-width="2" />'
         )
@@ -172,6 +164,212 @@ def export_graph_svg(*, nodes: list[GraphNode], edges: list[GraphEdge]) -> str:
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
         f'viewBox="0 0 {width} {height}"><rect width="100%" height="100%" fill="#EEF5F2" />{body}</svg>'
+    )
+
+
+def export_graph_png(*, nodes: list[GraphNode], edges: list[GraphEdge]) -> bytes:
+    """Export graph projection to deterministic PNG bytes."""
+    width = 900
+    height = 520
+    node_coords = _graph_node_positions(nodes=nodes, width=width, height=height)
+
+    canvas = bytearray(width * height * 4)
+    _fill_canvas(canvas=canvas, width=width, height=height, color=(0xEE, 0xF5, 0xF2, 0xFF))
+
+    for edge in edges:
+        source = node_coords.get(edge.source)
+        target = node_coords.get(edge.target)
+        if source is None or target is None:
+            continue
+        _draw_line(
+            canvas=canvas,
+            width=width,
+            height=height,
+            start=source,
+            end=target,
+            color=(0x5C, 0x8B, 0x7A, 0xFF),
+            thickness=2,
+        )
+
+    for node in nodes:
+        x, y = node_coords[node.id]
+        _draw_filled_circle(
+            canvas=canvas,
+            width=width,
+            height=height,
+            center=(x, y),
+            radius=16,
+            color=(0x2E, 0x5E, 0x4E, 0xFF),
+        )
+        _draw_circle_stroke(
+            canvas=canvas,
+            width=width,
+            height=height,
+            center=(x, y),
+            radius=16,
+            stroke_width=2,
+            color=(0x17, 0x36, 0x29, 0xFF),
+        )
+
+    return _encode_png(width=width, height=height, rgba=bytes(canvas))
+
+
+def _graph_node_positions(
+    *, nodes: list[GraphNode], width: int, height: int
+) -> dict[str, tuple[int, int]]:
+    del height
+    x_step = max(100, width // max(len(nodes), 1))
+    node_coords: dict[str, tuple[int, int]] = {}
+    for index, node in enumerate(nodes, start=1):
+        x = node.layout_x if node.layout_x is not None else min(width - 40, 40 + index * x_step)
+        y = (
+            node.layout_y
+            if node.layout_y is not None
+            else 120
+            if node.group == "theme"
+            else 260
+            if node.group == "beat"
+            else 390
+        )
+        node_coords[node.id] = (x, y)
+    return node_coords
+
+
+def _fill_canvas(
+    *, canvas: bytearray, width: int, height: int, color: tuple[int, int, int, int]
+) -> None:
+    pixel = bytes(color)
+    row = pixel * width
+    for y in range(height):
+        offset = y * width * 4
+        canvas[offset : offset + width * 4] = row
+
+
+def _draw_line(
+    *,
+    canvas: bytearray,
+    width: int,
+    height: int,
+    start: tuple[int, int],
+    end: tuple[int, int],
+    color: tuple[int, int, int, int],
+    thickness: int,
+) -> None:
+    x0, y0 = start
+    x1, y1 = end
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+    sx = 1 if x0 < x1 else -1
+    sy = 1 if y0 < y1 else -1
+    err = dx - dy
+    radius = max(0, thickness // 2)
+
+    while True:
+        for oy in range(-radius, radius + 1):
+            for ox in range(-radius, radius + 1):
+                _set_pixel(
+                    canvas=canvas,
+                    width=width,
+                    height=height,
+                    x=x0 + ox,
+                    y=y0 + oy,
+                    color=color,
+                )
+        if x0 == x1 and y0 == y1:
+            break
+        twice = err * 2
+        if twice > -dy:
+            err -= dy
+            x0 += sx
+        if twice < dx:
+            err += dx
+            y0 += sy
+
+
+def _draw_filled_circle(
+    *,
+    canvas: bytearray,
+    width: int,
+    height: int,
+    center: tuple[int, int],
+    radius: int,
+    color: tuple[int, int, int, int],
+) -> None:
+    cx, cy = center
+    radius_sq = radius * radius
+    for y in range(cy - radius, cy + radius + 1):
+        for x in range(cx - radius, cx + radius + 1):
+            dx = x - cx
+            dy = y - cy
+            if dx * dx + dy * dy <= radius_sq:
+                _set_pixel(canvas=canvas, width=width, height=height, x=x, y=y, color=color)
+
+
+def _draw_circle_stroke(
+    *,
+    canvas: bytearray,
+    width: int,
+    height: int,
+    center: tuple[int, int],
+    radius: int,
+    stroke_width: int,
+    color: tuple[int, int, int, int],
+) -> None:
+    cx, cy = center
+    outer_sq = radius * radius
+    inner_radius = max(0, radius - stroke_width)
+    inner_sq = inner_radius * inner_radius
+    for y in range(cy - radius, cy + radius + 1):
+        for x in range(cx - radius, cx + radius + 1):
+            dx = x - cx
+            dy = y - cy
+            distance_sq = dx * dx + dy * dy
+            if inner_sq <= distance_sq <= outer_sq:
+                _set_pixel(canvas=canvas, width=width, height=height, x=x, y=y, color=color)
+
+
+def _set_pixel(
+    *,
+    canvas: bytearray,
+    width: int,
+    height: int,
+    x: int,
+    y: int,
+    color: tuple[int, int, int, int],
+) -> None:
+    if not (0 <= x < width and 0 <= y < height):
+        return
+    offset = (y * width + x) * 4
+    canvas[offset] = color[0]
+    canvas[offset + 1] = color[1]
+    canvas[offset + 2] = color[2]
+    canvas[offset + 3] = color[3]
+
+
+def _png_chunk(tag: bytes, payload: bytes) -> bytes:
+    crc = binascii.crc32(tag + payload) & 0xFFFFFFFF
+    return struct.pack(">I", len(payload)) + tag + payload + struct.pack(">I", crc)
+
+
+def _encode_png(*, width: int, height: int, rgba: bytes) -> bytes:
+    row_bytes = width * 4
+    expected = row_bytes * height
+    if len(rgba) != expected:
+        raise ValueError(f"RGBA byte size mismatch: got {len(rgba)}, expected {expected}")
+
+    raw = bytearray()
+    for row in range(height):
+        raw.append(0)
+        start = row * row_bytes
+        raw.extend(rgba[start : start + row_bytes])
+
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    compressed = zlib.compress(bytes(raw), level=9)
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + _png_chunk(b"IHDR", ihdr)
+        + _png_chunk(b"IDAT", compressed)
+        + _png_chunk(b"IEND", b"")
     )
 
 

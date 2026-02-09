@@ -24,6 +24,7 @@ story-video = "story_gen.cli.youtube_downloader:main"
 story-api = "story_gen.cli.api:main"
 story-blueprint = "story_gen.cli.blueprint:main"
 story-features = "story_gen.cli.features:main"
+story-dashboard-export = "story_gen.cli.dashboard_export:main"
 
 [dependency-groups]
 dev = [

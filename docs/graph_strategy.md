@@ -1,6 +1,6 @@
 # Interactive Graph Strategy
 
-This project currently ships an SVG/exportable graph plus a React-rendered
+This project currently ships deterministic SVG/PNG graph exports plus a React-rendered
 interactive node-link view. The goal is to keep deep insight available without
 locking into heavyweight infrastructure too early.
 
