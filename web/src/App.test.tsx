@@ -106,6 +106,20 @@ const sampleEvaluation: EssayEvaluationResponse = {
   checks: [],
 };
 
+const createDeferred = <T,>() => {
+  let resolve: ((value: T | PromiseLike<T>) => void) | undefined;
+  let reject: ((reason?: unknown) => void) | undefined;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return {
+    promise,
+    resolve: (value: T | PromiseLike<T>) => resolve?.(value),
+    reject: (reason?: unknown) => reject?.(reason),
+  };
+};
+
 describe("App", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
@@ -304,6 +318,65 @@ describe("App", () => {
       "The Missing Ledger Revised",
       expect.any(Object),
     );
+  });
+
+  it("keeps save status when a pending dashboard refresh fails later", async () => {
+    const latestRunDeferred = createDeferred<never>();
+    mockedApi.login.mockResolvedValue({
+      access_token: "token-abc",
+      token_type: "bearer",
+      expires_at_utc: "2026-01-01T01:00:00Z",
+    });
+    mockedApi.me.mockResolvedValue({
+      user_id: "user-1",
+      email: "writer@example.com",
+      display_name: "Writer",
+      created_at_utc: "2026-01-01T00:00:00Z",
+    });
+    mockedApi.listStories.mockResolvedValue([sampleStory]);
+    mockedApi.getLatestStoryAnalysis.mockReturnValue(latestRunDeferred.promise);
+    mockedApi.getDashboardOverview.mockResolvedValue({
+      title: "Story Intelligence Overview",
+      macro_thesis: "Memory and truth collide.",
+      confidence_floor: 0.7,
+      quality_passed: true,
+      events_count: 2,
+      beats_count: 2,
+      themes_count: 1,
+    });
+    mockedApi.getDashboardTimeline.mockResolvedValue([{ lane: "narrative_order", items: [] }]);
+    mockedApi.getDashboardThemeHeatmap.mockResolvedValue([]);
+    mockedApi.getDashboardArcs.mockResolvedValue([]);
+    mockedApi.getDashboardGraph.mockResolvedValue({ nodes: [], edges: [] });
+    mockedApi.exportDashboardGraphSvg.mockResolvedValue({ format: "svg", svg: "<svg></svg>" });
+    mockedApi.updateStory.mockResolvedValue({
+      ...sampleStory,
+      title: "The Missing Ledger Revised",
+    });
+
+    render(<App />);
+
+    fireEvent.change(screen.getAllByLabelText("Email")[1], { target: { value: "writer@example.com" } });
+    fireEvent.change(screen.getAllByLabelText("Password")[1], { target: { value: "secret123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "The Missing Ledger" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "The Missing Ledger" }));
+    fireEvent.change(screen.getByLabelText("Title"), { target: { value: "The Missing Ledger Revised" } });
+    fireEvent.click(screen.getByRole("button", { name: "Update Story" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Updated story: The Missing Ledger Revised")).toBeInTheDocument();
+    });
+
+    latestRunDeferred.reject(new Error("no analysis run yet"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Updated story: The Missing Ledger Revised")).toBeInTheDocument();
+    });
   });
 
   it("handles login errors", async () => {
