@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import asdict
+
 from story_gen.core.story_analysis_pipeline import run_story_analysis
 
 
@@ -74,3 +76,25 @@ def test_pipeline_assigns_graph_layout_coordinates() -> None:
         node.layout_x is not None and node.layout_y is not None
         for node in result.dashboard.graph_nodes
     )
+
+
+def test_pipeline_preserves_dashboard_heatmap_and_arc_shapes() -> None:
+    result = run_story_analysis(story_id="story-shapes", source_text=_sample_story())
+    assert result.dashboard.theme_heatmap
+    assert result.dashboard.arc_points
+    heatmap_payload = asdict(result.dashboard.theme_heatmap[0])
+    arc_payload = asdict(result.dashboard.arc_points[0])
+    assert set(heatmap_payload) == {"theme", "stage", "intensity"}
+    assert set(arc_payload) == {"lane", "stage", "value", "label"}
+
+
+def test_pipeline_drilldown_includes_theme_arc_conflict_and_emotion() -> None:
+    result = run_story_analysis(story_id="story-drilldown", source_text=_sample_story())
+    drilldown_items = result.dashboard.drilldown.values()
+    item_types = {item.item_type for item in drilldown_items}
+    assert any(item_type.startswith("insight:") for item_type in item_types)
+    assert "theme" in item_types
+    assert "arc" in item_types
+    assert "conflict" in item_types
+    assert "emotion" in item_types
+    assert all(item.evidence_segment_ids for item in drilldown_items)
