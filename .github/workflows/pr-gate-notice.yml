@@ -1,0 +1,74 @@
+name: PR Gate Notice
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post or update required-checks notice
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          api_url="https://api.github.com/repos/${REPO}"
+          marker="<!-- pr-gate-notice -->"
+
+          read -r -d '' comment_body <<'EOF' || true
+          <!-- pr-gate-notice -->
+          Heads-up: this repository has required merge gates for protected branches.
+
+          Required checks on `develop` / `main`:
+          - `label`
+          - `pr-template`
+          - `quality`
+          - `frontend`
+          - `pages`
+          - `native`
+          - `docker`
+
+          Local commands before pushing:
+          - `uv run pre-commit run --all-files`
+          - `make check`
+
+          PR body requirement reminder:
+          - Include a full issue URL (for example `https://github.com/ringxworld/story_generator/issues/<id>`).
+          EOF
+
+          comments_json="$(curl -fsSL \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${api_url}/issues/${PR_NUMBER}/comments?per_page=100")"
+
+          existing_id="$(jq -r \
+            ".[] | select(.user.login == \"github-actions[bot]\") | select(.body | contains(\"${marker}\")) | .id" \
+            <<<"${comments_json}" | head -n 1)"
+
+          payload="$(jq -n --arg body "${comment_body}" '{body: $body}')"
+
+          if [ -n "${existing_id}" ]; then
+            curl -fsSL -X PATCH \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${api_url}/issues/comments/${existing_id}" \
+              -d "${payload}" >/dev/null
+            echo "Updated existing gate notice comment (${existing_id})."
+          else
+            curl -fsSL -X POST \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "${api_url}/issues/${PR_NUMBER}/comments" \
+              -d "${payload}" >/dev/null
+            echo "Posted new gate notice comment."
+          fi
