@@ -50,6 +50,17 @@ Wiki URL:
   - config: `.github/labeler.yml`
   - workflow: `.github/workflows/pr-labeler.yml`
 
+## Project board directives
+
+- Keep the roadmap board polished and readable.
+- Use human names for board/title/view/fields (replace placeholders like `View 1`).
+- Keep issue titles concise for quick scan value.
+- Keep board metadata current on active items:
+  - `Status`
+  - `Track`
+  - `Priority Band`
+- Move cards as soon as implementation state changes, not at end-of-day.
+
 ## Enforced merge policy
 
 - Pull requests are required for `develop` and `main`.
@@ -62,8 +73,7 @@ Wiki URL:
   - `pr-template`
 - Required PR body sections are validated by workflow:
   - `Summary`
-  - `Motivation / Context`
+  - `Linked Issues`
   - `What Changed`
-  - `Tradeoffs and Risks`
+  - `Tasks Completed`
   - `How This Was Tested`
-  - `Follow-ups / Future Work`
