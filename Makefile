@@ -295,3 +295,6 @@ clean:
 
 clean-deep: clean
 	$(RUN) python -c "import shutil; [shutil.rmtree(p, ignore_errors=True) for p in ['.venv', 'web/node_modules']]"
+
+issue-body-hygiene:
+	$(RUN) python tools/issue_body_hygiene.py --repo $(PROJECT_OWNER)/$(PROJECT_REPO) --state all

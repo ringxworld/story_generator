@@ -122,3 +122,18 @@ Manual rename fallback:
   `Motivation / Context`, `What Changed`, `Tradeoffs and Risks`, `How This Was Tested`
   - compact mode:
   `Change Notes`, `Validation`
+
+## Issue body formatting guardrail
+
+When creating issues from automation or shell commands, prefer a body file over inline escaped strings:
+
+```bash
+gh issue create --repo ringxworld/story_generator --title "..." --body-file work/issue-body.md
+```
+
+If issue markdown was posted with literal `\\n` sequences, run:
+
+```bash
+uv run python tools/issue_body_hygiene.py --repo ringxworld/story_generator --state all
+uv run python tools/issue_body_hygiene.py --repo ringxworld/story_generator --issues 104 106 108 --apply
+```
