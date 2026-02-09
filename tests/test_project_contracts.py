@@ -148,10 +148,14 @@ def test_pr_template_contains_required_sections() -> None:
     template = _read(".github/pull_request_template.md")
     assert "## Summary" in template
     assert "## Linked Issues" in template
-    assert "## What Changed" in template
-    assert "## Tasks Completed" in template
-    assert "## How This Was Tested" in template
-    assert "## Notes (Optional)" in template
+    assert "## Full Mode (Larger/Riskier Change)" in template
+    assert "### Motivation / Context" in template
+    assert "### What Changed" in template
+    assert "### Tradeoffs and Risks" in template
+    assert "### How This Was Tested" in template
+    assert "## Compact Mode (Small/Low-Risk Change)" in template
+    assert "### Change Notes" in template
+    assert "### Validation" in template
 
 
 def test_pr_template_workflow_exists_and_checks_sections() -> None:
@@ -160,9 +164,11 @@ def test_pr_template_workflow_exists_and_checks_sections() -> None:
     assert "name: pr-template" in workflow
     assert "## Summary" in workflow
     assert "## Linked Issues" in workflow
-    assert "## What Changed" in workflow
-    assert "## Tasks Completed" in workflow
-    assert "## How This Was Tested" in workflow
+    assert "full_mode_sections" in workflow
+    assert "compact_mode_sections" in workflow
+    assert "### Motivation / Context" in workflow
+    assert "### Change Notes" in workflow
+    assert "either full mode sections or compact mode sections" in workflow
     assert "story_generator/issues" in workflow
 
 

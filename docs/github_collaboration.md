@@ -74,6 +74,7 @@ Wiki URL:
 - Required PR body sections are validated by workflow:
   - `Summary`
   - `Linked Issues`
-  - `What Changed`
-  - `Tasks Completed`
-  - `How This Was Tested`
+  - full mode:
+  `Motivation / Context`, `What Changed`, `Tradeoffs and Risks`, `How This Was Tested`
+  - compact mode:
+  `Change Notes`, `Validation`

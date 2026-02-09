@@ -13,24 +13,54 @@ jobs:
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          required_sections=(
+          common_sections=(
             "## Summary"
             "## Linked Issues"
-            "## What Changed"
-            "## Tasks Completed"
-            "## How This Was Tested"
+          )
+
+          full_mode_sections=(
+            "### Motivation / Context"
+            "### What Changed"
+            "### Tradeoffs and Risks"
+            "### How This Was Tested"
+          )
+
+          compact_mode_sections=(
+            "### Change Notes"
+            "### Validation"
           )
 
           missing=0
-          for section in "${required_sections[@]}"; do
+          for section in "${common_sections[@]}"; do
             if ! grep -Fq "$section" <<<"$PR_BODY"; then
               echo "Missing required PR section: $section"
               missing=1
             fi
           done
 
+          has_full_mode=1
+          for section in "${full_mode_sections[@]}"; do
+            if ! grep -Fq "$section" <<<"$PR_BODY"; then
+              has_full_mode=0
+              break
+            fi
+          done
+
+          has_compact_mode=1
+          for section in "${compact_mode_sections[@]}"; do
+            if ! grep -Fq "$section" <<<"$PR_BODY"; then
+              has_compact_mode=0
+              break
+            fi
+          done
+
           if [ "$missing" -ne 0 ]; then
             echo "PR template requirements not satisfied."
+            exit 1
+          fi
+
+          if [ "$has_full_mode" -ne 1 ] && [ "$has_compact_mode" -ne 1 ]; then
+            echo "PR must include either full mode sections or compact mode sections."
             exit 1
           fi
 
