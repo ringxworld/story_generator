@@ -88,3 +88,13 @@ After each completed prompt:
 2. validate
 3. commit
 4. push to `origin/main`
+
+## 8. Human-Facing Wording for Issues and PRs
+
+When writing issue or PR text:
+
+- Use human, specific language over boilerplate.
+- Prefer concrete sentences about intent and impact.
+- Avoid templated phrases like "This change does X" when a more natural sentence works.
+- Link issues with full URLs, not just `#123`.
+- State tradeoffs and test coverage explicitly, without hedging.
