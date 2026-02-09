@@ -31,4 +31,4 @@ updates:
       timezone: "UTC"
     labels:
       - "dependencies"
-      - "ci/cd"
+      - "CI"
