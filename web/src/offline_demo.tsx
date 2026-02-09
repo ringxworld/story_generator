@@ -63,14 +63,21 @@ const arcs: DashboardArcPointResponse[] = [
 
 const graph: DashboardGraphResponse = {
   nodes: [
-    { id: "theme_memory", label: "memory", group: "theme", stage: "climax" },
-    { id: "theme_trust", label: "trust", group: "theme", stage: "resolution" },
-    { id: "theme_conflict", label: "conflict", group: "theme", stage: "escalation" },
-    { id: "beat_1", label: "B1", group: "beat", stage: "setup" },
-    { id: "beat_2", label: "B2", group: "beat", stage: "escalation" },
-    { id: "beat_3", label: "B3", group: "beat", stage: "climax" },
-    { id: "beat_4", label: "B4", group: "beat", stage: "resolution" },
-    { id: "arc_rhea", label: "rhea", group: "character", stage: "climax" },
+    { id: "theme_memory", label: "memory", group: "theme", stage: "climax", layout_x: 280, layout_y: 44 },
+    { id: "theme_trust", label: "trust", group: "theme", stage: "resolution", layout_x: 430, layout_y: 44 },
+    {
+      id: "theme_conflict",
+      label: "conflict",
+      group: "theme",
+      stage: "escalation",
+      layout_x: 150,
+      layout_y: 44,
+    },
+    { id: "beat_1", label: "B1", group: "beat", stage: "setup", layout_x: 60, layout_y: 112 },
+    { id: "beat_2", label: "B2", group: "beat", stage: "escalation", layout_x: 175, layout_y: 112 },
+    { id: "beat_3", label: "B3", group: "beat", stage: "climax", layout_x: 290, layout_y: 112 },
+    { id: "beat_4", label: "B4", group: "beat", stage: "resolution", layout_x: 430, layout_y: 112 },
+    { id: "arc_rhea", label: "rhea", group: "character", stage: "climax", layout_x: 290, layout_y: 188 },
   ],
   edges: [
     { source: "theme_memory", target: "beat_1", relation: "seeded_in", weight: 0.56 },
@@ -92,6 +99,25 @@ export const OfflineDemoStudio = (): JSX.Element => {
   const selectedNode = useMemo(
     () => graph.nodes.find((node) => node.id === selectedNodeId) ?? graph.nodes[0] ?? null,
     [selectedNodeId],
+  );
+  const graphNodePositionById = useMemo(
+    () =>
+      new Map(
+        graph.nodes.map((node, index) => [
+          node.id,
+          {
+            x:
+              typeof node.layout_x === "number"
+                ? node.layout_x
+                : 40 + (index % 4) * 130,
+            y:
+              typeof node.layout_y === "number"
+                ? node.layout_y
+                : 35 + Math.floor(index / 4) * 90,
+          },
+        ]),
+      ),
+    [],
   );
 
   return (
@@ -203,30 +229,37 @@ export const OfflineDemoStudio = (): JSX.Element => {
           <h3>Interactive Graph</h3>
           <svg className="graph-wrap" viewBox="0 0 560 220" role="img" aria-label="offline-demo-graph">
             {graph.edges.map((edge, index) => {
-              const sourceIndex = graph.nodes.findIndex((node) => node.id === edge.source);
-              const targetIndex = graph.nodes.findIndex((node) => node.id === edge.target);
-              const x1 = 40 + (sourceIndex % 4) * 130;
-              const y1 = 35 + Math.floor(sourceIndex / 4) * 90;
-              const x2 = 40 + (targetIndex % 4) * 130;
-              const y2 = 35 + Math.floor(targetIndex / 4) * 90;
+              const source = graphNodePositionById.get(edge.source);
+              const target = graphNodePositionById.get(edge.target);
+              if (!source || !target) {
+                return null;
+              }
               return (
-                <line key={`${edge.source}-${edge.target}-${index}`} x1={x1} y1={y1} x2={x2} y2={y2} />
+                <line
+                  key={`${edge.source}-${edge.target}-${index}`}
+                  x1={source.x}
+                  y1={source.y}
+                  x2={target.x}
+                  y2={target.y}
+                />
               );
             })}
             {graph.nodes.map((node, index) => {
-              const x = 40 + (index % 4) * 130;
-              const y = 35 + Math.floor(index / 4) * 90;
+              const positioned = graphNodePositionById.get(node.id) ?? {
+                x: 40 + (index % 4) * 130,
+                y: 35 + Math.floor(index / 4) * 90,
+              };
               const selected = selectedNode?.id === node.id;
               return (
                 <g key={node.id}>
                   <circle
-                    cx={x}
-                    cy={y}
+                    cx={positioned.x}
+                    cy={positioned.y}
                     r={selected ? 11 : 8}
                     onClick={() => setSelectedNodeId(node.id)}
                     aria-label={`node-${node.label}`}
                   />
-                  <text x={x + 12} y={y + 4}>
+                  <text x={positioned.x + 12} y={positioned.y + 4}>
                     {node.label}
                   </text>
                 </g>

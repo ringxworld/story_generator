@@ -106,6 +106,25 @@ const App = (): JSX.Element => {
       (dashboardGraph?.nodes[0] ?? null),
     [dashboardGraph, selectedGraphNodeId],
   );
+  const graphNodeIndexById = useMemo(
+    () =>
+      new Map(
+        (dashboardGraph?.nodes ?? []).map((node, index) => [
+          node.id,
+          {
+            x:
+              typeof node.layout_x === "number"
+                ? node.layout_x
+                : 30 + (index % 12) * 62,
+            y:
+              typeof node.layout_y === "number"
+                ? node.layout_y
+                : 30 + Math.floor(index / 12) * 60,
+          },
+        ]),
+      ),
+    [dashboardGraph],
+  );
 
   const refreshStories = async (currentToken: string): Promise<void> => {
     const freshStories = await listStories(currentToken);
@@ -496,38 +515,39 @@ const App = (): JSX.Element => {
                 <strong>Interactive Graph</strong>
                 <svg viewBox="0 0 780 280" role="img" aria-label="story-graph">
                   {dashboardGraph.edges.slice(0, 120).map((edge, index) => {
-                    const sourceIndex = dashboardGraph.nodes.findIndex((node) => node.id === edge.source);
-                    const targetIndex = dashboardGraph.nodes.findIndex((node) => node.id === edge.target);
-                    const x1 = 30 + (sourceIndex % 12) * 62;
-                    const y1 = 30 + Math.floor(sourceIndex / 12) * 60;
-                    const x2 = 30 + (targetIndex % 12) * 62;
-                    const y2 = 30 + Math.floor(targetIndex / 12) * 60;
+                    const source = graphNodeIndexById.get(edge.source);
+                    const target = graphNodeIndexById.get(edge.target);
+                    if (!source || !target) {
+                      return null;
+                    }
                     return (
                       <line
                         key={`${edge.source}-${edge.target}-${index}`}
-                        x1={x1}
-                        y1={y1}
-                        x2={x2}
-                        y2={y2}
+                        x1={source.x}
+                        y1={source.y}
+                        x2={target.x}
+                        y2={target.y}
                         stroke="#a7bcb2"
                         strokeWidth={1}
                       />
                     );
                   })}
                   {dashboardGraph.nodes.slice(0, 120).map((node, index) => {
-                    const x = 30 + (index % 12) * 62;
-                    const y = 30 + Math.floor(index / 12) * 60;
+                    const positioned = graphNodeIndexById.get(node.id) ?? {
+                      x: 30 + (index % 12) * 62,
+                      y: 30 + Math.floor(index / 12) * 60,
+                    };
                     const selected = node.id === selectedGraphNode?.id;
                     return (
                       <g key={node.id}>
                         <circle
-                          cx={x}
-                          cy={y}
+                          cx={positioned.x}
+                          cy={positioned.y}
                           r={selected ? 9 : 7}
                           fill={selected ? "#2f6e5a" : "#4d8f7a"}
                           onClick={() => setSelectedGraphNodeId(node.id)}
                         />
-                        <text x={x + 10} y={y + 4} fontSize="10">
+                        <text x={positioned.x + 10} y={positioned.y + 4} fontSize="10">
                           {node.label}
                         </text>
                       </g>

@@ -168,6 +168,8 @@ export type DashboardGraphNodeResponse = {
   label: string;
   group: string;
   stage: string | null;
+  layout_x?: number | null;
+  layout_y?: number | null;
 };
 
 export type DashboardGraphEdgeResponse = {

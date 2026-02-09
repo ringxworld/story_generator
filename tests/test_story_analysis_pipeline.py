@@ -65,3 +65,12 @@ def test_pipeline_marks_untranslated_japanese_as_quality_warning() -> None:
     assert result.document.source_language == "ja"
     assert result.document.quality_gate.translation_quality < 0.5
     assert "translation_quality_low" in result.document.quality_gate.reasons
+
+
+def test_pipeline_assigns_graph_layout_coordinates() -> None:
+    result = run_story_analysis(story_id="story-layout", source_text=_sample_story())
+    assert result.dashboard.graph_nodes
+    assert all(
+        node.layout_x is not None and node.layout_y is not None
+        for node in result.dashboard.graph_nodes
+    )

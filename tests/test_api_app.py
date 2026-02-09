@@ -233,6 +233,8 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
     graph_payload = graph.json()
     assert isinstance(graph_payload["nodes"], list)
     assert isinstance(graph_payload["edges"], list)
+    assert graph_payload["nodes"][0].get("layout_x") is not None
+    assert graph_payload["nodes"][0].get("layout_y") is not None
 
     graph_export = client.get(
         f"/api/v1/stories/{story_id}/dashboard/graph/export.svg", headers=headers

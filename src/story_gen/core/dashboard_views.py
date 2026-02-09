@@ -74,6 +74,8 @@ class GraphNode:
     label: str
     group: str
     stage: StoryStage | None
+    layout_x: int | None = None
+    layout_y: int | None = None
 
 
 @dataclass(frozen=True)
@@ -136,8 +138,16 @@ def export_graph_svg(*, nodes: list[GraphNode], edges: list[GraphEdge]) -> str:
     labels: list[str] = []
 
     for index, node in enumerate(nodes, start=1):
-        x = min(width - 40, 40 + index * x_step)
-        y = 120 if node.group == "theme" else 260 if node.group == "beat" else 390
+        x = node.layout_x if node.layout_x is not None else min(width - 40, 40 + index * x_step)
+        y = (
+            node.layout_y
+            if node.layout_y is not None
+            else 120
+            if node.group == "theme"
+            else 260
+            if node.group == "beat"
+            else 390
+        )
         node_coords[node.id] = (x, y)
         circles.append(
             f'<circle cx="{x}" cy="{y}" r="16" fill="#2E5E4E" stroke="#173629" stroke-width="2" />'
@@ -311,4 +321,38 @@ def _build_graph(
                     weight=0.5,
                 )
             )
-    return nodes, edges
+    return _layout_graph_nodes(nodes), edges
+
+
+def _layout_graph_nodes(nodes: list[GraphNode]) -> list[GraphNode]:
+    stage_column: dict[StoryStage, int] = {
+        "setup": 0,
+        "escalation": 1,
+        "climax": 2,
+        "resolution": 3,
+    }
+    row_base = {
+        "theme": 80,
+        "beat": 220,
+        "character": 360,
+    }
+    slot_counts: dict[tuple[str, int], int] = {}
+    positioned: list[GraphNode] = []
+    for node in nodes:
+        column = stage_column[node.stage] if node.stage is not None else 4
+        slot_key = (node.group, column)
+        slot_index = slot_counts.get(slot_key, 0)
+        slot_counts[slot_key] = slot_index + 1
+        x = 110 + column * 180 + ((slot_index % 3) - 1) * 34
+        y = row_base.get(node.group, 430) + (slot_index // 3) * 26
+        positioned.append(
+            GraphNode(
+                id=node.id,
+                label=node.label,
+                group=node.group,
+                stage=node.stage,
+                layout_x=x,
+                layout_y=y,
+            )
+        )
+    return positioned

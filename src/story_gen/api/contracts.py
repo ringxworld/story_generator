@@ -349,6 +349,8 @@ class DashboardGraphNodeResponse(ContractModel):
     label: str
     group: str
     stage: str | None = None
+    layout_x: int | None = Field(default=None, ge=0, le=4000)
+    layout_y: int | None = Field(default=None, ge=0, le=4000)
 
 
 class DashboardGraphEdgeResponse(ContractModel):
