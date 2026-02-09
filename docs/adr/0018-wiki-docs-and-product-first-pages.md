@@ -26,6 +26,7 @@ Adopt a two-surface model with clear ownership:
 
 - Author docs in repository `docs/`.
 - Mirror docs to the GitHub wiki via a repeatable sync tool.
+- Automate wiki synchronization from `docs/` using a GitHub Actions workflow.
 - Publish the offline studio demo at GitHub Pages root.
 - Keep `/studio` as a compatibility alias to the same static demo build.
 - Add `/docs` redirect on Pages pointing to the wiki.
@@ -40,6 +41,7 @@ Developer commands:
 Tooling:
 
 - `tools/sync_wiki.py`
+- `.github/workflows/wiki-sync.yml`
 
 Public URLs:
 
@@ -50,6 +52,7 @@ Public URLs:
 
 - `docs/` remains the authored documentation source.
 - Wiki content is generated from `docs/` and not hand-maintained as primary.
+- Wiki automation runs on `develop`/`main` pushes for docs/sync-tool changes and by manual dispatch.
 - GitHub Pages deploys static product demo artifacts only.
 - Pages keeps an explicit route to wiki docs.
 

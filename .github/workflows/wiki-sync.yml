@@ -1,0 +1,41 @@
+name: Wiki Sync
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - "docs/**"
+      - "tools/sync_wiki.py"
+      - ".github/workflows/wiki-sync.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "wiki-sync-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Configure git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync docs into wiki
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 tools/sync_wiki.py \
+            --push \
+            --wiki-dir "$RUNNER_TEMP/story_generator.wiki" \
+            --wiki-remote "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" \
+            --commit-message "docs(wiki): sync from ${GITHUB_SHA}"
