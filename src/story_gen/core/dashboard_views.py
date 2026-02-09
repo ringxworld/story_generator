@@ -160,7 +160,14 @@ def export_graph_svg(*, nodes: list[GraphNode], edges: list[GraphEdge]) -> str:
             f'<line x1="{source[0]}" y1="{source[1]}" x2="{target[0]}" y2="{target[1]}" stroke="#5C8B7A" stroke-width="1.5" />'
         )
 
-    body = "\n".join(lines + circles + labels)
+    legend = [
+        '<rect x="24" y="18" width="250" height="44" rx="8" fill="#DCE8E3" />',
+        '<circle cx="42" cy="40" r="8" fill="#2E5E4E" stroke="#173629" stroke-width="2" />',
+        '<text x="56" y="44" fill="#10231C" font-size="11">theme / beat / character</text>',
+        '<line x1="178" y1="40" x2="210" y2="40" stroke="#5C8B7A" stroke-width="2" />',
+        '<text x="218" y="44" fill="#10231C" font-size="11">relation</text>',
+    ]
+    body = "\n".join(legend + lines + circles + labels)
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
         f'viewBox="0 0 {width} {height}"><rect width="100%" height="100%" fill="#EEF5F2" />{body}</svg>'
@@ -175,6 +182,42 @@ def export_graph_png(*, nodes: list[GraphNode], edges: list[GraphEdge]) -> bytes
 
     canvas = bytearray(width * height * 4)
     _fill_canvas(canvas=canvas, width=width, height=height, color=(0xEE, 0xF5, 0xF2, 0xFF))
+    _draw_rect(
+        canvas=canvas,
+        width=width,
+        height=height,
+        x=24,
+        y=18,
+        rect_width=250,
+        rect_height=44,
+        color=(0xDC, 0xE8, 0xE3, 0xFF),
+    )
+    _draw_line(
+        canvas=canvas,
+        width=width,
+        height=height,
+        start=(178, 40),
+        end=(210, 40),
+        color=(0x5C, 0x8B, 0x7A, 0xFF),
+        thickness=2,
+    )
+    _draw_filled_circle(
+        canvas=canvas,
+        width=width,
+        height=height,
+        center=(42, 40),
+        radius=8,
+        color=(0x2E, 0x5E, 0x4E, 0xFF),
+    )
+    _draw_circle_stroke(
+        canvas=canvas,
+        width=width,
+        height=height,
+        center=(42, 40),
+        radius=8,
+        stroke_width=2,
+        color=(0x17, 0x36, 0x29, 0xFF),
+    )
 
     for edge in edges:
         source = node_coords.get(edge.source)
@@ -834,19 +877,46 @@ def _build_graph(
             )
         )
 
-    theme_ids = [theme.theme_id for theme in document.theme_signals]
-    beat_ids = [beat.beat_id for beat in document.story_beats]
-    # TODO(#9): Replace dense theme->beat linking with evidence-driven graph edges.
-    for theme_id in theme_ids:
-        for beat_id in beat_ids:
+    beats_by_id = {beat.beat_id: beat for beat in document.story_beats}
+    for theme in document.theme_signals:
+        theme_evidence = set(theme.evidence_segment_ids)
+        for beat in document.story_beats:
+            beat_evidence = set(beat.evidence_segment_ids)
+            overlap = len(theme_evidence.intersection(beat_evidence))
+            stage_match = theme.stage == beat.stage
+            if overlap == 0 and not stage_match:
+                continue
+            relation = "evidence_aligned" if overlap > 0 else "stage_aligned"
+            weight = round(0.4 + min(0.45, overlap * 0.16) + (0.1 if stage_match else 0.0), 3)
             edges.append(
                 GraphEdge(
-                    source=theme_id,
-                    target=beat_id,
-                    relation="expressed_in",
-                    weight=0.5,
+                    source=theme.theme_id,
+                    target=beat.beat_id,
+                    relation=relation,
+                    weight=min(1.0, weight),
                 )
             )
+    for arc in arcs[:24]:
+        arc_node_id = f"arc_{arc.entity_id}_{arc.stage}"
+        best_beat_id = next(
+            (
+                beat.beat_id
+                for beat in document.story_beats
+                if beat.stage == arc.stage
+                and set(arc.evidence_segment_ids).intersection(beat.evidence_segment_ids)
+            ),
+            next((beat.beat_id for beat in document.story_beats if beat.stage == arc.stage), None),
+        )
+        if best_beat_id is None or best_beat_id not in beats_by_id:
+            continue
+        edges.append(
+            GraphEdge(
+                source=arc_node_id,
+                target=best_beat_id,
+                relation="drives",
+                weight=round(min(1.0, max(0.35, arc.confidence)), 3),
+            )
+        )
     return _layout_graph_nodes(nodes), edges
 
 

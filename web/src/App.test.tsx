@@ -18,8 +18,14 @@ vi.mock("./api", () => ({
   getDashboardTimeline: vi.fn(),
   getDashboardThemeHeatmap: vi.fn(),
   getDashboardArcs: vi.fn(),
+  getDashboardDrilldown: vi.fn(),
   getDashboardGraph: vi.fn(),
   exportDashboardGraphSvg: vi.fn(),
+  exportDashboardGraphPng: vi.fn(),
+  exportDashboardTimelineSvg: vi.fn(),
+  exportDashboardTimelinePng: vi.fn(),
+  exportDashboardThemeHeatmapSvg: vi.fn(),
+  exportDashboardThemeHeatmapPng: vi.fn(),
   listEssays: vi.fn(),
   createEssay: vi.fn(),
   updateEssay: vi.fn(),
@@ -133,8 +139,14 @@ describe("App", () => {
     mockedApi.getDashboardTimeline.mockRejectedValue(new Error("not found"));
     mockedApi.getDashboardThemeHeatmap.mockRejectedValue(new Error("not found"));
     mockedApi.getDashboardArcs.mockRejectedValue(new Error("not found"));
+    mockedApi.getDashboardDrilldown.mockRejectedValue(new Error("404"));
     mockedApi.getDashboardGraph.mockRejectedValue(new Error("not found"));
     mockedApi.exportDashboardGraphSvg.mockRejectedValue(new Error("not found"));
+    mockedApi.exportDashboardGraphPng.mockRejectedValue(new Error("not found"));
+    mockedApi.exportDashboardTimelineSvg.mockRejectedValue(new Error("not found"));
+    mockedApi.exportDashboardTimelinePng.mockRejectedValue(new Error("not found"));
+    mockedApi.exportDashboardThemeHeatmapSvg.mockRejectedValue(new Error("not found"));
+    mockedApi.exportDashboardThemeHeatmapPng.mockRejectedValue(new Error("not found"));
   });
 
   it("renders offline demo mode when query flag is set", () => {
@@ -542,5 +554,105 @@ describe("App", () => {
     });
     expect(mockedApi.runStoryAnalysis).toHaveBeenCalledWith("token-abc", "story-1", {});
     expect(screen.getByText("Interactive Graph")).toBeInTheDocument();
+  });
+
+  it("supports graph keyboard navigation, drilldown lookup, and export presets", async () => {
+    mockedApi.login.mockResolvedValue({
+      access_token: "token-abc",
+      token_type: "bearer",
+      expires_at_utc: "2026-01-01T01:00:00Z",
+    });
+    mockedApi.me.mockResolvedValue({
+      user_id: "user-1",
+      email: "writer@example.com",
+      display_name: "Writer",
+      created_at_utc: "2026-01-01T00:00:00Z",
+    });
+    mockedApi.listStories.mockResolvedValue([sampleStory]);
+    mockedApi.getLatestStoryAnalysis.mockResolvedValue({
+      run_id: "run-1",
+      story_id: "story-1",
+      owner_id: "user-1",
+      schema_version: "story_analysis.v1",
+      analyzed_at_utc: "2026-01-01T00:00:00Z",
+      source_language: "en",
+      target_language: "en",
+      segment_count: 1,
+      event_count: 2,
+      beat_count: 2,
+      theme_count: 1,
+      insight_count: 4,
+      quality_gate: {
+        passed: true,
+        confidence_floor: 0.7,
+        hallucination_risk: 0.1,
+        translation_quality: 1,
+        reasons: [],
+      },
+    });
+    mockedApi.getDashboardOverview.mockResolvedValue({
+      title: "Story Intelligence Overview",
+      macro_thesis: "Memory and truth collide.",
+      confidence_floor: 0.7,
+      quality_passed: true,
+      events_count: 2,
+      beats_count: 2,
+      themes_count: 1,
+    });
+    mockedApi.getDashboardTimeline.mockResolvedValue([{ lane: "narrative_order", items: [{ id: "p1", label: "A", order: 1, time: null }] }]);
+    mockedApi.getDashboardThemeHeatmap.mockResolvedValue([{ theme: "memory", stage: "setup", intensity: 1 }]);
+    mockedApi.getDashboardArcs.mockResolvedValue([{ lane: "character:rhea", stage: "setup", value: 0.6, label: "positive" }]);
+    mockedApi.getDashboardGraph.mockResolvedValue({
+      nodes: [
+        { id: "theme_memory", label: "memory", group: "theme", stage: "setup" },
+        { id: "beat_1", label: "B1", group: "beat", stage: "setup" },
+      ],
+      edges: [{ source: "theme_memory", target: "beat_1", relation: "expressed_in", weight: 0.7 }],
+    });
+    mockedApi.exportDashboardGraphSvg.mockResolvedValue({
+      format: "svg",
+      svg: "<svg></svg>",
+    });
+    mockedApi.getDashboardDrilldown.mockResolvedValue({
+      item_id: "theme:theme_memory",
+      item_type: "theme",
+      title: "Theme: memory",
+      content: "detail",
+      evidence_segment_ids: ["seg_01"],
+    });
+    mockedApi.exportDashboardTimelineSvg.mockResolvedValue({
+      format: "svg",
+      svg: "<svg>timeline</svg>",
+    });
+
+    render(<App />);
+
+    fireEvent.change(screen.getAllByLabelText("Email")[1], { target: { value: "writer@example.com" } });
+    fireEvent.change(screen.getAllByLabelText("Password")[1], { target: { value: "secret123" } });
+    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "The Missing Ledger" })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "The Missing Ledger" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Interactive Graph")).toBeInTheDocument();
+    });
+
+    fireEvent.keyDown(screen.getByRole("img", { name: "story-graph" }), { key: "ArrowRight" });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Loaded drilldown:/)).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("Export view"), { target: { value: "timeline" } });
+    fireEvent.change(screen.getByLabelText("Export format"), { target: { value: "svg" } });
+    fireEvent.click(screen.getByRole("button", { name: "Generate Export Preset" }));
+
+    await waitFor(() => {
+      expect(mockedApi.exportDashboardTimelineSvg).toHaveBeenCalledWith("token-abc", "story-1");
+    });
   });
 });

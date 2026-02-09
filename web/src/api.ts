@@ -3,8 +3,10 @@ import type {
   DashboardArcPointResponse,
   DashboardDrilldownResponse,
   DashboardGraphExportResponse,
+  DashboardPngExportResponse,
   DashboardGraphResponse,
   DashboardOverviewResponse,
+  DashboardSvgExportResponse,
   DashboardThemeHeatmapCellResponse,
   DashboardTimelineLaneResponse,
   EssayBlueprint,
@@ -200,3 +202,49 @@ export const exportDashboardGraphSvg = async (
   requestJson<DashboardGraphExportResponse>(`/api/v1/stories/${storyId}/dashboard/graph/export.svg`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+
+export const exportDashboardGraphPng = async (
+  token: string,
+  storyId: string,
+): Promise<DashboardPngExportResponse> =>
+  requestJson<DashboardPngExportResponse>(`/api/v1/stories/${storyId}/dashboard/graph/export.png`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const exportDashboardTimelineSvg = async (
+  token: string,
+  storyId: string,
+): Promise<DashboardSvgExportResponse> =>
+  requestJson<DashboardSvgExportResponse>(`/api/v1/stories/${storyId}/dashboard/timeline/export.svg`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const exportDashboardTimelinePng = async (
+  token: string,
+  storyId: string,
+): Promise<DashboardPngExportResponse> =>
+  requestJson<DashboardPngExportResponse>(`/api/v1/stories/${storyId}/dashboard/timeline/export.png`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const exportDashboardThemeHeatmapSvg = async (
+  token: string,
+  storyId: string,
+): Promise<DashboardSvgExportResponse> =>
+  requestJson<DashboardSvgExportResponse>(
+    `/api/v1/stories/${storyId}/dashboard/themes/heatmap/export.svg`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+
+export const exportDashboardThemeHeatmapPng = async (
+  token: string,
+  storyId: string,
+): Promise<DashboardPngExportResponse> =>
+  requestJson<DashboardPngExportResponse>(
+    `/api/v1/stories/${storyId}/dashboard/themes/heatmap/export.png`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );

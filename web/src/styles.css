@@ -159,7 +159,8 @@ button {
 }
 
 input,
-textarea {
+textarea,
+select {
   border: 1px solid var(--color-input-border);
   border-radius: 8px;
   padding: 0.55rem;
@@ -305,6 +306,30 @@ textarea:focus-visible {
   display: flex;
   gap: 0.7rem;
   flex-wrap: wrap;
+}
+
+.filter-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.highlight-chip {
+  background: color-mix(in oklab, var(--color-accent) 22%, transparent);
+}
+
+.export-link {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  text-decoration: none;
+  color: var(--color-link-text);
+  align-self: center;
+}
+
+.graph-wrap [role="button"]:focus-visible circle {
+  stroke: var(--color-focus);
+  stroke-width: 3;
 }
 
 @media (max-width: 800px) {

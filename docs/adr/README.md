@@ -23,3 +23,4 @@ Latest ADR:
 - `0022-dashboard-png-export-surface.md`
 - `0023-dashboard-read-model-v1-endpoints.md`
 - `0024-dashboard-timeline-and-heatmap-export-surfaces.md`
+- `0025-dashboard-interaction-and-export-presets.md`

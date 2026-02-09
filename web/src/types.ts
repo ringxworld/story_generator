@@ -184,7 +184,14 @@ export type DashboardGraphResponse = {
   edges: DashboardGraphEdgeResponse[];
 };
 
-export type DashboardGraphExportResponse = {
+export type DashboardSvgExportResponse = {
   format: "svg";
   svg: string;
 };
+
+export type DashboardPngExportResponse = {
+  format: "png";
+  png_base64: string;
+};
+
+export type DashboardGraphExportResponse = DashboardSvgExportResponse;
