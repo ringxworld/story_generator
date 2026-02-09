@@ -81,3 +81,37 @@ New endpoints:
 - adapter tests for analysis persistence and schema mismatch failure
 - API tests for analysis lifecycle, dashboard reads, and owner isolation
 - frontend tests for analysis run trigger and graph/dashboard rendering
+
+## Update 2026-02-09 (Issue #6)
+
+### Problem
+
+Theme and arc outputs were stage-aware but too shallow for explainability. We needed
+stronger per-stage evidence, trend direction tracking, and confidence metadata that
+can power dashboard drilldown without breaking existing heatmap and arc chart clients.
+
+### Non-goals
+
+- Introducing external model providers in this update.
+- Changing dashboard heatmap or arc endpoint response shapes.
+
+### Public API
+
+- Keep `DashboardThemeHeatmapCellResponse` shape stable: `theme`, `stage`, `intensity`.
+- Keep `DashboardArcPointResponse` shape stable: `lane`, `stage`, `value`, `label`.
+- Expand drilldown coverage to include theme, arc, conflict, and emotion items in
+  addition to insight items.
+
+### Invariants
+
+- Theme signals must include evidence IDs and provenance source segment IDs with overlap.
+- Theme signal confidence must be positive.
+- Arc/conflict/emotion records must carry evidence and confidence when generated.
+- Bundle decoding must stay backward compatible with older arc/conflict/emotion payloads.
+
+### Test plan
+
+- Add stage-regression tests that verify theme strengthening/fading transitions.
+- Validate arc/conflict/emotion outputs include explainability fields.
+- Validate dashboard drilldown includes theme/arc/conflict/emotion entries.
+- Validate bundle roundtrip preserves new fields and still decodes old-compatible payloads.
