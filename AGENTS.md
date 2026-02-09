@@ -63,6 +63,26 @@ Do not bypass pre-commit or CI.
 Do not remove tests to satisfy gates. Add or adjust tests to validate both
 working paths and failure paths of the behavior under test.
 
+## 4.1 Mandatory Adversarial Self-Review
+
+For every implementation task, run an explicit adversarial pass before finalizing:
+
+- Assume the current approach is wrong until falsified.
+- Try to break it with realistic edge cases, malformed inputs, and boundary values.
+- Check for regressions in contracts, schema compatibility, auth/permissions, and data integrity.
+- Check for silent failure paths, weak error handling, and misleading success states.
+
+This step is required before concluding work, opening a PR, or requesting merge.
+
+## 4.2 Mandatory PR Bug Sweep
+
+For every pull request, perform a bug-focused review of all changed files:
+
+- Inspect each changed file directly (do not sample a subset).
+- Record findings by severity; if no findings exist, state that explicitly.
+- Always call out residual risk and test gaps, even when findings are empty.
+- For every confirmed bug, add a regression test before merge.
+
 ## 5. Entropy Prevention
 
 - No `utils` module names.
