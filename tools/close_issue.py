@@ -62,7 +62,7 @@ def _normalize_section_name(raw: str) -> str:
 def _extract_markdown_sections(text: str) -> set[str]:
     sections: set[str] = set()
     for line in text.splitlines():
-        stripped = line.strip()
+        stripped = line.lstrip("\ufeff").strip()
         if not stripped:
             continue
 

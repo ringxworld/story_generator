@@ -60,3 +60,8 @@ def test_validate_summary_rejects_placeholder_tokens() -> None:
     with_placeholder = VALID_SUMMARY.replace("pipeline", "<component>")
     problems = validate_summary(with_placeholder)
     assert any("Replace placeholder tokens" in problem for problem in problems)
+
+
+def test_validate_summary_accepts_utf8_bom_prefix() -> None:
+    problems = validate_summary("\ufeff" + VALID_SUMMARY)
+    assert problems == []
