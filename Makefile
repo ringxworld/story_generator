@@ -14,7 +14,7 @@ PR_MERGE_METHOD ?= squash
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck wiki-sync wiki-sync-push contracts-export pr-open pr-checks pr-merge pr-auto deploy clean clean-deep
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-up-detached attach docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck wiki-sync wiki-sync-push contracts-export pr-open pr-checks pr-merge pr-auto deploy clean clean-deep
 
 help:
 	@echo "story_gen targets:"
@@ -53,6 +53,8 @@ help:
 	@echo "  make brand-icons          - regenerate branded website/docs icons from source script"
 	@echo "  make docker-build         - build local Docker images (API + web)"
 	@echo "  make docker-up            - launch API + web via docker compose"
+	@echo "  make docker-up-detached   - launch API + web in background"
+	@echo "  make attach               - launch stack (detached) and open API container shell"
 	@echo "  make docker-down          - stop docker compose services"
 	@echo "  make docker-logs          - tail docker compose logs"
 	@echo "  make docker-ci            - run full project checks in CI Docker image"
@@ -181,6 +183,12 @@ docker-build:
 
 docker-up:
 	docker compose up --build
+
+docker-up-detached:
+	docker compose up -d --build
+
+attach: docker-up-detached
+	docker compose exec api sh
 
 docker-down:
 	docker compose down --remove-orphans
