@@ -7,6 +7,7 @@ import type {
   DashboardThemeHeatmapCellResponse,
   DashboardTimelineLaneResponse,
 } from "./types";
+import { useThemeMode } from "./theme";
 
 const overview: DashboardOverviewResponse = {
   title: "Story Intelligence Overview",
@@ -95,6 +96,7 @@ const formatLane = (lane: string): string => {
 
 export const OfflineDemoStudio = (): JSX.Element => {
   const brandMarkUrl = `${import.meta.env.BASE_URL}brand/story-gen-mark.svg`;
+  const { theme, toggleTheme } = useThemeMode();
   const [selectedNodeId, setSelectedNodeId] = useState<string>(graph.nodes[0]?.id ?? "");
   const selectedNode = useMemo(
     () => graph.nodes.find((node) => node.id === selectedNodeId) ?? graph.nodes[0] ?? null,
@@ -124,20 +126,25 @@ export const OfflineDemoStudio = (): JSX.Element => {
     <main className="shell">
       <header className="hero">
         <div className="hero-head">
-          <img
-            className="brand-mark"
-            src={brandMarkUrl}
-            width={56}
-            height={56}
-            alt="story_gen brand mark"
-          />
-          <div>
-            <h1>story_gen studio</h1>
-            <p>Offline demo mode for GitHub Pages. No backend required.</p>
-            <p className="hero-note">
-              This view shows representative data from the story intelligence pipeline.
-            </p>
+          <div className="hero-main">
+            <img
+              className="brand-mark"
+              src={brandMarkUrl}
+              width={56}
+              height={56}
+              alt="story_gen brand mark"
+            />
+            <div>
+              <h1>story_gen studio</h1>
+              <p>Offline demo mode for GitHub Pages. No backend required.</p>
+              <p className="hero-note">
+                This view shows representative data from the story intelligence pipeline.
+              </p>
+            </div>
           </div>
+          <button type="button" className="muted theme-toggle" onClick={toggleTheme}>
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </button>
         </div>
       </header>
 

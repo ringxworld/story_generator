@@ -110,6 +110,7 @@ describe("App", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
     localStorage.clear();
+    document.documentElement.removeAttribute("data-theme");
     vi.clearAllMocks();
     mockedApi.listStories.mockResolvedValue([]);
     mockedApi.listEssays.mockResolvedValue([]);
@@ -135,6 +136,21 @@ describe("App", () => {
     expect(screen.getByText("Auth")).toBeInTheDocument();
     expect(screen.getByText("Story Blueprints")).toBeInTheDocument();
     expect(screen.getByText("Good Essay Mode")).toBeInTheDocument();
+  });
+
+  it("defaults to dark mode and toggles to light mode", async () => {
+    render(<App />);
+    await waitFor(() => {
+      expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Light mode" }));
+
+    await waitFor(() => {
+      expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+    });
+    expect(localStorage.getItem("story_gen.theme")).toBe("light");
+    expect(screen.getByRole("button", { name: "Dark mode" })).toBeInTheDocument();
   });
 
   it("shows a guardrail message when saving without auth", async () => {

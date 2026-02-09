@@ -24,6 +24,7 @@ import {
 import { applyBlueprintToForm, buildBlueprintFromForm, emptyStoryForm, StoryFormState } from "./blueprint_form";
 import { isOfflineDemoMode } from "./demo_mode";
 import { OfflineDemoStudio } from "./offline_demo";
+import { useThemeMode } from "./theme";
 import type {
   DashboardArcPointResponse,
   DashboardGraphResponse,
@@ -63,6 +64,7 @@ const App = (): JSX.Element => {
     return <OfflineDemoStudio />;
   }
   const brandMarkUrl = `${import.meta.env.BASE_URL}brand/story-gen-mark.svg`;
+  const { theme, toggleTheme } = useThemeMode();
 
   const [token, setToken] = useState<string>(() => window.localStorage.getItem(TOKEN_STORAGE_KEY) ?? "");
   const [email, setEmail] = useState("");
@@ -323,20 +325,25 @@ const App = (): JSX.Element => {
     <main className="shell">
       <header className="hero">
         <div className="hero-head">
-          <img
-            className="brand-mark"
-            src={brandMarkUrl}
-            width={56}
-            height={56}
-            alt="story_gen brand mark"
-          />
-          <div>
-            <h1>story_gen studio</h1>
-            <p>
-              Build strict contracts for story and essay generation workflows.
-              API base: <code>{apiBaseUrl}</code>
-            </p>
+          <div className="hero-main">
+            <img
+              className="brand-mark"
+              src={brandMarkUrl}
+              width={56}
+              height={56}
+              alt="story_gen brand mark"
+            />
+            <div>
+              <h1>story_gen studio</h1>
+              <p>
+                Build strict contracts for story and essay generation workflows.
+                API base: <code>{apiBaseUrl}</code>
+              </p>
+            </div>
           </div>
+          <button type="button" className="muted theme-toggle" onClick={toggleTheme}>
+            {theme === "dark" ? "Light mode" : "Dark mode"}
+          </button>
         </div>
       </header>
 
