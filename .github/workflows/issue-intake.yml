@@ -1,0 +1,164 @@
+name: Issue Intake
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+      - reopened
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply intake guardrails
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issueNumber = issue.number;
+
+            const externalAssociations = new Set([
+              "NONE",
+              "FIRST_TIME_CONTRIBUTOR",
+              "FIRST_TIMER",
+              "CONTRIBUTOR",
+            ]);
+
+            const isExternal = externalAssociations.has(issue.author_association);
+            const title = issue.title || "";
+            const body = issue.body || "";
+            const lowerBody = body.toLowerCase();
+            const taskTitle = /^\s*\[task\]\s*/i.test(title);
+
+            async function ensureLabel(name, color, description) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner,
+                  repo,
+                  name,
+                  color,
+                  description,
+                });
+              } catch (error) {
+                if (error.status !== 422) {
+                  throw error;
+                }
+              }
+            }
+
+            async function upsertBotComment(marker, message) {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                per_page: 100,
+              });
+              const existing = comments.find(
+                (comment) =>
+                  comment.user?.login === "github-actions[bot]" &&
+                  comment.body?.includes(marker),
+              );
+              const payload = `${marker}\n${message}`;
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner,
+                  repo,
+                  comment_id: existing.id,
+                  body: payload,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  body: payload,
+                });
+              }
+            }
+
+            await ensureLabel("external", "8a2be2", "Issue submitted by external user.");
+            await ensureLabel("needs-triage", "d4c5f9", "Needs maintainer triage.");
+            await ensureLabel(
+              "needs-info",
+              "fbca04",
+              "Needs clearer reproduction, impact, or acceptance details.",
+            );
+            await ensureLabel(
+              "intake-blocked",
+              "b60205",
+              "Closed by intake guardrails.",
+            );
+
+            const currentLabels = new Set((issue.labels || []).map((label) => label.name));
+            if (isExternal) {
+              currentLabels.add("external");
+              currentLabels.add("needs-triage");
+            }
+
+            if (isExternal && taskTitle) {
+              currentLabels.add("intake-blocked");
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: issueNumber,
+                labels: Array.from(currentLabels),
+              });
+
+              await upsertBotComment(
+                "<!-- issue-intake-task-block -->",
+                [
+                  "Thanks for opening this.",
+                  "",
+                  "This repository reserves `[task]` issues for internal execution tracking.",
+                  "Please re-open your request as a `Feature request` or `Bug report` template with scope and acceptance criteria.",
+                ].join("\n"),
+              );
+
+              if (issue.state !== "closed") {
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number: issueNumber,
+                  state: "closed",
+                  state_reason: "not_planned",
+                });
+              }
+              return;
+            }
+
+            const stripped = lowerBody.replace(/[`#>*\-\[\]\(\)_]/g, " ").replace(/\s+/g, " ").trim();
+            const lowSignalPatterns = [/\btbd\b/, /\btodo\b/, /\bidk\b/, /\bplaceholder\b/, /\.\.\./];
+            const tooShort = stripped.length < 180;
+            const lowSignal = lowSignalPatterns.some((pattern) => pattern.test(stripped));
+            const needsInfo = isExternal && (tooShort || lowSignal);
+
+            if (needsInfo) {
+              currentLabels.add("needs-info");
+              await upsertBotComment(
+                "<!-- issue-intake-needs-info -->",
+                [
+                  "Thanks for the report.",
+                  "",
+                  "Before maintainers can prioritize this, please add concrete detail:",
+                  "- exact repro steps and expected vs actual behavior",
+                  "- impact/severity (who is blocked and how)",
+                  "- acceptance criteria for a valid fix",
+                ].join("\n"),
+              );
+            } else if (currentLabels.has("needs-info")) {
+              currentLabels.delete("needs-info");
+            }
+
+            await github.rest.issues.update({
+              owner,
+              repo,
+              issue_number: issueNumber,
+              labels: Array.from(currentLabels),
+            });

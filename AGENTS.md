@@ -177,3 +177,13 @@ Guardrail:
 
 - Avoid duplicate docs across repo and wiki; keep one source and link from the other.
 - For API/code documentation, repo docs are always the source of truth.
+
+## 14. External Issue Intake and Priority Gate
+
+Treat external issues as intake signals, not automatic roadmap commitments:
+
+- External issues must be triaged before being added to roadmap/project execution lanes.
+- Evaluate signal quality first: reproducibility, user impact, and acceptance criteria.
+- Label external intake explicitly (`external`, `needs-triage`) and only assign priority after review.
+- If details are insufficient, require clarification (`needs-info`) before implementation planning.
+- Internal execution templates (for example `[task]`) are maintainer-only; external task-form submissions are closed as `not planned`.
