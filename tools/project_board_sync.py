@@ -7,7 +7,6 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 from typing import Any, cast
 
@@ -213,7 +212,9 @@ def _collect_open_pr_targets(*, repo: str) -> tuple[set[str], set[str]]:
     return pr_urls, linked_issue_urls
 
 
-def _sync_urls(*, owner: str, project_number: int, target_urls: set[str], board_urls: set[str]) -> int:
+def _sync_urls(
+    *, owner: str, project_number: int, target_urls: set[str], board_urls: set[str]
+) -> int:
     added = 0
     for url in sorted(target_urls):
         if url in board_urls:

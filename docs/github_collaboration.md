@@ -96,6 +96,8 @@ Automated board sync:
 - `.github/workflows/project-board-sync.yml` runs hourly and on issue/PR events.
 - It adds missing open roadmap issues, linked issue references from open PRs, and open PR cards into Project `#2`.
 - It is additive and idempotent (it does not remove cards).
+- Set repository secret `PROJECT_SYNC_TOKEN` (classic PAT with `repo` + `project` scopes) so the workflow can update the user-level project board.
+- If the secret is missing, the workflow exits successfully with a skip message.
 
 Manual rename fallback:
 

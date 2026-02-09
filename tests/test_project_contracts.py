@@ -92,6 +92,8 @@ def test_project_board_sync_workflow_exists() -> None:
     assert "issues:" in workflow
     assert "pull_request:" in workflow
     assert "repository-projects: write" in workflow
+    assert "PROJECT_SYNC_TOKEN" in workflow
+    assert "skipping project sync" in workflow
     assert "tools/project_board_sync.py" in workflow
     assert "--project-number 2" in workflow
 

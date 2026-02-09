@@ -44,8 +44,12 @@ jobs:
 
       - name: Sync project board cards
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PROJECT_SYNC_TOKEN }}
         run: |
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "PROJECT_SYNC_TOKEN is not set; skipping project sync."
+            exit 0
+          fi
           uv run python tools/project_board_sync.py \
             --owner "${{ github.repository_owner }}" \
             --repo "${{ github.repository }}" \
