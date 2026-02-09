@@ -80,6 +80,13 @@ make docker-logs   # tail logs
 make docker-ci     # run full CI-quality checks in Docker
 ```
 
+Cleanup commands:
+
+```bash
+make clean       # clear caches and generated build outputs
+make clean-deep  # clean + local .venv and web/node_modules
+```
+
 ## Focus Areas
 
 - Architecture contracts: `docs/architecture.md`
