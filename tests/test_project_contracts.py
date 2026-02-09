@@ -46,6 +46,7 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     workflow = _read(".github/workflows/ci.yml")
     assert "- develop" in workflow
     assert "- main" in workflow
+    assert "uv sync --group dev" in workflow
     assert "Pre-commit hooks (all files)" in workflow
     assert "uv lock --check" in workflow
     assert "uv run ruff check ." in workflow
@@ -212,6 +213,12 @@ def test_pre_push_checks_include_docs_and_cpp_format() -> None:
     assert 'run_tool("clang-format", "--dry-run", "--Werror", *cpp_sources)' in checks
     assert '"docker/ci.Dockerfile"' in checks
     assert '"story-gen-ci-prepush"' in checks
+
+
+def test_ci_dockerfile_installs_dev_group_only() -> None:
+    dockerfile = _read("docker/ci.Dockerfile")
+    assert "uv sync --group dev" in dockerfile
+    assert "/usr/local/bin/uv" in dockerfile
 
 
 def test_frontend_vitest_coverage_gate_exists() -> None:
