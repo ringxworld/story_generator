@@ -1,0 +1,100 @@
+name: Branch Failure Notify
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+      - Deploy Pages
+    types:
+      - completed
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  notify:
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      (github.event.workflow_run.head_branch == 'develop' ||
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find open tracker issue
+        id: tracker
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '[ci-failure-tracker]';
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const match = issues.find((issue) =>
+              issue.title.includes(marker) && !issue.pull_request
+            );
+            if (!match) {
+              core.setOutput('issue_number', '');
+              return;
+            }
+            core.setOutput('issue_number', String(match.number));
+
+      - name: Create tracker issue if missing
+        if: steps.tracker.outputs.issue_number == ''
+        id: created
+        uses: actions/github-script@v7
+        env:
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_NAME: ${{ github.event.workflow_run.name }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        with:
+          script: |
+            const marker = '[ci-failure-tracker]';
+            const title = `${marker} Branch pipeline failures`;
+            const body = [
+              'Automated tracker for branch pipeline failures on protected branches.',
+              '',
+              `Latest failure: ${process.env.RUN_NAME} on \`${process.env.HEAD_BRANCH}\``,
+              process.env.RUN_URL,
+            ].join('\n');
+            const { data: issue } = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+            });
+            core.setOutput('issue_number', String(issue.number));
+
+      - name: Append failure entry
+        uses: actions/github-script@v7
+        env:
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_NAME: ${{ github.event.workflow_run.name }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          ISSUE_NUMBER: ${{ steps.tracker.outputs.issue_number || steps.created.outputs.issue_number }}
+          OWNER_LOGIN: ${{ github.repository_owner }}
+        with:
+          script: |
+            const issueNumber = Number(process.env.ISSUE_NUMBER);
+            if (!Number.isInteger(issueNumber) || issueNumber <= 0) {
+              core.setFailed('Unable to resolve tracker issue number.');
+              return;
+            }
+            const shortSha = process.env.HEAD_SHA.slice(0, 7);
+            const body = [
+              `@${process.env.OWNER_LOGIN} pipeline failure detected.`,
+              '',
+              `- Workflow: ${process.env.RUN_NAME}`,
+              `- Branch: \`${process.env.HEAD_BRANCH}\``,
+              `- Commit: \`${shortSha}\``,
+              `- Run: ${process.env.RUN_URL}`,
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body,
+            });
