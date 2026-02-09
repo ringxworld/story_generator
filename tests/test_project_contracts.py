@@ -21,6 +21,10 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "cpp-format:" in makefile
     assert "cpp-format-check:" in makefile
     assert "cpp-cppcheck:" in makefile
+    assert "pr-open:" in makefile
+    assert "pr-checks:" in makefile
+    assert "pr-merge:" in makefile
+    assert "pr-auto:" in makefile
     assert "collect-story:" in makefile
     assert "video-story:" in makefile
     assert "features:" in makefile
@@ -64,6 +68,9 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "Frontend tests (coverage gate)" in workflow
     assert "npm run --prefix web test:coverage" in workflow
     assert "Frontend build" in workflow
+    assert "Build docs site artifact" in workflow
+    assert "Build offline studio artifact" in workflow
+    assert "VITE_OFFLINE_DEMO" in workflow
     assert "Build API Docker image" in workflow
     assert "Build web Docker image" in workflow
     assert "Docker compose stack smoke test" in workflow
@@ -77,7 +84,9 @@ def test_deploy_workflow_requires_ci_success() -> None:
     assert "workflows:" in workflow
     assert "- CI" in workflow
     assert "conclusion == 'success'" in workflow
+    assert "head_branch == 'develop'" in workflow
     assert "head_branch == 'main'" in workflow
+    assert "uv sync --group dev" in workflow
     assert "uv run mkdocs build --strict" in workflow
     assert "Setup Node" in workflow
     assert "Build offline studio demo" in workflow
@@ -124,6 +133,28 @@ def test_precommit_enforces_commit_and_push_quality() -> None:
     assert "py-quality-pre-push" in precommit
     assert "tools/run_dev_tool.py ruff check --fix" in precommit
     assert "tools/run_dev_tool.py clang-format --dry-run --Werror" in precommit
+
+
+def test_pr_template_contains_required_sections() -> None:
+    template = _read(".github/pull_request_template.md")
+    assert "## Summary" in template
+    assert "## Motivation / Context" in template
+    assert "## What Changed" in template
+    assert "## Tradeoffs and Risks" in template
+    assert "## How This Was Tested" in template
+    assert "## Follow-ups / Future Work" in template
+
+
+def test_pr_template_workflow_exists_and_checks_sections() -> None:
+    workflow = _read(".github/workflows/pr-template-check.yml")
+    assert "name: PR Template Check" in workflow
+    assert "name: pr-template" in workflow
+    assert "## Summary" in workflow
+    assert "## Motivation / Context" in workflow
+    assert "## What Changed" in workflow
+    assert "## Tradeoffs and Risks" in workflow
+    assert "## How This Was Tested" in workflow
+    assert "## Follow-ups / Future Work" in workflow
 
 
 def test_pyproject_exposes_story_collection_entrypoints() -> None:
@@ -328,6 +359,7 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "ops" / ".env.gcp.example").exists()
     assert (ROOT / "ops" / ".env.azure.example").exists()
     assert (ROOT / "tools" / "run_dev_tool.py").exists()
+    assert (ROOT / "tools" / "pr_flow.py").exists()
     assert (ROOT / ".dockerignore").exists()
     assert (ROOT / "docker-compose.yml").exists()
     assert (ROOT / "docker" / "api.Dockerfile").exists()
@@ -341,6 +373,7 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / ".github" / "ISSUE_TEMPLATE" / "task.yml").exists()
     assert (ROOT / ".github" / "ISSUE_TEMPLATE" / "config.yml").exists()
     assert (ROOT / ".github" / "workflows" / "pr-labeler.yml").exists()
+    assert (ROOT / ".github" / "workflows" / "pr-template-check.yml").exists()
     assert (ROOT / "web" / "public" / "favicon.svg").exists()
     assert (ROOT / "web" / "public" / "favicon.ico").exists()
     assert (ROOT / "web" / "public" / "site.webmanifest").exists()

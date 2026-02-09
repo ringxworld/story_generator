@@ -1,0 +1,36 @@
+name: PR Template Check
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize, ready_for_review]
+
+jobs:
+  pr-template:
+    name: pr-template
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required PR sections
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          required_sections=(
+            "## Summary"
+            "## Motivation / Context"
+            "## What Changed"
+            "## Tradeoffs and Risks"
+            "## How This Was Tested"
+            "## Follow-ups / Future Work"
+          )
+
+          missing=0
+          for section in "${required_sections[@]}"; do
+            if ! grep -Fq "$section" <<<"$PR_BODY"; then
+              echo "Missing required PR section: $section"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            echo "PR template requirements not satisfied."
+            exit 1
+          fi
