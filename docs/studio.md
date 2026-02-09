@@ -7,6 +7,7 @@ blueprints against the API contract.
 
 GitHub Pages now publishes a static offline demo build of the studio at:
 
+- `https://ringxworld.github.io/story_generator/`
 - `https://ringxworld.github.io/story_generator/studio/`
 
 This mode does not call the backend. It renders representative story analysis

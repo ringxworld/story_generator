@@ -29,6 +29,19 @@ One-command flow:
 make pr-auto
 ```
 
+## Wiki docs sync
+
+Docs are authored in `docs/` and mirrored into the repo wiki.
+
+```bash
+make wiki-sync       # update local wiki clone from docs/
+make wiki-sync-push  # publish synced docs to GitHub wiki
+```
+
+Wiki URL:
+
+- `https://github.com/ringxworld/story_generator/wiki`
+
 ## Pull request defaults in this repo
 
 - PR template: `.github/pull_request_template.md`

@@ -14,7 +14,7 @@ PR_MERGE_METHOD ?= squash
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck pr-open pr-checks pr-merge pr-auto deploy clean clean-deep
+.PHONY: help sync hooks-install hooks-run lock-check import-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck wiki-sync wiki-sync-push pr-open pr-checks pr-merge pr-auto deploy clean clean-deep
 
 help:
 	@echo "story_gen targets:"
@@ -70,6 +70,8 @@ help:
 	@echo "  make cpp-format           - format C++ files with clang-format"
 	@echo "  make cpp-format-check     - verify C++ formatting"
 	@echo "  make cpp-cppcheck         - run cppcheck on C++ sources"
+	@echo "  make wiki-sync            - sync repository docs into local wiki checkout"
+	@echo "  make wiki-sync-push       - sync docs into wiki and push to GitHub"
 	@echo "  make pr-open              - open a PR from current feature branch to PR_BASE"
 	@echo "  make pr-checks            - watch PR checks until completion (optional PR_NUMBER)"
 	@echo "  make pr-merge             - merge PR after checks pass (optional PR_NUMBER)"
@@ -230,6 +232,12 @@ cpp-format-check:
 
 cpp-cppcheck:
 	cppcheck --enable=warning,style,performance,portability --error-exitcode=2 cpp
+
+wiki-sync:
+	$(RUN) python tools/sync_wiki.py
+
+wiki-sync-push:
+	$(RUN) python tools/sync_wiki.py --push
 
 pr-open:
 	$(RUN) python tools/pr_flow.py open --base $(PR_BASE) $(if $(PR_TITLE),--title "$(PR_TITLE)",)

@@ -15,3 +15,7 @@ Required sections:
 - Test plan
 
 Start from `0000-template.md`.
+
+Latest ADR:
+
+- `0018-wiki-docs-and-product-first-pages.md`
