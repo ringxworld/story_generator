@@ -1,7 +1,14 @@
 # story_gen
 
+<p align="center">
+  <img src="web/public/brand/story-gen-mark.svg" alt="story_gen logo" width="120" />
+</p>
+
 [![CI](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml)
 [![Deploy Pages](https://github.com/ringxworld/story_generator/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/deploy-pages.yml)
+[![Wiki Sync](https://github.com/ringxworld/story_generator/actions/workflows/wiki-sync.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/wiki-sync.yml)
+[![License](https://img.shields.io/github/license/ringxworld/story_generator)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
 
 `story_gen` is a story intelligence pipeline and studio.
 
@@ -14,6 +21,16 @@ It provides:
 - extraction of events, beats, themes, entities, and insights
 - timeline composition in narrative and chronological views
 - dashboard-ready projections and exportable demo surfaces
+
+Relevant checks surfaced above:
+
+- integration test/lint/type pipeline (`CI`)
+- Pages build and deploy (`Deploy Pages`)
+- docs-to-wiki synchronization (`Wiki Sync`)
+
+Not included on purpose:
+
+- package-download badges (project is not currently published to PyPI/Conda)
 
 ## Links
 
