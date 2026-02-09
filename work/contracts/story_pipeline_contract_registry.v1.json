@@ -1,0 +1,249 @@
+{
+  "pipeline_stage_contracts": [
+    {
+      "description": "Normalize/transcode source segments before extraction.",
+      "inputs": [
+        "RawSegment[]"
+      ],
+      "outputs": [
+        "RawSegment[]",
+        "SegmentAlignment[]"
+      ],
+      "stage_id": "ingestion.translation",
+      "validator_functions": [
+        "validate_extraction_input"
+      ]
+    },
+    {
+      "description": "Extract event and entity records from normalized segments.",
+      "inputs": [
+        "RawSegment[]"
+      ],
+      "outputs": [
+        "ExtractedEvent[]",
+        "EntityMention[]"
+      ],
+      "stage_id": "extraction.events_entities",
+      "validator_functions": [
+        "validate_extraction_input",
+        "validate_extraction_output"
+      ]
+    },
+    {
+      "description": "Map events into ordered setup/escalation/climax/resolution beats.",
+      "inputs": [
+        "ExtractedEvent[]"
+      ],
+      "outputs": [
+        "StoryBeat[]"
+      ],
+      "stage_id": "narrative.beat_detection",
+      "validator_functions": [
+        "validate_beat_input",
+        "validate_beat_output"
+      ]
+    },
+    {
+      "description": "Track theme intensity and narrative arc signals by stage.",
+      "inputs": [
+        "StoryBeat[]"
+      ],
+      "outputs": [
+        "ThemeSignal[]",
+        "ArcSignal[]",
+        "ConflictShift[]",
+        "EmotionSignal[]"
+      ],
+      "stage_id": "themes.arcs_conflicts",
+      "validator_functions": [
+        "validate_theme_input",
+        "validate_theme_output"
+      ]
+    },
+    {
+      "description": "Compose chronology and narrative-order timeline views.",
+      "inputs": [
+        "ExtractedEvent[]",
+        "StoryBeat[]"
+      ],
+      "outputs": [
+        "TimelinePoint[]"
+      ],
+      "stage_id": "timeline.compose",
+      "validator_functions": [
+        "validate_timeline_input",
+        "validate_timeline_output"
+      ]
+    },
+    {
+      "description": "Generate macro/meso/micro insights with evidence links.",
+      "inputs": [
+        "StoryBeat[]",
+        "ThemeSignal[]"
+      ],
+      "outputs": [
+        "Insight[]"
+      ],
+      "stage_id": "insights.generate",
+      "validator_functions": [
+        "validate_insight_input",
+        "validate_insight_output"
+      ]
+    }
+  ],
+  "registry_version": "contract_registry.v1",
+  "schema_contracts": [
+    {
+      "category": "schema",
+      "contract_id": "story.blueprint",
+      "description": "Canonical editable story blueprint contract.",
+      "model_path": "story_gen.api.contracts.StoryBlueprint",
+      "owner": "api",
+      "schema_version": "story_blueprint.v1"
+    },
+    {
+      "category": "schema",
+      "contract_id": "essay.blueprint",
+      "description": "Canonical editable essay blueprint contract.",
+      "model_path": "story_gen.api.contracts.EssayBlueprint",
+      "owner": "api",
+      "schema_version": "essay_blueprint.v1"
+    },
+    {
+      "category": "request",
+      "contract_id": "story.analysis.request",
+      "description": "Request contract to trigger story analysis pipeline runs.",
+      "model_path": "story_gen.api.contracts.StoryAnalysisRunRequest",
+      "owner": "api",
+      "schema_version": "story_analysis_run.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "story.analysis.run_summary",
+      "description": "Run summary response for completed analysis executions.",
+      "model_path": "story_gen.api.contracts.StoryAnalysisRunResponse",
+      "owner": "api",
+      "schema_version": "story_analysis_run.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.overview",
+      "description": "Dashboard macro overview response contract.",
+      "model_path": "story_gen.api.contracts.DashboardOverviewResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.timeline_lane",
+      "description": "Timeline lane response contract.",
+      "model_path": "story_gen.api.contracts.DashboardTimelineLaneResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.theme_heatmap",
+      "description": "Theme heatmap response contract.",
+      "model_path": "story_gen.api.contracts.DashboardThemeHeatmapCellResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.arc_point",
+      "description": "Arc chart point response contract.",
+      "model_path": "story_gen.api.contracts.DashboardArcPointResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.graph",
+      "description": "Graph node/edge response contract for dashboard rendering.",
+      "model_path": "story_gen.api.contracts.DashboardGraphResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.graph_export",
+      "description": "Graph export contract used for static SVG output.",
+      "model_path": "story_gen.api.contracts.DashboardGraphExportResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "artifact",
+      "contract_id": "pipeline.raw_segment",
+      "description": "Normalized and optional translated source segment artifact.",
+      "model_path": "story_gen.core.story_schema.RawSegment",
+      "owner": "pipeline",
+      "schema_version": "story_analysis.v1"
+    },
+    {
+      "category": "artifact",
+      "contract_id": "pipeline.extracted_event",
+      "description": "Event extraction artifact with provenance and confidence.",
+      "model_path": "story_gen.core.story_schema.ExtractedEvent",
+      "owner": "pipeline",
+      "schema_version": "story_analysis.v1"
+    },
+    {
+      "category": "artifact",
+      "contract_id": "pipeline.story_beat",
+      "description": "Narrative beat artifact across setup/escalation/climax/resolution.",
+      "model_path": "story_gen.core.story_schema.StoryBeat",
+      "owner": "pipeline",
+      "schema_version": "story_analysis.v1"
+    },
+    {
+      "category": "artifact",
+      "contract_id": "pipeline.theme_signal",
+      "description": "Stage-level theme trend artifact with evidence links.",
+      "model_path": "story_gen.core.story_schema.ThemeSignal",
+      "owner": "pipeline",
+      "schema_version": "story_analysis.v1"
+    },
+    {
+      "category": "artifact",
+      "contract_id": "pipeline.entity_mention",
+      "description": "Entity mention artifact tracked across story segments.",
+      "model_path": "story_gen.core.story_schema.EntityMention",
+      "owner": "pipeline",
+      "schema_version": "story_analysis.v1"
+    },
+    {
+      "category": "artifact",
+      "contract_id": "pipeline.timeline_point",
+      "description": "Chronology and narrative-order timeline point artifact.",
+      "model_path": "story_gen.core.story_schema.TimelinePoint",
+      "owner": "pipeline",
+      "schema_version": "story_analysis.v1"
+    },
+    {
+      "category": "artifact",
+      "contract_id": "pipeline.insight",
+      "description": "Macro/meso/micro insight artifact with confidence.",
+      "model_path": "story_gen.core.story_schema.Insight",
+      "owner": "pipeline",
+      "schema_version": "story_analysis.v1"
+    },
+    {
+      "category": "artifact",
+      "contract_id": "pipeline.quality_gate",
+      "description": "Quality gate artifact used before dashboard display.",
+      "model_path": "story_gen.core.story_schema.QualityGate",
+      "owner": "pipeline",
+      "schema_version": "story_analysis.v1"
+    },
+    {
+      "category": "artifact",
+      "contract_id": "pipeline.story_document",
+      "description": "Canonical end-to-end story analysis artifact document.",
+      "model_path": "story_gen.core.story_schema.StoryDocument",
+      "owner": "pipeline",
+      "schema_version": "story_analysis.v1"
+    }
+  ]
+}

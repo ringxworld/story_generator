@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from story_gen.core.story_schema import (
     ExtractedEvent,
     Insight,
@@ -10,6 +12,68 @@ from story_gen.core.story_schema import (
     ThemeSignal,
     TimelinePoint,
 )
+
+
+@dataclass(frozen=True)
+class PipelineStageContract:
+    """Track one pipeline stage input/output contract boundary."""
+
+    stage_id: str
+    inputs: tuple[str, ...]
+    outputs: tuple[str, ...]
+    validator_functions: tuple[str, ...]
+    description: str
+
+
+PIPELINE_STAGE_CONTRACTS: tuple[PipelineStageContract, ...] = (
+    PipelineStageContract(
+        stage_id="ingestion.translation",
+        inputs=("RawSegment[]",),
+        outputs=("RawSegment[]", "SegmentAlignment[]"),
+        validator_functions=("validate_extraction_input",),
+        description="Normalize/transcode source segments before extraction.",
+    ),
+    PipelineStageContract(
+        stage_id="extraction.events_entities",
+        inputs=("RawSegment[]",),
+        outputs=("ExtractedEvent[]", "EntityMention[]"),
+        validator_functions=("validate_extraction_input", "validate_extraction_output"),
+        description="Extract event and entity records from normalized segments.",
+    ),
+    PipelineStageContract(
+        stage_id="narrative.beat_detection",
+        inputs=("ExtractedEvent[]",),
+        outputs=("StoryBeat[]",),
+        validator_functions=("validate_beat_input", "validate_beat_output"),
+        description="Map events into ordered setup/escalation/climax/resolution beats.",
+    ),
+    PipelineStageContract(
+        stage_id="themes.arcs_conflicts",
+        inputs=("StoryBeat[]",),
+        outputs=("ThemeSignal[]", "ArcSignal[]", "ConflictShift[]", "EmotionSignal[]"),
+        validator_functions=("validate_theme_input", "validate_theme_output"),
+        description="Track theme intensity and narrative arc signals by stage.",
+    ),
+    PipelineStageContract(
+        stage_id="timeline.compose",
+        inputs=("ExtractedEvent[]", "StoryBeat[]"),
+        outputs=("TimelinePoint[]",),
+        validator_functions=("validate_timeline_input", "validate_timeline_output"),
+        description="Compose chronology and narrative-order timeline views.",
+    ),
+    PipelineStageContract(
+        stage_id="insights.generate",
+        inputs=("StoryBeat[]", "ThemeSignal[]"),
+        outputs=("Insight[]",),
+        validator_functions=("validate_insight_input", "validate_insight_output"),
+        description="Generate macro/meso/micro insights with evidence links.",
+    ),
+)
+
+
+def registered_pipeline_stage_contracts() -> tuple[PipelineStageContract, ...]:
+    """Return the tracked stage-level pipeline contract registry."""
+    return PIPELINE_STAGE_CONTRACTS
 
 
 def _assert_order(values: list[int], *, label: str) -> None:

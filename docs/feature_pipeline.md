@@ -44,3 +44,16 @@ generation controls.
 - add migration scripts for version upgrades (`v2`, `v3`, ...)
 - add per-field table CHECK constraints where useful
 - add semantic drift baselines keyed by schema version
+
+## Contract tracking
+
+Pipeline stage and schema contracts are tracked in a shared registry:
+
+- Runtime registry: `src/story_gen/api/contract_registry.py`
+- Exported snapshot: `work/contracts/story_pipeline_contract_registry.v1.json`
+
+Regenerate snapshot after contract changes:
+
+```bash
+make contracts-export
+```
