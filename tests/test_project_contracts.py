@@ -148,11 +148,10 @@ def test_pr_template_contains_required_sections() -> None:
     template = _read(".github/pull_request_template.md")
     assert "## Summary" in template
     assert "## Linked Issues" in template
-    assert "## Motivation / Context" in template
     assert "## What Changed" in template
-    assert "## Tradeoffs and Risks" in template
+    assert "## Tasks Completed" in template
     assert "## How This Was Tested" in template
-    assert "## Follow-ups / Future Work" in template
+    assert "## Notes (Optional)" in template
 
 
 def test_pr_template_workflow_exists_and_checks_sections() -> None:
@@ -161,11 +160,9 @@ def test_pr_template_workflow_exists_and_checks_sections() -> None:
     assert "name: pr-template" in workflow
     assert "## Summary" in workflow
     assert "## Linked Issues" in workflow
-    assert "## Motivation / Context" in workflow
     assert "## What Changed" in workflow
-    assert "## Tradeoffs and Risks" in workflow
+    assert "## Tasks Completed" in workflow
     assert "## How This Was Tested" in workflow
-    assert "## Follow-ups / Future Work" in workflow
     assert "story_generator/issues" in workflow
 
 
@@ -405,6 +402,8 @@ def test_pr_flow_supports_explicit_or_fallback_gh_binary() -> None:
     script = _read("tools/pr_flow.py")
     assert "GH_BIN" in script
     assert "GitHub CLI\\gh.exe" in script
+    assert "PR_DEFAULT_REVIEWER" in script
+    assert "Skipped reviewer" in script
     assert (ROOT / "web" / "public" / "icons" / "icon-16.png").exists()
     assert (ROOT / "web" / "public" / "icons" / "icon-32.png").exists()
     assert (ROOT / "web" / "public" / "icons" / "icon-192.png").exists()
