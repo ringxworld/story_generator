@@ -159,3 +159,21 @@ When closing an issue, always add a structured summary comment first, then close
 - Required headings: `Work Summary`, `Objective`, `Root Cause`, `Approach`, `Implementation Details`, `Validation`, and `Ownership / Follow-ups`.
 - Include concrete artifacts (PR URLs, commit SHAs, tests executed).
 - Use `make issue-close ISSUE_NUMBER=<n> ISSUE_SUMMARY_FILE=<path>` so closure and summary stay paired.
+
+## 13. Documentation Ownership Split
+
+Use one clear source of truth per documentation type:
+
+- Repo docs (`docs/`, API contracts, architecture, ADRs, runbooks tied to code) hold versioned technical truth.
+- Wiki holds collaborative/project-operations material (roadmap context, planning notes, meeting outcomes, onboarding checklists, weekly change notes).
+- GitHub Pages holds public product/demo narrative (what the product is, what it looks like, lightweight usage path).
+
+Rule of thumb:
+
+- If content must stay correct for a specific commit/release, keep it in repo docs.
+- If content is operational/collaborative and can evolve independently, keep it in wiki.
+
+Guardrail:
+
+- Avoid duplicate docs across repo and wiki; keep one source and link from the other.
+- For API/code documentation, repo docs are always the source of truth.

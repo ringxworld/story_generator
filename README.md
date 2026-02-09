@@ -49,6 +49,22 @@ Not included on purpose:
 - Project board: https://github.com/users/ringxworld/projects/2
 - Security policy: `SECURITY.md`
 
+## Documentation ownership
+
+- Repo docs (`docs/`, contracts, architecture, ADRs): versioned technical source of truth.
+- Wiki: collaborative/project-operations context (planning, decisions, onboarding, weekly updates).
+- Pages: public product/demo narrative.
+
+Rule of thumb:
+
+- Commit/release-accurate content belongs in repo docs.
+- Operational content that can evolve independently belongs in wiki.
+
+Guardrail:
+
+- Avoid duplicated docs across repo and wiki; keep one source and link from the other.
+- API/code docs stay source-of-truth in repo docs.
+
 ## Run locally
 
 From repository root:
