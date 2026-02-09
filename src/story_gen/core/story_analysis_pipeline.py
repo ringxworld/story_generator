@@ -13,6 +13,18 @@ from story_gen.core.dashboard_views import (
 from story_gen.core.insight_engine import generate_insights
 from story_gen.core.language_translation import SegmentAlignment, translate_segments
 from story_gen.core.narrative_analysis import detect_story_beats
+from story_gen.core.pipeline_contracts import (
+    validate_beat_input,
+    validate_beat_output,
+    validate_extraction_input,
+    validate_extraction_output,
+    validate_insight_input,
+    validate_insight_output,
+    validate_theme_input,
+    validate_theme_output,
+    validate_timeline_input,
+    validate_timeline_output,
+)
 from story_gen.core.quality_evaluation import EvaluationMetrics, evaluate_quality_gate
 from story_gen.core.story_extraction import extract_events_and_entities
 from story_gen.core.story_ingestion import IngestionRequest, ingest_story_text
@@ -68,6 +80,7 @@ def run_story_analysis(
         segments=artifact.segments,
         target_language=target_language,
     )
+    validate_extraction_input(translated_segments)
     logger.info(
         "analysis.translation story_id=%s segments=%s source_language=%s",
         story_id,
@@ -75,10 +88,19 @@ def run_story_analysis(
         source_language,
     )
     events, entities = extract_events_and_entities(segments=translated_segments)
+    validate_extraction_output(events)
+    validate_beat_input(events)
     beats = detect_story_beats(events=events)
+    validate_beat_output(beats)
+    validate_theme_input(beats)
     themes, arcs, conflicts, emotions = track_theme_arc_signals(beats=beats, entities=entities)
+    validate_theme_output(themes)
+    validate_timeline_input(events, beats)
     timeline = compose_timeline(events=events, beats=beats)
+    validate_timeline_output(timeline.narrative_order)
+    validate_insight_input(beats, themes)
     insights = generate_insights(beats=beats, themes=themes)
+    validate_insight_output(insights)
     quality_gate, evaluation = evaluate_quality_gate(
         segments=translated_segments,
         insights=insights,

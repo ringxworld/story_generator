@@ -23,6 +23,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "cpp-cppcheck:" in makefile
     assert "wiki-sync:" in makefile
     assert "wiki-sync-push:" in makefile
+    assert "contracts-export:" in makefile
     assert "pr-open:" in makefile
     assert "pr-checks:" in makefile
     assert "pr-merge:" in makefile
@@ -183,6 +184,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "site_name:" in config
     assert "nav:" in config
     assert "Architecture Diagrams:" in config
+    assert "Contracts Registry:" in config
     assert "API:" in config
     assert "Developer Setup:" in config
     assert "Good Essay Mode:" in config
@@ -207,6 +209,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0015 Dark Mode Default and Theme Toggle:" in config
     assert "0016 Native Feature Metrics Acceleration Path:" in config
     assert "0017 Story Bundle Binary Format:" in config
+    assert "0019 Contract Registry and Pipeline Governance:" in config
     assert "0018 Wiki Docs + Product-First Pages:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
@@ -302,6 +305,8 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0015-dark-mode-default-and-toggle.md").exists()
     assert (ROOT / "docs" / "adr" / "0016-native-feature-metrics-acceleration-path.md").exists()
     assert (ROOT / "docs" / "adr" / "0017-story-bundle-binary-format.md").exists()
+    assert (ROOT / "docs" / "adr" / "0019-contract-registry-and-pipeline-governance.md").exists()
+    assert (ROOT / "docs" / "contracts_registry.md").exists()
     assert (ROOT / "docs" / "adr" / "0018-wiki-docs-and-product-first-pages.md").exists()
     assert (ROOT / "docs" / "story_bundle.md").exists()
     assert (ROOT / "docs" / "observability.md").exists()
@@ -376,6 +381,7 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "tools" / "run_dev_tool.py").exists()
     assert (ROOT / "tools" / "pr_flow.py").exists()
     assert (ROOT / "tools" / "sync_wiki.py").exists()
+    assert (ROOT / "tools" / "export_contract_registry.py").exists()
     assert (ROOT / ".dockerignore").exists()
     assert (ROOT / "docker-compose.yml").exists()
     assert (ROOT / "docker" / "api.Dockerfile").exists()
@@ -405,6 +411,7 @@ def test_pr_flow_supports_explicit_or_fallback_gh_binary() -> None:
     assert (ROOT / "web" / "public" / "icons" / "icon-512.png").exists()
     assert (ROOT / "docs" / "assets" / "brand" / "story-gen-mark.svg").exists()
     assert (ROOT / "docs" / "assets" / "brand" / "story-gen-favicon.svg").exists()
+    assert (ROOT / "work" / "contracts" / "story_pipeline_contract_registry.v1.json").exists()
 
 
 def test_gitattributes_enforces_cross_platform_line_endings() -> None:

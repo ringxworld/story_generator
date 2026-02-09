@@ -17,6 +17,7 @@
 
 - Architecture contracts: `docs/architecture.md`
 - Visual architecture map: `docs/architecture_diagrams.md`
+- Contract registry: `docs/contracts_registry.md`
 - ADR workflow: `docs/adr/README.md`
 - Dependency model: `docs/dependency_charts.md`
 - Reference ingestion: `docs/reference_pipeline.md`
