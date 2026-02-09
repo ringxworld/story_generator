@@ -214,113 +214,228 @@ def _fill_spark(
 
 def _render_icon(size: int) -> bytes:
     canvas = bytearray(size * size * 4)
-    center = size / 2
+    center_x = size / 2
+    center_y = size / 2
     for y in range(size):
         for x in range(size):
             nx = (x + 0.5) / size - 0.5
             ny = (y + 0.5) / size - 0.5
-            dist = min(1.0, math.sqrt(nx * nx + ny * ny) / 0.72)
-            shade = _clamp(0.85 - dist * 0.65, 0.0, 1.0)
-            base = _mix_rgb(INK, PRIMARY, shade)
+            dist = min(1.0, math.sqrt(nx * nx + ny * ny) / 0.75)
+            shade = _clamp(0.92 - dist * 0.72, 0.0, 1.0)
+            base = _mix_rgb(INK, PRIMARY_STRONG, shade)
             idx = (y * size + x) * 4
             canvas[idx] = base[0]
             canvas[idx + 1] = base[1]
             canvas[idx + 2] = base[2]
             canvas[idx + 3] = 255
 
-    ring_color = (BORDER[0], BORDER[1], BORDER[2], 140)
+    ring_color = (BORDER[0], BORDER[1], BORDER[2], 120)
     _stroke_circle(
         canvas,
         size,
-        cx=center,
-        cy=center * 0.94,
-        radius=size * 0.325,
-        thickness=size * 0.05,
+        cx=center_x,
+        cy=center_y * 0.88,
+        radius=size * 0.31,
+        thickness=size * 0.045,
         color=ring_color,
     )
+    _stroke_circle(
+        canvas,
+        size,
+        cx=center_x,
+        cy=center_y * 0.88,
+        radius=size * 0.255,
+        thickness=size * 0.02,
+        color=(BORDER[0], BORDER[1], BORDER[2], 95),
+    )
 
-    book_x = int(size * 0.22)
-    book_y = int(size * 0.54)
-    book_w = int(size * 0.56)
-    book_h = int(size * 0.29)
-    book_radius = int(size * 0.05)
+    book_y = int(size * 0.55)
+    book_h = int(size * 0.28)
+    spread_w = int(size * 0.62)
+    spread_x = int((size - spread_w) / 2)
+    page_w = int(spread_w * 0.48)
+    page_gap = max(3, int(size * 0.012))
+    page_radius = int(size * 0.06)
 
     _fill_rounded_rect(
-        canvas, size, book_x - 2, book_y - 2, book_w + 4, book_h + 4, book_radius, BORDER
+        canvas,
+        size,
+        spread_x - 3,
+        book_y - 3,
+        spread_w + 6,
+        book_h + 6,
+        page_radius,
+        BORDER,
     )
-    _fill_rounded_rect(canvas, size, book_x, book_y, book_w, book_h, book_radius, PARCHMENT)
+    _fill_rounded_rect(canvas, size, spread_x, book_y, page_w, book_h, page_radius, PAPER)
+    _fill_rounded_rect(
+        canvas,
+        size,
+        spread_x + page_w + page_gap,
+        book_y,
+        page_w,
+        book_h,
+        page_radius,
+        PAPER,
+    )
     _fill_rect(
         canvas,
         size,
-        int(size * 0.497),
-        int(size * 0.56),
-        int(size * 0.503),
-        int(size * 0.83),
-        (122, 99, 72, 200),
+        spread_x + page_w,
+        book_y + int(size * 0.01),
+        spread_x + page_w + page_gap,
+        book_y + book_h - int(size * 0.01),
+        (120, 93, 63, 220),
     )
     _fill_rect(
         canvas,
         size,
-        int(size * 0.26),
-        int(size * 0.61),
-        int(size * 0.47),
-        int(size * 0.64),
-        (255, 251, 242, 175),
+        spread_x + int(size * 0.05),
+        book_y + int(size * 0.08),
+        spread_x + page_w - int(size * 0.06),
+        book_y + int(size * 0.11),
+        (214, 199, 174, 190),
     )
     _fill_rect(
         canvas,
         size,
-        int(size * 0.53),
-        int(size * 0.61),
-        int(size * 0.74),
-        int(size * 0.64),
-        (255, 251, 242, 175),
+        spread_x + page_w + page_gap + int(size * 0.05),
+        book_y + int(size * 0.08),
+        spread_x + spread_w - int(size * 0.06),
+        book_y + int(size * 0.11),
+        (214, 199, 174, 190),
+    )
+    for idx in range(3):
+        y = book_y + int(size * 0.13) + idx * int(size * 0.035)
+        _fill_rect(
+            canvas,
+            size,
+            spread_x + int(size * 0.05),
+            y,
+            spread_x + page_w - int(size * 0.08),
+            y + int(size * 0.012),
+            (225, 212, 191, 175),
+        )
+        _fill_rect(
+            canvas,
+            size,
+            spread_x + page_w + page_gap + int(size * 0.08),
+            y,
+            spread_x + spread_w - int(size * 0.05),
+            y + int(size * 0.012),
+            (225, 212, 191, 175),
+        )
+
+    glow_center_x = center_x
+    glow_center_y = size * 0.34
+    _stroke_circle(
+        canvas,
+        size,
+        cx=glow_center_x,
+        cy=glow_center_y,
+        radius=size * 0.1,
+        thickness=size * 0.05,
+        color=(247, 242, 230, 60),
+    )
+    _stroke_circle(
+        canvas,
+        size,
+        cx=glow_center_x,
+        cy=glow_center_y,
+        radius=size * 0.11,
+        thickness=size * 0.024,
+        color=(247, 242, 230, 120),
     )
 
+    orbit = [
+        (size * 0.36, size * 0.49, size * 0.41, size * 0.39),
+        (size * 0.41, size * 0.39, size * 0.50, size * 0.31),
+        (size * 0.50, size * 0.31, size * 0.59, size * 0.36),
+        (size * 0.59, size * 0.36, size * 0.64, size * 0.46),
+    ]
+    for x0, y0, x1, y1 in orbit:
+        _draw_line(
+            canvas,
+            size,
+            x0=x0,
+            y0=y0,
+            x1=x1,
+            y1=y1,
+            width=size * 0.05,
+            color=(88, 126, 109, 180),
+        )
     _draw_line(
         canvas,
         size,
-        x0=size * 0.32,
-        y0=size * 0.42,
-        x1=size * 0.67,
-        y1=size * 0.24,
-        width=size * 0.075,
-        color=ACCENT_STRONG,
+        x0=size * 0.36,
+        y0=size * 0.49,
+        x1=size * 0.64,
+        y1=size * 0.46,
+        width=size * 0.028,
+        color=(160, 206, 183, 220),
     )
     _draw_line(
         canvas,
         size,
-        x0=size * 0.32,
-        y0=size * 0.41,
-        x1=size * 0.67,
-        y1=size * 0.23,
-        width=size * 0.043,
+        x0=size * 0.46,
+        y0=size * 0.52,
+        x1=size * 0.50,
+        y1=size * 0.31,
+        width=size * 0.016,
         color=ACCENT,
     )
-
-    nib_x = size * 0.69
-    nib_y = size * 0.23
-    _fill_diamond(canvas, size, nib_x, nib_y, size * 0.047, PRIMARY_STRONG)
-    _fill_diamond(canvas, size, nib_x, nib_y, size * 0.037, PAPER)
-    _fill_diamond(canvas, size, nib_x + size * 0.012, nib_y, size * 0.01, PRIMARY_STRONG)
 
     _fill_spark(
         canvas,
         size,
-        cx=size * 0.77,
-        cy=size * 0.165,
-        arm=size * 0.05,
-        core=size * 0.013,
+        cx=size * 0.50,
+        cy=size * 0.23,
+        arm=size * 0.055,
+        core=size * 0.014,
         color=PAPER,
     )
     _fill_spark(
         canvas,
         size,
-        cx=size * 0.77,
-        cy=size * 0.165,
+        cx=size * 0.50,
+        cy=size * 0.23,
         arm=size * 0.035,
         core=size * 0.01,
         color=ACCENT,
+    )
+    _fill_spark(
+        canvas,
+        size,
+        cx=size * 0.62,
+        cy=size * 0.24,
+        arm=size * 0.028,
+        core=size * 0.008,
+        color=(247, 242, 230, 220),
+    )
+    _fill_spark(
+        canvas,
+        size,
+        cx=size * 0.38,
+        cy=size * 0.29,
+        arm=size * 0.022,
+        core=size * 0.007,
+        color=(247, 242, 230, 200),
+    )
+    _fill_diamond(
+        canvas,
+        size,
+        cx=size * 0.31,
+        cy=size * 0.42,
+        radius=size * 0.018,
+        color=(247, 242, 230, 175),
+    )
+    _fill_diamond(
+        canvas,
+        size,
+        cx=size * 0.69,
+        cy=size * 0.40,
+        radius=size * 0.016,
+        color=(247, 242, 230, 160),
     )
 
     return _encode_png(size, size, bytes(canvas))
@@ -378,35 +493,51 @@ def _encode_ico(entries: list[tuple[int, bytes]]) -> bytes:
 def _brand_svg() -> str:
     return """<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" role=\"img\" aria-label=\"story_gen brand mark\">
   <defs>
-    <radialGradient id=\"sg-bg\" cx=\"36%\" cy=\"34%\" r=\"75%\">
-      <stop offset=\"0%\" stop-color=\"#2E473D\"/>
+    <radialGradient id=\"sg-bg\" cx=\"34%\" cy=\"28%\" r=\"78%\">
+      <stop offset=\"0%\" stop-color=\"#38584B\"/>
+      <stop offset=\"62%\" stop-color=\"#2E473D\"/>
       <stop offset=\"100%\" stop-color=\"#1F1B17\"/>
     </radialGradient>
+    <linearGradient id=\"sg-page\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">
+      <stop offset=\"0%\" stop-color=\"#F7F2E6\"/>
+      <stop offset=\"100%\" stop-color=\"#EADCC2\"/>
+    </linearGradient>
+    <linearGradient id=\"sg-magic\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">
+      <stop offset=\"0%\" stop-color=\"#A45B2A\"/>
+      <stop offset=\"100%\" stop-color=\"#E3B27B\"/>
+    </linearGradient>
   </defs>
-  <rect x=\"0\" y=\"0\" width=\"512\" height=\"512\" rx=\"112\" fill=\"url(#sg-bg)\"/>
-  <circle cx=\"256\" cy=\"241\" r=\"166\" fill=\"none\" stroke=\"#CCB99A\" stroke-width=\"24\" stroke-opacity=\"0.55\"/>
-  <rect x=\"113\" y=\"276\" width=\"286\" height=\"148\" rx=\"28\" fill=\"#CCB99A\"/>
-  <rect x=\"121\" y=\"284\" width=\"270\" height=\"132\" rx=\"24\" fill=\"#EFE3CC\"/>
-  <line x1=\"256\" y1=\"292\" x2=\"256\" y2=\"416\" stroke=\"#7A6348\" stroke-width=\"6\" stroke-opacity=\"0.8\"/>
-  <rect x=\"136\" y=\"312\" width=\"104\" height=\"12\" fill=\"#FFF8EE\" fill-opacity=\"0.72\"/>
-  <rect x=\"272\" y=\"312\" width=\"104\" height=\"12\" fill=\"#FFF8EE\" fill-opacity=\"0.72\"/>
-  <line x1=\"164\" y1=\"212\" x2=\"344\" y2=\"122\" stroke=\"#7E441D\" stroke-width=\"38\" stroke-linecap=\"round\"/>
-  <line x1=\"164\" y1=\"212\" x2=\"344\" y2=\"122\" stroke=\"#A45B2A\" stroke-width=\"22\" stroke-linecap=\"round\"/>
-  <polygon points=\"353,98 377,122 353,146 329,122\" fill=\"#21352D\"/>
-  <polygon points=\"353,106 369,122 353,138 337,122\" fill=\"#F7F2E6\"/>
-  <polygon points=\"359,122 365,128 359,134 353,128\" fill=\"#21352D\"/>
-  <path d=\"M394 57l8 23h23l-18 14 7 23-20-13-20 13 7-23-18-14h23z\" fill=\"#F7F2E6\"/>
-  <path d=\"M394 67l5 15h15l-12 9 5 15-13-9-13 9 5-15-12-9h15z\" fill=\"#A45B2A\"/>
+  <rect width=\"512\" height=\"512\" rx=\"108\" fill=\"url(#sg-bg)\"/>
+  <circle cx=\"256\" cy=\"228\" r=\"160\" fill=\"none\" stroke=\"#CCB99A\" stroke-width=\"22\" stroke-opacity=\"0.42\"/>
+  <circle cx=\"256\" cy=\"228\" r=\"128\" fill=\"none\" stroke=\"#CCB99A\" stroke-width=\"10\" stroke-opacity=\"0.20\"/>
+  <rect x=\"94\" y=\"278\" width=\"324\" height=\"154\" rx=\"34\" fill=\"#CCB99A\"/>
+  <rect x=\"104\" y=\"288\" width=\"152\" height=\"134\" rx=\"28\" fill=\"url(#sg-page)\"/>
+  <rect x=\"256\" y=\"288\" width=\"152\" height=\"134\" rx=\"28\" fill=\"url(#sg-page)\"/>
+  <rect x=\"252\" y=\"292\" width=\"8\" height=\"126\" rx=\"4\" fill=\"#7A6348\" fill-opacity=\"0.9\"/>
+  <rect x=\"130\" y=\"320\" width=\"96\" height=\"10\" rx=\"5\" fill=\"#D8C9AD\"/>
+  <rect x=\"286\" y=\"320\" width=\"96\" height=\"10\" rx=\"5\" fill=\"#D8C9AD\"/>
+  <rect x=\"130\" y=\"344\" width=\"84\" height=\"8\" rx=\"4\" fill=\"#DFD1B8\"/>
+  <rect x=\"298\" y=\"344\" width=\"84\" height=\"8\" rx=\"4\" fill=\"#DFD1B8\"/>
+  <path d=\"M185 258C205 221 237 199 256 199C275 199 307 221 327 258\" fill=\"none\" stroke=\"#4E7B69\" stroke-width=\"28\" stroke-linecap=\"round\"/>
+  <path d=\"M185 258C205 221 237 199 256 199C275 199 307 221 327 258\" fill=\"none\" stroke=\"#91C7AE\" stroke-width=\"14\" stroke-linecap=\"round\"/>
+  <path d=\"M238 269C246 252 251 237 256 208C261 237 266 252 274 269\" fill=\"none\" stroke=\"url(#sg-magic)\" stroke-width=\"11\" stroke-linecap=\"round\"/>
+  <path d=\"M256 90l10 30h30l-24 18 9 30-25-17-25 17 9-30-24-18h30z\" fill=\"#F7F2E6\"/>
+  <path d=\"M256 102l6 18h18l-14 10 5 18-15-10-15 10 5-18-14-10h18z\" fill=\"#A45B2A\"/>
+  <path d=\"M319 116l6 18h18l-14 10 5 18-15-10-15 10 5-18-14-10h18z\" fill=\"#F7F2E6\" fill-opacity=\"0.85\"/>
+  <path d=\"M193 132l5 14h14l-11 8 4 14-12-8-12 8 4-14-11-8h14z\" fill=\"#F7F2E6\" fill-opacity=\"0.75\"/>
+  <circle cx=\"180\" cy=\"214\" r=\"7\" fill=\"#F7F2E6\" fill-opacity=\"0.70\"/>
+  <circle cx=\"332\" cy=\"214\" r=\"6\" fill=\"#F7F2E6\" fill-opacity=\"0.65\"/>
 </svg>
 """
 
 
 def _safari_svg() -> str:
     return """<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\">
-  <rect x=\"120\" y=\"284\" width=\"272\" height=\"132\" rx=\"24\" fill=\"#000\"/>
-  <rect x=\"252\" y=\"292\" width=\"8\" height=\"124\" fill=\"#fff\"/>
-  <path d=\"M164 212l180-90\" stroke=\"#000\" stroke-width=\"38\" stroke-linecap=\"round\"/>
-  <path d=\"M394 57l8 23h23l-18 14 7 23-20-13-20 13 7-23-18-14h23z\" fill=\"#000\"/>
+  <rect x=\"104\" y=\"288\" width=\"152\" height=\"134\" rx=\"28\" fill=\"#000\"/>
+  <rect x=\"256\" y=\"288\" width=\"152\" height=\"134\" rx=\"28\" fill=\"#000\"/>
+  <rect x=\"252\" y=\"292\" width=\"8\" height=\"126\" rx=\"4\" fill=\"#fff\"/>
+  <path d=\"M185 258C205 221 237 199 256 199C275 199 307 221 327 258\" fill=\"none\" stroke=\"#000\" stroke-width=\"28\" stroke-linecap=\"round\"/>
+  <path d=\"M256 90l10 30h30l-24 18 9 30-25-17-25 17 9-30-24-18h30z\" fill=\"#000\"/>
 </svg>
 """
 

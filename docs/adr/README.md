@@ -19,4 +19,5 @@ Start from `0000-template.md`.
 Latest ADR:
 
 - `0020-pages-hosted-mkdocs-snapshot.md`
-- `0021-dashboard-png-export-surface.md`
+- `0021-pages-hosted-python-api-reference.md`
+- `0022-dashboard-png-export-surface.md`

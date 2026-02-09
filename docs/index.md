@@ -23,5 +23,6 @@
 - Reference ingestion: `docs/reference_pipeline.md`
 - Native acceleration: `docs/native_cpp.md`
 - API stub: `docs/api.md`
+- Python API reference: `docs/python_api_reference.md`
 - Developer setup runbook: `docs/developer_setup.md`
 - Wiki sync guide: `docs/wiki_docs.md`

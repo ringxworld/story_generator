@@ -24,6 +24,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "wiki-sync:" in makefile
     assert "wiki-sync-push:" in makefile
     assert "contracts-export:" in makefile
+    assert "project-sync:" in makefile
     assert "pr-open:" in makefile
     assert "pr-checks:" in makefile
     assert "pr-merge:" in makefile
@@ -84,6 +85,19 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "Run full checks in CI Docker image" in workflow
 
 
+def test_project_board_sync_workflow_exists() -> None:
+    workflow = _read(".github/workflows/project-board-sync.yml")
+    assert "name: Project Board Sync" in workflow
+    assert "schedule:" in workflow
+    assert "issues:" in workflow
+    assert "pull_request:" in workflow
+    assert "repository-projects: write" in workflow
+    assert "PROJECT_SYNC_TOKEN" in workflow
+    assert "skipping project sync" in workflow
+    assert "tools/project_board_sync.py" in workflow
+    assert "--project-number 2" in workflow
+
+
 def test_deploy_workflow_requires_ci_success() -> None:
     workflow = _read(".github/workflows/deploy-pages.yml")
     assert "workflow_run:" in workflow
@@ -97,6 +111,8 @@ def test_deploy_workflow_requires_ci_success() -> None:
     assert "uv sync --group dev" in workflow
     assert "Build docs snapshot" in workflow
     assert "uv run mkdocs build --strict --site-dir docs_site" in workflow
+    assert "Build Python API reference snapshot" in workflow
+    assert "uv run python tools/build_python_api_docs.py --output-dir pydoc_site" in workflow
     assert "Setup Node" in workflow
     assert "Build product demo snapshot" in workflow
     assert "VITE_BASE_PATH: /${{ github.event.repository.name }}/" in workflow
@@ -105,6 +121,8 @@ def test_deploy_workflow_requires_ci_success() -> None:
     assert "site/studio" in workflow
     assert "site/docs" in workflow
     assert "cp -R docs_site/. site/docs/" in workflow
+    assert "site/pydoc" in workflow
+    assert "cp -R pydoc_site/. site/pydoc/" in workflow
 
 
 def test_native_cmake_scaffold_present() -> None:
@@ -195,6 +213,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "Architecture Diagrams:" in config
     assert "Contracts Registry:" in config
     assert "API:" in config
+    assert "Python API Reference:" in config
     assert "Developer Setup:" in config
     assert "Good Essay Mode:" in config
     assert "Deployment:" in config
@@ -221,7 +240,8 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0019 Contract Registry and Pipeline Governance:" in config
     assert "0018 Wiki Docs + Product-First Pages:" in config
     assert "0020 Pages Hosted MkDocs Snapshot:" in config
-    assert "0021 Dashboard PNG Export Surface:" in config
+    assert "0021 Pages Hosted Python API Reference:" in config
+    assert "0022 Dashboard PNG Export Surface:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -273,6 +293,13 @@ def test_pre_push_checks_include_docs_and_cpp_format() -> None:
     assert '"story-gen-ci-prepush"' in checks
 
 
+def test_project_board_tools_resolve_gh_binary_portably() -> None:
+    board_audit = _read("tools/project_board_audit.py")
+    board_sync = _read("tools/project_board_sync.py")
+    assert "def _resolve_gh_binary() -> str:" in board_audit
+    assert "def _resolve_gh_binary() -> str:" in board_sync
+
+
 def test_ci_dockerfile_installs_dev_group_only() -> None:
     dockerfile = _read("docker/ci.Dockerfile")
     assert "uv sync --group dev" in dockerfile
@@ -316,10 +343,11 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "adr" / "0015-dark-mode-default-and-toggle.md").exists()
     assert (ROOT / "docs" / "adr" / "0016-native-feature-metrics-acceleration-path.md").exists()
     assert (ROOT / "docs" / "adr" / "0017-story-bundle-binary-format.md").exists()
+    assert (ROOT / "docs" / "adr" / "0021-pages-hosted-python-api-reference.md").exists()
     assert (ROOT / "docs" / "adr" / "0019-contract-registry-and-pipeline-governance.md").exists()
     assert (ROOT / "docs" / "contracts_registry.md").exists()
     assert (ROOT / "docs" / "adr" / "0018-wiki-docs-and-product-first-pages.md").exists()
-    assert (ROOT / "docs" / "adr" / "0021-dashboard-png-export-surface.md").exists()
+    assert (ROOT / "docs" / "adr" / "0022-dashboard-png-export-surface.md").exists()
     assert (ROOT / "docs" / "story_bundle.md").exists()
     assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "graph_strategy.md").exists()
@@ -327,6 +355,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "developer_setup.md").exists()
     assert (ROOT / "docs" / "github_collaboration.md").exists()
     assert (ROOT / "docs" / "wiki_docs.md").exists()
+    assert (ROOT / "docs" / "python_api_reference.md").exists()
     assert (ROOT / "docs" / "essay_mode.md").exists()
     assert (ROOT / "docs" / "droplet_stack.md").exists()
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
@@ -346,8 +375,22 @@ def test_api_docs_reference_swagger_and_openapi_endpoints() -> None:
     assert "http://127.0.0.1:8000/docs" in api_docs
     assert "http://127.0.0.1:8000/redoc" in api_docs
     assert "http://127.0.0.1:8000/openapi.json" in api_docs
+    assert "https://ringxworld.github.io/story_generator/pydoc/" in api_docs
     assert "Authorize" in api_docs
     assert "http://127.0.0.1:8000/redoc" in setup_docs
+
+
+def test_pyproject_dev_group_includes_python_api_docs_generator() -> None:
+    pyproject = _read("pyproject.toml")
+    assert '"pdoc>=' in pyproject
+
+
+def test_python_api_docs_builder_script_exists() -> None:
+    builder = _read("tools/build_python_api_docs.py")
+    assert "def _discover_modules" in builder
+    assert "python tools/build_python_api_docs.py --output-dir pydoc_site" in _read(
+        ".github/workflows/deploy-pages.yml"
+    )
 
 
 def test_analysis_contract_scaffold_exists_and_is_valid_json() -> None:

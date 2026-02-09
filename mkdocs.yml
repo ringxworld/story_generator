@@ -35,6 +35,7 @@ nav:
   - Architecture Diagrams: architecture_diagrams.md
   - Contracts Registry: contracts_registry.md
   - API: api.md
+  - Python API Reference: python_api_reference.md
   - Developer Setup: developer_setup.md
   - Good Essay Mode: essay_mode.md
   - Deployment: deployment.md
@@ -68,7 +69,8 @@ nav:
       - 0019 Contract Registry and Pipeline Governance: adr/0019-contract-registry-and-pipeline-governance.md
       - 0018 Wiki Docs + Product-First Pages: adr/0018-wiki-docs-and-product-first-pages.md
       - 0020 Pages Hosted MkDocs Snapshot: adr/0020-pages-hosted-mkdocs-snapshot.md
-      - 0021 Dashboard PNG Export Surface: adr/0021-dashboard-png-export-surface.md
+      - 0021 Pages Hosted Python API Reference: adr/0021-pages-hosted-python-api-reference.md
+      - 0022 Dashboard PNG Export Surface: adr/0022-dashboard-png-export-surface.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

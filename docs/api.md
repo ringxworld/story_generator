@@ -77,6 +77,14 @@ When the API is running locally:
 - ReDoc: `http://127.0.0.1:8000/redoc`
 - OpenAPI JSON: `http://127.0.0.1:8000/openapi.json`
 
+## Hosted Python API reference (Pages)
+
+Static module reference pages are published to:
+
+- `https://ringxworld.github.io/story_generator/pydoc/`
+
+These pages are generated from Python source via `pdoc` during the Pages deploy workflow.
+
 Auth flow in Swagger UI:
 
 1. Call `POST /api/v1/auth/login`.
