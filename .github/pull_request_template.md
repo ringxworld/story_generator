@@ -9,6 +9,22 @@ Use full URLs so GitHub links them automatically.
 
 - https://github.com/ringxworld/story_generator/issues/<id>
 
+## Merge Gates
+
+Before requesting merge, expect these required checks to pass on `develop`/`main`:
+
+- `label`
+- `pr-template`
+- `quality`
+- `frontend`
+- `pages`
+- `native`
+- `docker`
+
+Local command that mirrors the full gate:
+
+- `make check`
+
 ## Full Mode (Larger/Riskier Change)
 
 Use this mode for larger, cross-cutting, or higher-risk PRs.
