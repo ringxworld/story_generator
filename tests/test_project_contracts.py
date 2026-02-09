@@ -377,6 +377,12 @@ def test_boundary_package_scaffolds_exist() -> None:
     assert (ROOT / "web" / "public" / "favicon.svg").exists()
     assert (ROOT / "web" / "public" / "favicon.ico").exists()
     assert (ROOT / "web" / "public" / "site.webmanifest").exists()
+
+
+def test_pr_flow_supports_explicit_or_fallback_gh_binary() -> None:
+    script = _read("tools/pr_flow.py")
+    assert "GH_BIN" in script
+    assert "GitHub CLI\\gh.exe" in script
     assert (ROOT / "web" / "public" / "icons" / "icon-16.png").exists()
     assert (ROOT / "web" / "public" / "icons" / "icon-32.png").exists()
     assert (ROOT / "web" / "public" / "icons" / "icon-192.png").exists()

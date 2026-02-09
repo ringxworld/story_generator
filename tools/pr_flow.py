@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -10,6 +12,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PR_TEMPLATE_PATH = REPO_ROOT / ".github" / "pull_request_template.md"
 PROTECTED_BRANCHES = {"main", "develop"}
+WINDOWS_GH_PATH = Path(r"C:\Program Files\GitHub CLI\gh.exe")
 
 
 class PrFlowError(RuntimeError):
@@ -22,6 +25,24 @@ class PullRequestRef:
 
     number: int
     url: str
+
+
+def _resolve_gh_binary() -> str:
+    if configured := os.environ.get("GH_BIN"):
+        candidate = Path(configured)
+        if candidate.exists():
+            return str(candidate)
+        raise PrFlowError(f"GH_BIN points to missing executable: {candidate}")
+
+    if found := shutil.which("gh"):
+        return found
+
+    if os.name == "nt" and WINDOWS_GH_PATH.exists():
+        return str(WINDOWS_GH_PATH)
+
+    raise PrFlowError(
+        "GitHub CLI executable not found. Install `gh`, set GH_BIN, or add it to PATH."
+    )
 
 
 def _run(command: list[str], *, capture_output: bool = False) -> subprocess.CompletedProcess[str]:
@@ -70,7 +91,7 @@ def _ensure_feature_branch() -> str:
 
 def _resolve_current_pr() -> PullRequestRef | None:
     completed = _run(
-        ["gh", "pr", "view", "--json", "number,url"],
+        [_resolve_gh_binary(), "pr", "view", "--json", "number,url"],
         capture_output=True,
     )
     if completed.returncode != 0:
@@ -105,7 +126,7 @@ def open_pr(*, base: str, title: str | None) -> PullRequestRef:
     )
     completed = _run_or_raise(
         [
-            "gh",
+            _resolve_gh_binary(),
             "pr",
             "create",
             "--base",
@@ -129,7 +150,7 @@ def open_pr(*, base: str, title: str | None) -> PullRequestRef:
 
 def watch_checks(*, pr: str | None) -> None:
     pr_ref = _resolve_pr_ref(pr)
-    _run_or_raise(["gh", "pr", "checks", pr_ref, "--watch"])
+    _run_or_raise([_resolve_gh_binary(), "pr", "checks", pr_ref, "--watch"])
     print(f"Checks passed for PR {pr_ref}.")
 
 
@@ -142,7 +163,14 @@ def merge_pr(*, pr: str | None, merge_method: str) -> None:
         "rebase": "--rebase",
     }[merge_method]
     _run_or_raise(
-        ["gh", "pr", "merge", pr_ref, method_flag, "--delete-branch=false"],
+        [
+            _resolve_gh_binary(),
+            "pr",
+            "merge",
+            pr_ref,
+            method_flag,
+            "--delete-branch=false",
+        ],
     )
     print(f"Merged PR {pr_ref} with method '{merge_method}'.")
 
