@@ -33,6 +33,12 @@ make pr-auto
 
 Docs are authored in `docs/` and mirrored into the repo wiki.
 
+Automation:
+
+- `.github/workflows/wiki-sync.yml` syncs wiki content on pushes to `develop`/`main`
+  when docs or sync tooling changes.
+- You can also run the same sync workflow manually from the Actions tab.
+
 ```bash
 make wiki-sync       # update local wiki clone from docs/
 make wiki-sync-push  # publish synced docs to GitHub wiki
