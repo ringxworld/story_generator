@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -106,6 +107,13 @@ def test_swagger_redoc_and_openapi_endpoints_are_available() -> None:
     payload = openapi.json()
     assert payload["info"]["title"] == "story_gen API"
     assert any(tag["name"] == "auth" for tag in payload["tags"])
+
+
+def test_openapi_snapshot_matches_generated_schema() -> None:
+    snapshot_path = Path("docs/assets/openapi/story_gen.openapi.json")
+    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    generated = create_app().openapi()
+    assert snapshot == generated
 
 
 def test_api_root_reports_auth_and_story_endpoints() -> None:

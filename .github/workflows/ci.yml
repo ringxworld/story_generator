@@ -45,6 +45,9 @@ jobs:
       - name: Contract drift check
         run: uv run python tools/check_contract_drift.py
 
+      - name: OpenAPI snapshot drift check
+        run: uv run python tools/export_openapi_snapshot.py --check
+
       - name: Lockfile check
         run: uv lock --check
 

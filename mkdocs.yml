@@ -80,6 +80,7 @@ nav:
       - 0027 Pipeline Ingestion Resilience and Canary Enforcement: adr/0027-pipeline-ingestion-resilience-and-canary.md
       - 0028 QA Evaluation Harness and Calibration Gates: adr/0028-qa-evaluation-harness-and-calibration-gates.md
       - 0029 NLP Provider Resilience and Insight Calibration: adr/0029-nlp-provider-resilience-and-insight-calibration.md
+      - 0030 OpenAPI Snapshot and Hosted API Reference: adr/0030-openapi-snapshot-and-hosted-api-reference.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md
