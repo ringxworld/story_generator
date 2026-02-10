@@ -21,6 +21,7 @@ def _roadmap_item(
     *,
     track: str | None = "Pipeline",
     priority: str | None = "High",
+    status: str | None = "Backlog",
 ) -> dict[str, object]:
     return {
         "content": {"number": number},
@@ -28,6 +29,7 @@ def _roadmap_item(
         "title": f"Issue {number}",
         "track": track,
         "priority Band": priority,
+        "status": status,
     }
 
 
@@ -66,6 +68,7 @@ def test_evaluate_project_hygiene_fails_for_missing_roadmap_values() -> None:
     items = [_roadmap_item(number) for number in range(2, 12)]
     items[0]["track"] = None
     items[1]["priority Band"] = None
+    items[2]["status"] = None
 
     result = evaluate_project_hygiene(
         title="Story Generator Roadmap Board",
@@ -80,6 +83,7 @@ def test_evaluate_project_hygiene_fails_for_missing_roadmap_values() -> None:
 
     assert any("missing Track" in error for error in result.errors)
     assert any("missing Priority Band" in error for error in result.errors)
+    assert any("missing Status" in error for error in result.errors)
 
 
 def test_evaluate_project_hygiene_requires_manual_step_when_view_placeholder_exists() -> None:

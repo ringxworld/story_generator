@@ -251,6 +251,18 @@ def _derive_track(labels: set[str]) -> str | None:
     return None
 
 
+def _derive_status(labels: set[str], content_type: str) -> str | None:
+    if "Status: Blocked" in labels:
+        return "Blocked"
+    if "Status: Needs Review" in labels:
+        return "Review"
+    if "Status: In Progress" in labels:
+        return "In Progress"
+    if content_type == "PullRequest":
+        return "Review"
+    return "Backlog"
+
+
 def _set_single_select_field(
     *,
     item_id: str,
@@ -282,18 +294,21 @@ def _fill_roadmap_fields(
 ) -> int:
     track_field = field_map.get("Track")
     priority_field = field_map.get("Priority Band")
-    if not track_field or not priority_field:
-        raise ProjectBoardSyncError("Project is missing Track/Priority Band single-select fields.")
+    status_field = field_map.get("Status")
+    if not track_field or not priority_field or not status_field:
+        raise ProjectBoardSyncError(
+            "Project is missing Track/Priority Band/Status single-select fields."
+        )
 
     items = _collect_project_items(owner=owner, project_number=project_number)
     edits = 0
     for item in items:
         content = cast(dict[str, Any], item.get("content", {}))
-        if str(content.get("type", "")) != "Issue":
+        content_type = str(content.get("type", ""))
+        if content_type not in {"Issue", "PullRequest"}:
             continue
         labels = {str(label).strip() for label in cast(list[str], item.get("labels", [])) if label}
-        if roadmap_label not in labels:
-            continue
+        is_roadmap = roadmap_label in labels
 
         item_id = str(item.get("id", "")).strip()
         if not item_id:
@@ -301,11 +316,13 @@ def _fill_roadmap_fields(
 
         current_track = str(item.get("track", "")).strip()
         current_priority = str(item.get("priority Band", "")).strip()
+        current_status = str(item.get("status", "")).strip()
 
-        desired_track = _derive_track(labels)
-        desired_priority = _derive_priority_band(labels)
+        desired_track = _derive_track(labels) if is_roadmap else None
+        desired_priority = _derive_priority_band(labels) if is_roadmap else None
+        desired_status = _derive_status(labels, content_type)
 
-        if not current_track and desired_track:
+        if is_roadmap and not current_track and desired_track:
             option_id = track_field.get(f"option:{desired_track}", "")
             if option_id:
                 _set_single_select_field(
@@ -316,13 +333,24 @@ def _fill_roadmap_fields(
                 )
                 edits += 1
 
-        if not current_priority and desired_priority:
+        if is_roadmap and not current_priority and desired_priority:
             option_id = priority_field.get(f"option:{desired_priority}", "")
             if option_id:
                 _set_single_select_field(
                     item_id=item_id,
                     project_id=project_id,
                     field_id=priority_field["id"],
+                    option_id=option_id,
+                )
+                edits += 1
+
+        if not current_status and desired_status:
+            option_id = status_field.get(f"option:{desired_status}", "")
+            if option_id:
+                _set_single_select_field(
+                    item_id=item_id,
+                    project_id=project_id,
+                    field_id=status_field["id"],
                     option_id=option_id,
                 )
                 edits += 1
