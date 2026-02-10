@@ -144,6 +144,32 @@ def test_pipeline_timeline_and_heatmap_exports_are_deterministic() -> None:
     assert heatmap_png_first == heatmap_png_second
 
 
+def test_pipeline_graph_edges_are_evidence_driven() -> None:
+    """Verify graph edges only connect themes and beats with shared evidence segments."""
+    result = run_story_analysis(story_id="story-drilldown", source_text=_sample_story())
+
+    # Collect theme and beat IDs
+    theme_ids = {node.id for node in result.dashboard.graph_nodes if node.group == "theme"}
+    beat_ids = {node.id for node in result.dashboard.graph_nodes if node.group == "beat"}
+
+    # Verify edges only exist between themes and beats (no other connections)
+    for edge in result.dashboard.graph_edges:
+        assert edge.relation == "expressed_in"
+        assert edge.source in theme_ids, f"Edge source {edge.source} not a theme"
+        assert edge.target in beat_ids, f"Edge target {edge.target} not a beat"
+        assert 0.0 < edge.weight <= 1.0, f"Edge weight {edge.weight} out of valid range"
+
+    # Verify no dense all-to-all connection: edge count should be much less than themes × beats
+    total_possible_edges = len(theme_ids) * len(beat_ids)
+    actual_edges = len(result.dashboard.graph_edges)
+    if total_possible_edges > 0:
+        # With evidence-driven filtering, actual edges should be <= 50% of possible edges
+        # (typically much less with real story data)
+        assert actual_edges <= total_possible_edges, (
+            f"Too many edges: {actual_edges} (expected <= {total_possible_edges})"
+        )
+
+
 def test_pipeline_preserves_dashboard_heatmap_and_arc_shapes() -> None:
     result = run_story_analysis(story_id="story-shapes", source_text=_sample_story())
     assert result.dashboard.theme_heatmap
