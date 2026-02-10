@@ -133,7 +133,7 @@ test:
 	$(RUN) pytest
 
 e2e:
-	$(RUN) pytest tests/test_e2e_stack.py
+	$(RUN) pytest tests/test_e2e_stack.py --no-cov
 
 coverage: test
 

@@ -90,6 +90,25 @@ jobs:
       - name: Docs build
         run: uv run mkdocs build --strict
 
+  e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
+
+      - name: Install Python
+        run: uv python install 3.11
+
+      - name: Sync dependencies
+        run: uv sync --group dev
+
+      - name: Live-stack E2E (analysis + dashboard)
+        run: uv run pytest tests/test_e2e_stack.py -q --no-cov
+
   frontend:
     runs-on: ubuntu-latest
 

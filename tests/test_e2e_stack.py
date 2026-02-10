@@ -16,6 +16,25 @@ from story_gen.api.contracts import EssayBlueprint, StoryBlueprint
 from story_gen.api.python_interface import StoryApiClient
 
 
+def _auth_headers(client: httpx.Client, *, email: str, display_name: str) -> dict[str, str]:
+    register = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "password123",
+            "display_name": display_name,
+        },
+    )
+    assert register.status_code == 201
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": "password123"},
+    )
+    assert login.status_code == 200
+    token = login.json()["access_token"]
+    return {"Authorization": f"Bearer {token}"}
+
+
 def _find_free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
@@ -139,23 +158,7 @@ def e2e_api_base_url(tmp_path: Path) -> Iterator[str]:
 
 def test_e2e_story_and_essay_http_flows(e2e_api_base_url: str) -> None:
     with httpx.Client(base_url=e2e_api_base_url, timeout=30.0) as client:
-        register = client.post(
-            "/api/v1/auth/register",
-            json={
-                "email": "e2e@example.com",
-                "password": "password123",
-                "display_name": "E2E",
-            },
-        )
-        assert register.status_code == 201
-
-        login = client.post(
-            "/api/v1/auth/login",
-            json={"email": "e2e@example.com", "password": "password123"},
-        )
-        assert login.status_code == 200
-        token = login.json()["access_token"]
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = _auth_headers(client, email="e2e@example.com", display_name="E2E")
 
         created_story = client.post(
             "/api/v1/stories",
@@ -188,6 +191,132 @@ def test_e2e_story_and_essay_http_flows(e2e_api_base_url: str) -> None:
         evaluated = client.post(f"/api/v1/essays/{essay_id}/evaluate", headers=headers, json={})
         assert evaluated.status_code == 200
         assert evaluated.json()["score"] >= 0
+
+
+def test_e2e_live_stack_analysis_and_dashboard_http_flow(e2e_api_base_url: str) -> None:
+    with httpx.Client(base_url=e2e_api_base_url, timeout=30.0) as client:
+        alice_headers = _auth_headers(
+            client,
+            email="qa-e2e-alice@example.com",
+            display_name="QA E2E Alice",
+        )
+        bob_headers = _auth_headers(
+            client,
+            email="qa-e2e-bob@example.com",
+            display_name="QA E2E Bob",
+        )
+
+        created_story = client.post(
+            "/api/v1/stories",
+            headers=alice_headers,
+            json={"title": "Live Stack Dashboard E2E", "blueprint": _story_blueprint()},
+        )
+        assert created_story.status_code == 201
+        story_id = created_story.json()["story_id"]
+
+        # Unauthenticated dashboard access must be rejected.
+        unauthorized_overview = client.get(f"/api/v1/stories/{story_id}/dashboard/overview")
+        assert unauthorized_overview.status_code == 401
+
+        analysis_run = client.post(
+            f"/api/v1/stories/{story_id}/analysis/run",
+            headers=alice_headers,
+            json={},
+        )
+        assert analysis_run.status_code == 200
+        assert analysis_run.json()["event_count"] >= 1
+
+        overview = client.get(
+            f"/api/v1/stories/{story_id}/dashboard/overview", headers=alice_headers
+        )
+        assert overview.status_code == 200
+        assert overview.json()["events_count"] >= 1
+
+        timeline = client.get(
+            f"/api/v1/stories/{story_id}/dashboard/timeline", headers=alice_headers
+        )
+        assert timeline.status_code == 200
+        assert isinstance(timeline.json(), list)
+        assert timeline.json()
+
+        heatmap = client.get(
+            f"/api/v1/stories/{story_id}/dashboard/themes/heatmap",
+            headers=alice_headers,
+        )
+        assert heatmap.status_code == 200
+        assert isinstance(heatmap.json(), list)
+
+        arcs = client.get(f"/api/v1/stories/{story_id}/dashboard/arcs", headers=alice_headers)
+        assert arcs.status_code == 200
+        assert isinstance(arcs.json(), list)
+
+        graph = client.get(f"/api/v1/stories/{story_id}/dashboard/graph", headers=alice_headers)
+        assert graph.status_code == 200
+        graph_payload = graph.json()
+        assert isinstance(graph_payload["nodes"], list)
+        assert graph_payload["nodes"]
+        assert isinstance(graph_payload["edges"], list)
+
+        drilldown_status_codes: list[int] = []
+        candidate_item_ids: list[str] = []
+        for node in graph_payload["nodes"]:
+            node_id = node.get("id")
+            node_group = node.get("group")
+            if not isinstance(node_id, str):
+                continue
+            if node_group == "theme":
+                candidate_item_ids.append(f"theme:{node_id}")
+            candidate_item_ids.append(node_id)
+        assert candidate_item_ids
+
+        for item_id in candidate_item_ids:
+            drilldown = client.get(
+                f"/api/v1/stories/{story_id}/dashboard/drilldown/{item_id}",
+                headers=alice_headers,
+            )
+            drilldown_status_codes.append(drilldown.status_code)
+            if drilldown.status_code == 200:
+                payload = drilldown.json()
+                assert payload["item_id"] == item_id
+                break
+        assert 200 in drilldown_status_codes
+
+        timeline_export_svg_first = client.get(
+            f"/api/v1/stories/{story_id}/dashboard/timeline/export.svg",
+            headers=alice_headers,
+        )
+        assert timeline_export_svg_first.status_code == 200
+        svg_payload = timeline_export_svg_first.json()
+        assert svg_payload["format"] == "svg"
+        assert svg_payload["svg"].startswith("<svg")
+        timeline_export_svg_second = client.get(
+            f"/api/v1/stories/{story_id}/dashboard/timeline/export.svg",
+            headers=alice_headers,
+        )
+        assert timeline_export_svg_second.status_code == 200
+        assert timeline_export_svg_second.json()["svg"] == svg_payload["svg"]
+
+        graph_export_png_first = client.get(
+            f"/api/v1/stories/{story_id}/dashboard/graph/export.png",
+            headers=alice_headers,
+        )
+        assert graph_export_png_first.status_code == 200
+        png_payload = graph_export_png_first.json()
+        assert png_payload["format"] == "png"
+        assert png_payload["png_base64"]
+        graph_export_png_second = client.get(
+            f"/api/v1/stories/{story_id}/dashboard/graph/export.png",
+            headers=alice_headers,
+        )
+        assert graph_export_png_second.status_code == 200
+        assert graph_export_png_second.json()["png_base64"] == png_payload["png_base64"]
+
+        # Cross-user route access is owner-isolated and intentionally returns 404.
+        cross_user_overview = client.get(
+            f"/api/v1/stories/{story_id}/dashboard/overview",
+            headers=bob_headers,
+        )
+        assert cross_user_overview.status_code == 404
 
 
 def test_e2e_python_client_flow(e2e_api_base_url: str) -> None:
