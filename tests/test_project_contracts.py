@@ -14,6 +14,8 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "hooks-run:" in makefile
     assert "quality:" in makefile
     assert "contracts-check:" in makefile
+    assert "openapi-export:" in makefile
+    assert "openapi-check:" in makefile
     assert "deploy: quality build-site" in makefile
     assert "cpp-configure:" in makefile
     assert "cpp-build:" in makefile
@@ -50,6 +52,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "pytest tests/test_e2e_stack.py" in makefile
     assert "import-check:" in makefile
     assert "quality: lock-check import-check" in makefile
+    assert "openapi-check" in makefile
     assert "frontend-quality:" in makefile
     assert "native-quality:" in makefile
     assert "web-coverage:" in makefile
@@ -74,6 +77,7 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "uv run mkdocs build --strict" in workflow
     assert "uv run python tools/check_imports.py" in workflow
     assert "uv run python tools/check_contract_drift.py" in workflow
+    assert "uv run python tools/export_openapi_snapshot.py --check" in workflow
     assert "Configure CMake" in workflow
     assert "Run native tests" in workflow
     assert "Install native quality tools" in workflow
@@ -118,6 +122,7 @@ def test_deploy_workflow_requires_ci_success() -> None:
     assert "uv python install 3.11" in workflow
     assert "uv sync --group dev" in workflow
     assert "Build docs snapshot" in workflow
+    assert "uv run python tools/export_openapi_snapshot.py" in workflow
     assert "uv run mkdocs build --strict --site-dir docs_site" in workflow
     assert "Build Python API reference snapshot" in workflow
     assert "uv run python tools/build_python_api_docs.py --output-dir pydoc_site" in workflow
@@ -257,6 +262,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0024 Dashboard Timeline and Heatmap Export Surfaces:" in config
     assert "0028 QA Evaluation Harness and Calibration Gates:" in config
     assert "0029 NLP Provider Resilience and Insight Calibration:" in config
+    assert "0030 OpenAPI Snapshot and Hosted API Reference:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -301,6 +307,8 @@ def test_pre_push_checks_include_docs_and_cpp_format() -> None:
     assert "docker executable not found in PATH" in checks
     assert '"story-qa-eval"' in checks
     assert '"work/qa/evaluation_summary.json"' in checks
+    assert '"tools/export_openapi_snapshot.py"' in checks
+    assert '"--check"' in checks
     assert 'run_tool("mkdocs", "build", "--strict")' in checks
     assert '"npm", "run", "--prefix", "web", "typecheck"' in checks
     assert '"npm", "run", "--prefix", "web", "test:coverage"' in checks
@@ -373,6 +381,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (
         ROOT / "docs" / "adr" / "0029-nlp-provider-resilience-and-insight-calibration.md"
     ).exists()
+    assert (ROOT / "docs" / "adr" / "0030-openapi-snapshot-and-hosted-api-reference.md").exists()
     assert (ROOT / "docs" / "story_bundle.md").exists()
     assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "graph_strategy.md").exists()
@@ -401,6 +410,7 @@ def test_api_docs_reference_swagger_and_openapi_endpoints() -> None:
     assert "http://127.0.0.1:8000/docs" in api_docs
     assert "http://127.0.0.1:8000/redoc" in api_docs
     assert "http://127.0.0.1:8000/openapi.json" in api_docs
+    assert "docs/assets/openapi/story_gen.openapi.json" in api_docs
     assert "https://ringxworld.github.io/story_generator/pydoc/" in api_docs
     assert "Authorize" in api_docs
     assert "http://127.0.0.1:8000/redoc" in setup_docs
@@ -417,6 +427,14 @@ def test_python_api_docs_builder_script_exists() -> None:
     assert "python tools/build_python_api_docs.py --output-dir pydoc_site" in _read(
         ".github/workflows/deploy-pages.yml"
     )
+
+
+def test_openapi_snapshot_builder_script_exists() -> None:
+    builder = _read("tools/export_openapi_snapshot.py")
+    assert "create_app" in builder
+    assert "--check" in builder
+    assert "python tools/export_openapi_snapshot.py --check" in _read(".github/workflows/ci.yml")
+    assert "python tools/export_openapi_snapshot.py" in _read(".github/workflows/deploy-pages.yml")
 
 
 def test_analysis_contract_scaffold_exists_and_is_valid_json() -> None:

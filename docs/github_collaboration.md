@@ -42,6 +42,7 @@ Automation:
   when docs or sync tooling changes.
 - You can also run the same sync workflow manually from the Actions tab.
 - `.github/workflows/deploy-pages.yml` builds MkDocs and publishes it under `/docs/` after successful CI on `develop`/`main`.
+  The same workflow also exports a static OpenAPI snapshot consumed by `docs/api.md`.
 
 ```bash
 make wiki-sync       # update local wiki clone from docs/

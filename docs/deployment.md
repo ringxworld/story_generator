@@ -70,11 +70,12 @@ S3-compatible note:
 
 1. Keep Pages focused on the product demo at repo root.
 2. Publish static docs snapshot on Pages under `/docs`.
-3. Publish static Python API reference on Pages under `/pydoc`.
-4. Keep docs mirrored into the repository wiki for collaborative edits.
-5. Keep API local-first for editing and workflow testing.
-6. Keep web studio and Python interface on one shared blueprint contract.
-7. Add CORS + stronger auth + storage migration when remote multi-user hosting is needed.
+3. Publish static OpenAPI snapshot under `/docs/assets/openapi/`.
+4. Publish static Python API reference on Pages under `/pydoc`.
+5. Keep docs mirrored into the repository wiki for collaborative edits.
+6. Keep API local-first for editing and workflow testing.
+7. Keep web studio and Python interface on one shared blueprint contract.
+8. Add CORS + stronger auth + storage migration when remote multi-user hosting is needed.
 
 ## Wiki synchronization
 

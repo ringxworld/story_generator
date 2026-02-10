@@ -46,7 +46,9 @@ jobs:
           cache-dependency-path: web/package-lock.json
 
       - name: Build docs snapshot
-        run: uv run mkdocs build --strict --site-dir docs_site
+        run: |
+          uv run python tools/export_openapi_snapshot.py
+          uv run mkdocs build --strict --site-dir docs_site
 
       - name: Build Python API reference snapshot
         run: |

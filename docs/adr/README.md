@@ -27,3 +27,4 @@ Latest ADR:
 - `0027-pipeline-ingestion-resilience-and-canary.md`
 - `0028-qa-evaluation-harness-and-calibration-gates.md`
 - `0029-nlp-provider-resilience-and-insight-calibration.md`
+- `0030-openapi-snapshot-and-hosted-api-reference.md`

@@ -398,9 +398,12 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         title="story_gen API",
         version="0.3.0",
         description=(
-            "Local preview API for story blueprint editing and persistence. "
-            "Designed for local/dev runtimes and future backend hosting."
+            "Story intelligence API for auth, story workspaces, analysis runs, and dashboard "
+            "read models.\n\n"
+            "Use `/docs` for interactive Swagger UI while the service is running. "
+            "A static OpenAPI snapshot is published with repository docs for hosted browsing."
         ),
+        summary="Local/dev HTTP API for story_gen",
         lifespan=lifespan,
         docs_url="/docs",
         redoc_url="/redoc",
@@ -647,14 +650,17 @@ def create_app(db_path: Path | None = None) -> FastAPI:
 
     @app.get("/healthz", response_model=HealthResponse, tags=["system"])
     def healthz() -> HealthResponse:
+        """Return service liveness metadata for probes."""
         return HealthResponse()
 
     @app.get("/api/v1", response_model=ApiRootResponse, tags=["api"])
     def api_v1_root() -> ApiRootResponse:
+        """List API runtime mode and available endpoint surfaces."""
         return ApiRootResponse()
 
     @app.post("/api/v1/auth/register", response_model=UserResponse, tags=["auth"], status_code=201)
     def register(payload: AuthRegisterRequest) -> UserResponse:
+        """Create a local user account for bearer-token authentication."""
         created = store.create_user(
             email=payload.email,
             display_name=payload.display_name.strip(),
@@ -666,6 +672,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
 
     @app.post("/api/v1/auth/login", response_model=AuthTokenResponse, tags=["auth"])
     def login(payload: AuthLoginRequest) -> AuthTokenResponse:
+        """Authenticate credentials and issue a time-limited bearer token."""
         user = store.get_user_by_email(email=payload.email)
         if user is None or not _verify_password(
             payload.password.get_secret_value(), user.password_hash
@@ -684,6 +691,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
 
     @app.get("/api/v1/me", response_model=UserResponse, tags=["auth"])
     def me(user: StoredUser = Depends(current_user)) -> UserResponse:
+        """Return the authenticated user's profile."""
         return _user_response(user)
 
     @app.get("/api/v1/stories", response_model=list[StoryResponse], tags=["stories"])
@@ -691,6 +699,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         limit: int = Query(default=100, ge=1, le=500),
         user: StoredUser = Depends(current_user),
     ) -> list[StoryResponse]:
+        """List owner-scoped story workspaces with a bounded limit."""
         return [
             _story_response(story)
             for story in store.list_stories(owner_id=user.user_id, limit=limit)
@@ -701,6 +710,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         payload: StoryCreateRequest,
         user: StoredUser = Depends(current_user),
     ) -> StoryResponse:
+        """Create one owner-scoped story workspace from a validated blueprint."""
         story = store.create_story(
             owner_id=user.user_id,
             title=payload.title.strip(),
@@ -710,6 +720,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
 
     @app.get("/api/v1/stories/{story_id}", response_model=StoryResponse, tags=["stories"])
     def get_story(story_id: str, user: StoredUser = Depends(current_user)) -> StoryResponse:
+        """Read one owner-scoped story workspace by identifier."""
         story = owned_story_or_404(story_id=story_id, user=user)
         return _story_response(story)
 
@@ -719,6 +730,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         payload: StoryUpdateRequest,
         user: StoredUser = Depends(current_user),
     ) -> StoryResponse:
+        """Update title and blueprint for one owner-scoped story."""
         owned_story_or_404(story_id=story_id, user=user)
         story = store.update_story(
             story_id=story_id,
@@ -737,6 +749,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     def extract_features(
         story_id: str, user: StoredUser = Depends(current_user)
     ) -> StoryFeatureRunResponse:
+        """Run deterministic feature extraction over story chapter content."""
         story = owned_story_or_404(story_id=story_id, user=user)
         blueprint = StoryBlueprint.model_validate_json(story.blueprint_json)
         chapters = [_chapter_input_from_blueprint(chapter) for chapter in blueprint.chapters]
@@ -758,6 +771,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> IngestionStatusResponse:
+        """Return latest ingestion job status for an owner-scoped story."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = ingestion_store.get_latest_job(owner_id=user.user_id, story_id=story.story_id)
         if latest is None:
@@ -773,6 +787,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> StoryFeatureRunResponse:
+        """Fetch the latest persisted feature extraction result for a story."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = feature_store.get_latest_feature_result(
             owner_id=user.user_id, story_id=story.story_id
@@ -792,6 +807,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         payload: StoryAnalysisRunRequest,
         user: StoredUser = Depends(current_user),
     ) -> StoryAnalysisRunResponse:
+        """Run ingestion + analysis pipeline and persist a new analysis artifact."""
         story = owned_story_or_404(story_id=story_id, user=user)
         blueprint = StoryBlueprint.model_validate_json(story.blueprint_json)
         source_text = (
@@ -1003,6 +1019,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> StoryAnalysisRunResponse:
+        """Fetch the latest persisted analysis run summary for a story."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         run, document, _, _ = latest
@@ -1022,6 +1039,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardOverviewResponse:
+        """Return high-level dashboard cards for the latest story analysis."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
@@ -1047,6 +1065,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> list[DashboardTimelineLaneResponse]:
+        """Return timeline lanes in narrative and chronological views."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
@@ -1061,6 +1080,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardSvgExportResponse:
+        """Render latest timeline lanes as deterministic SVG payload."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
@@ -1077,6 +1097,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardPngExportResponse:
+        """Render latest timeline lanes as deterministic PNG payload."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
@@ -1098,6 +1119,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> list[DashboardThemeHeatmapCellResponse]:
+        """Return theme-by-stage heatmap cells for the latest analysis."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
@@ -1112,6 +1134,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardSvgExportResponse:
+        """Render latest theme heatmap as deterministic SVG payload."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
@@ -1128,6 +1151,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardPngExportResponse:
+        """Render latest theme heatmap as deterministic PNG payload."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
@@ -1144,6 +1168,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> list[DashboardArcPointResponse]:
+        """Return arc points for character, conflict, and emotion trajectories."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
@@ -1165,6 +1190,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         item_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardDrilldownResponse:
+        """Return detail content and evidence references for one dashboard item."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
@@ -1202,6 +1228,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardGraphResponse:
+        """Return graph nodes and edges for interactive dashboard rendering."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
@@ -1217,6 +1244,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardGraphExportResponse:
+        """Return deterministic SVG export of latest dashboard graph."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, _, graph_svg = latest
@@ -1231,6 +1259,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story_id: str,
         user: StoredUser = Depends(current_user),
     ) -> DashboardGraphPngExportResponse:
+        """Return deterministic PNG export of latest dashboard graph."""
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
@@ -1266,6 +1295,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         limit: int = Query(default=100, ge=1, le=500),
         user: StoredUser = Depends(current_user),
     ) -> list[EssayResponse]:
+        """List owner-scoped essay workspaces with a bounded limit."""
         return [
             _essay_response(essay)
             for essay in essay_store.list_essays(owner_id=user.user_id, limit=limit)
@@ -1276,6 +1306,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         payload: EssayCreateRequest,
         user: StoredUser = Depends(current_user),
     ) -> EssayResponse:
+        """Create one owner-scoped essay workspace and optional draft text."""
         essay = essay_store.create_essay(
             owner_id=user.user_id,
             title=payload.title.strip(),
@@ -1286,6 +1317,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
 
     @app.get("/api/v1/essays/{essay_id}", response_model=EssayResponse, tags=["essays"])
     def get_essay(essay_id: str, user: StoredUser = Depends(current_user)) -> EssayResponse:
+        """Read one owner-scoped essay workspace by identifier."""
         essay = essay_store.get_essay(essay_id=essay_id)
         if essay is None or essay.owner_id != user.user_id:
             raise HTTPException(status_code=404, detail="Essay not found")
@@ -1297,6 +1329,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         payload: EssayUpdateRequest,
         user: StoredUser = Depends(current_user),
     ) -> EssayResponse:
+        """Update title, policy blueprint, and draft for one essay workspace."""
         existing = essay_store.get_essay(essay_id=essay_id)
         if existing is None or existing.owner_id != user.user_id:
             raise HTTPException(status_code=404, detail="Essay not found")
@@ -1320,6 +1353,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         payload: EssayEvaluateRequest,
         user: StoredUser = Depends(current_user),
     ) -> EssayEvaluationResponse:
+        """Run deterministic essay quality checks and return scored findings."""
         essay = essay_store.get_essay(essay_id=essay_id)
         if essay is None or essay.owner_id != user.user_id:
             raise HTTPException(status_code=404, detail="Essay not found")

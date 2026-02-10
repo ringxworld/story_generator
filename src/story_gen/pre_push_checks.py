@@ -32,6 +32,15 @@ def main() -> None:
     run([uv_executable, "lock", "--check"])
     run([sys.executable, str(REPO_ROOT / "tools" / "check_imports.py")])
     run([sys.executable, str(REPO_ROOT / "tools" / "check_contract_drift.py")])
+    run(
+        [
+            uv_executable,
+            "run",
+            "python",
+            "tools/export_openapi_snapshot.py",
+            "--check",
+        ]
+    )
     run_tool("ruff", "check", ".")
     run_tool("ruff", "format", "--check", ".")
     run_tool("mypy")

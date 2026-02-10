@@ -117,6 +117,7 @@ This repository is PR-first and feature-branch-only for agent work:
 
 - Always branch from latest `origin/develop` before making changes.
 - Never commit directly to `develop` or `main`.
+- If work is started on `main`, immediately move the changes to a feature branch from `develop`.
 - Keep changes isolated to one human-readable feature branch per task.
 - After pushing, open/update a PR to `develop` and link the relevant issue URL.
 - Do not close implementation issues until the PR is merged.

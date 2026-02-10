@@ -7,6 +7,16 @@
 
 The hosted Python reference is generated with `pdoc` during Pages deploy and is static.
 
+Primary modules surfaced in pydoc include:
+
+- `story_gen.api.contracts` (validated request/response and blueprint models)
+- `story_gen.api.python_interface` (typed Python client for API workflows)
+- `story_gen.core.*` analysis, extraction, quality, and dashboard logic
+- `story_gen.adapters.*` persistence and IO adapters
+
+To keep pydoc useful, public classes/functions should include concise docstrings and
+explicit type hints.
+
 ## Local generation
 
 From repository root:
