@@ -34,6 +34,7 @@ def test_story_analysis_pipeline_produces_all_major_artifacts() -> None:
     assert result.timeline.actual_time
     assert result.timeline.narrative_order
     assert result.graph_svg.startswith("<svg")
+    assert result.timing["total_seconds"] > 0
 
 
 def test_story_analysis_pipeline_is_deterministic_for_same_input() -> None:
@@ -49,6 +50,29 @@ def test_story_analysis_pipeline_is_deterministic_for_same_input() -> None:
         insight.insight_id for insight in second.document.insights
     ]
     assert first.dashboard.overview.macro_thesis == second.dashboard.overview.macro_thesis
+
+
+def test_pipeline_reports_stage_timings() -> None:
+    result = run_story_analysis(story_id="story-timing", source_text=_sample_story())
+    expected_keys = {
+        "ingestion_seconds",
+        "translation_seconds",
+        "extraction_seconds",
+        "beat_detection_seconds",
+        "theme_tracking_seconds",
+        "timeline_seconds",
+        "insights_seconds",
+        "quality_gate_seconds",
+        "dashboard_build_seconds",
+        "graph_svg_seconds",
+        "total_seconds",
+    }
+    assert expected_keys.issubset(result.timing.keys())
+    assert result.timing["total_seconds"] >= sum(
+        result.timing[key]
+        for key in expected_keys
+        if key.endswith("_seconds") and key != "total_seconds"
+    ) * 0.5
 
 
 def test_pipeline_generates_macro_meso_micro_insights() -> None:

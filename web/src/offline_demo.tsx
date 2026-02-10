@@ -3,22 +3,15 @@ import { useMemo, useState, type ReactElement } from "react";
 import type {
   DashboardArcPointResponse,
   DashboardGraphResponse,
-  DashboardOverviewResponse,
   DashboardThemeHeatmapCellResponse,
   DashboardTimelineLaneResponse,
 } from "./types";
 import { useThemeMode } from "./theme";
+import reZeroSummary from "./demo_data/re_zero_summary.json";
 
-const overview: DashboardOverviewResponse = {
-  title: "Story Intelligence Overview",
-  macro_thesis:
-    "A forged archive triggers civic conflict, but evidence and witness memory restore shared truth.",
-  confidence_floor: 0.74,
-  quality_passed: true,
-  events_count: 7,
-  beats_count: 7,
-  themes_count: 4,
-};
+const overviewTitle = "Re:Zero Batch Summary";
+const overviewNote =
+  "Batch crawl stats from the Re:Zero chapter set (counts only, no text).";
 
 const timeline: DashboardTimelineLaneResponse[] = [
   {
@@ -158,26 +151,24 @@ export const OfflineDemoStudio = (): ReactElement => {
       </section>
 
       <section className="card">
-        <h2>{overview.title}</h2>
-        <p className="status">{overview.macro_thesis}</p>
+        <h2>{overviewTitle}</h2>
+        <p className="status">{overviewNote}</p>
         <div className="kpi-grid">
           <article className="kpi-card">
-            <strong>Confidence floor</strong>
-            <div>{overview.confidence_floor.toFixed(2)}</div>
+            <strong>Chapters</strong>
+            <div>{reZeroSummary.chapter_count.toLocaleString()}</div>
           </article>
           <article className="kpi-card">
-            <strong>Quality gate</strong>
-            <div>{overview.quality_passed ? "pass" : "warn"}</div>
+            <strong>Total chars</strong>
+            <div>{reZeroSummary.chapter_chars_total.toLocaleString()}</div>
           </article>
           <article className="kpi-card">
-            <strong>Events / Beats</strong>
-            <div>
-              {overview.events_count} / {overview.beats_count}
-            </div>
+            <strong>Median chars</strong>
+            <div>{reZeroSummary.chapter_chars_median.toLocaleString()}</div>
           </article>
           <article className="kpi-card">
-            <strong>Themes</strong>
-            <div>{overview.themes_count}</div>
+            <strong>Chapters ≥ 10k</strong>
+            <div>{reZeroSummary.chapters_over_10000_chars.toLocaleString()}</div>
           </article>
         </div>
       </section>

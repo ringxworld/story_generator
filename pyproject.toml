@@ -12,6 +12,8 @@ dependencies = [
   "beautifulsoup4>=4.12.3",
   "fastapi>=0.116.1",
   "httpx>=0.28.1",
+  "pyjwt>=2.9.0",
+  "cryptography>=42.0.0",
   "pydantic>=2.11.7",
   "uvicorn>=0.35.0",
 ]
@@ -27,6 +29,7 @@ story-features = "story_gen.cli.features:main"
 story-dashboard-export = "story_gen.cli.dashboard_export:main"
 story-pipeline-canary = "story_gen.cli.pipeline_canary:main"
 story-qa-eval = "story_gen.cli.qa_evaluation:main"
+story-pipeline-batch = "story_gen.cli.pipeline_batch:main"
 
 [dependency-groups]
 dev = [
@@ -53,6 +56,9 @@ topic = [
 ]
 advanced = [
   "stanza>=1.8.0",
+]
+translation = [
+  "argostranslate>=1.9.6",
 ]
 
 [tool.uv]

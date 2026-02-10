@@ -11,7 +11,9 @@ GitHub Pages now publishes a static offline demo build of the studio at:
 - `https://ringxworld.github.io/story_generator/studio/`
 
 This mode does not call the backend. It renders representative story analysis
-dashboard data so visitors can explore the UX end-to-end.
+dashboard data so visitors can explore the UX end-to-end. The overview card
+metrics are seeded from the Re:Zero batch pipeline summary to reflect a real
+large-story run.
 
 Theme behavior:
 
