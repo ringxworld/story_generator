@@ -37,6 +37,7 @@ def test_makefile_contains_quality_and_native_targets() -> None:
     assert "collect-story:" in makefile
     assert "video-story:" in makefile
     assert "pipeline-canary:" in makefile
+    assert "pipeline-batch:" in makefile
     assert "qa-eval:" in makefile
     assert "features:" in makefile
     assert "dev-stack-hot:" in makefile
@@ -219,6 +220,7 @@ def test_pyproject_exposes_story_collection_entrypoints() -> None:
     assert 'story-dashboard-export = "story_gen.cli.dashboard_export:main"' in pyproject
     assert 'story-pipeline-canary = "story_gen.cli.pipeline_canary:main"' in pyproject
     assert 'story-qa-eval = "story_gen.cli.qa_evaluation:main"' in pyproject
+    assert 'story-pipeline-batch = "story_gen.cli.pipeline_batch:main"' in pyproject
 
 
 def test_mkdocs_configuration_exists() -> None:
@@ -238,6 +240,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "Droplet Stack:" in config
     assert "Feature Pipeline:" in config
     assert "QA Evaluation:" in config
+    assert "Lessons Learned (Re:Zero E2E):" in config
     assert "Story Bundle:" in config
     assert "Graph Strategy:" in config
     assert "Architecture:" in config
@@ -263,6 +266,8 @@ def test_mkdocs_configuration_exists() -> None:
     assert "0028 QA Evaluation Harness and Calibration Gates:" in config
     assert "0029 NLP Provider Resilience and Insight Calibration:" in config
     assert "0030 OpenAPI Snapshot and Hosted API Reference:" in config
+    assert "0031 Keycloak OIDC Auth:" in config
+    assert "0032 Batch Pipeline Re:Zero Benchmark:" in config
     assert "pymdownx.superfences" in config
     assert "mermaid.min.js" in config
     assert "javascripts/mermaid.js" in config
@@ -382,6 +387,8 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
         ROOT / "docs" / "adr" / "0029-nlp-provider-resilience-and-insight-calibration.md"
     ).exists()
     assert (ROOT / "docs" / "adr" / "0030-openapi-snapshot-and-hosted-api-reference.md").exists()
+    assert (ROOT / "docs" / "adr" / "0031-keycloak-oidc-auth.md").exists()
+    assert (ROOT / "docs" / "adr" / "0032-batch-pipeline-re-zero-benchmark.md").exists()
     assert (ROOT / "docs" / "story_bundle.md").exists()
     assert (ROOT / "docs" / "observability.md").exists()
     assert (ROOT / "docs" / "graph_strategy.md").exists()

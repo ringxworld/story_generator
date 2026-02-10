@@ -188,6 +188,14 @@ uv sync --group topic
 uv sync --group advanced
 ```
 
+## 7.1 Optional translation dependencies
+
+Offline translation uses Argos Translate:
+
+```bash
+uv sync --group translation
+```
+
 ## 8. Optional cloud compose scaffolds
 
 If you want to smoke-test deployment shapes locally:
@@ -249,3 +257,10 @@ Web cannot reach API
 - Confirm API is running on `127.0.0.1:8000`.
 - Verify `VITE_API_BASE_URL`.
 - Check CORS origins in `STORY_GEN_CORS_ORIGINS` if customized.
+
+Keycloak auth issues
+
+- Set `STORY_GEN_AUTH_MODE=keycloak`.
+- Set `STORY_GEN_OIDC_ISSUER` to the realm issuer URL.
+- If JWKS discovery fails, set `STORY_GEN_OIDC_JWKS_URL` or inline
+  `STORY_GEN_OIDC_JWKS_JSON`.

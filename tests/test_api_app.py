@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import jwt
+from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
 
 import story_gen.api.app as app_module
@@ -85,6 +87,29 @@ def _auth_headers(client: TestClient, email: str) -> dict[str, str]:
     assert login.status_code == 200
     token = login.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
+
+
+def _oidc_token_and_jwks(
+    *, issuer: str, audience: str, subject: str, email: str
+) -> tuple[str, dict[str, Any]]:
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    public_key = key.public_key()
+    jwk = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(public_key))
+    jwk["kid"] = "test-kid"
+    token = jwt.encode(
+        {
+            "iss": issuer,
+            "aud": audience,
+            "sub": subject,
+            "email": email,
+            "preferred_username": "oidc-user",
+            "name": "OIDC User",
+        },
+        key,
+        algorithm="RS256",
+        headers={"kid": "test-kid"},
+    )
+    return token, {"keys": [jwk]}
 
 
 def test_health_endpoint_returns_ok_payload() -> None:
@@ -945,3 +970,62 @@ def test_dashboard_heatmap_export_rejects_unknown_stage_value(tmp_path: Path) ->
     payload_errors = [event for event in anomalies if event.code == "invalid_payload_shape"]
     assert payload_errors
     assert any('"value": "epilogue"' in event.metadata_json for event in payload_errors)
+
+
+def test_keycloak_mode_accepts_oidc_token_for_me(tmp_path: Path, monkeypatch: Any) -> None:
+    issuer = "https://id.example.test/realms/story"
+    audience = "story_gen_api"
+    token, jwks = _oidc_token_and_jwks(
+        issuer=issuer,
+        audience=audience,
+        subject="user-oidc-1",
+        email="oidc@example.com",
+    )
+    monkeypatch.setenv("STORY_GEN_AUTH_MODE", "keycloak")
+    monkeypatch.setenv("STORY_GEN_OIDC_ISSUER", issuer)
+    monkeypatch.setenv("STORY_GEN_OIDC_AUDIENCE", audience)
+    monkeypatch.setenv("STORY_GEN_OIDC_JWKS_JSON", json.dumps(jwks))
+
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    response = client.get("/api/v1/me", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["email"] == "oidc@example.com"
+    assert payload["display_name"] == "oidc-user"
+
+
+def test_keycloak_mode_rejects_local_register_and_login(tmp_path: Path, monkeypatch: Any) -> None:
+    monkeypatch.setenv("STORY_GEN_AUTH_MODE", "keycloak")
+    monkeypatch.setenv("STORY_GEN_OIDC_ISSUER", "https://id.example.test/realms/story")
+    monkeypatch.setenv("STORY_GEN_OIDC_JWKS_JSON", json.dumps({"keys": []}))
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+
+    register = client.post(
+        "/api/v1/auth/register",
+        json={"email": "alice@example.com", "password": "password123", "display_name": "Alice"},
+    )
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "alice@example.com", "password": "password123"},
+    )
+    assert register.status_code == 501
+    assert login.status_code == 501
+
+
+def test_keycloak_mode_rejects_invalid_token(tmp_path: Path, monkeypatch: Any) -> None:
+    issuer = "https://id.example.test/realms/story"
+    audience = "story_gen_api"
+    token, jwks = _oidc_token_and_jwks(
+        issuer=issuer,
+        audience=audience,
+        subject="user-oidc-2",
+        email="oidc2@example.com",
+    )
+    monkeypatch.setenv("STORY_GEN_AUTH_MODE", "keycloak")
+    monkeypatch.setenv("STORY_GEN_OIDC_ISSUER", issuer)
+    monkeypatch.setenv("STORY_GEN_OIDC_AUDIENCE", audience)
+    monkeypatch.setenv("STORY_GEN_OIDC_JWKS_JSON", json.dumps(jwks))
+
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    bad = client.get("/api/v1/me", headers={"Authorization": f"Bearer {token}x"})
+    assert bad.status_code == 401

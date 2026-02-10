@@ -1,0 +1,15 @@
+{
+  "series_code": "n2267be",
+  "fetched_at_utc": "2026-02-10T05:45:24.797646+00:00",
+  "chapter_count": 762,
+  "chapter_numbers_min": 1,
+  "chapter_numbers_max": 762,
+  "chapter_chars_total": 9175223,
+  "chapter_chars_min": 0,
+  "chapter_chars_max": 52909,
+  "chapter_chars_mean": 12040.98,
+  "chapter_chars_median": 11643.5,
+  "chapters_over_5000_chars": 724,
+  "chapters_over_10000_chars": 530,
+  "chapters_under_1000_chars": 25
+}

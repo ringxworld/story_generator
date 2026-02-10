@@ -14,6 +14,7 @@ import pytest
 
 from story_gen.api.contracts import EssayBlueprint, StoryBlueprint
 from story_gen.api.python_interface import StoryApiClient
+from story_gen.cli.pipeline_batch import build_arg_parser, run_pipeline_batch
 
 
 def _find_free_port() -> int:
@@ -223,3 +224,32 @@ def test_e2e_python_client_flow(e2e_api_base_url: str) -> None:
     assert extracted.chapter_features
     assert created_essay.essay_id
     assert evaluated.score >= 0
+
+
+def test_re_zero_pipeline_batch_optional(tmp_path: Path) -> None:
+    resource_root = Path("work/resources/re_zero/n2267be/chapters")
+    if not resource_root.exists():
+        pytest.skip("Re:Zero chapter resources not available")
+    if os.environ.get("STORY_GEN_E2E_REZERO", "").lower() not in {"1", "true", "yes"}:
+        pytest.skip("Set STORY_GEN_E2E_REZERO=1 to enable Re:Zero batch test")
+
+    output_dir = tmp_path / "pipeline_runs"
+    parser = build_arg_parser()
+    args = parser.parse_args(
+        [
+            "--source-dir",
+            str(resource_root),
+            "--output-dir",
+            str(output_dir),
+            "--run-id",
+            "re-zero-e2e",
+            "--max-chapters",
+            "2",
+            "--translate-provider",
+            "none",
+            "--mode",
+            "analyze",
+        ]
+    )
+    summary = run_pipeline_batch(args)
+    assert summary.processed_chapters >= 1

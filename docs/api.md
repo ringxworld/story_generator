@@ -43,6 +43,26 @@ uv run story-api --db-path work/local/story_gen.db
 3. Click **Authorize** in Swagger UI and paste `Bearer <token>`.
 4. Execute owner-scoped routes (`/stories/*`, `/essays/*`).
 
+## Keycloak (OIDC) mode
+
+When `STORY_GEN_AUTH_MODE=keycloak`, the API validates bearer tokens against
+the configured OIDC issuer and JWKS endpoint. Local `/auth/register` and
+`/auth/login` endpoints return HTTP 501 in this mode.
+
+Required environment variables:
+
+- `STORY_GEN_AUTH_MODE=keycloak`
+- `STORY_GEN_OIDC_ISSUER=https://<keycloak-host>/realms/<realm>`
+
+Optional:
+
+- `STORY_GEN_OIDC_AUDIENCE=<client-id>`
+- `STORY_GEN_OIDC_JWKS_URL=<override jwks endpoint>`
+- `STORY_GEN_OIDC_JWKS_JSON=<inline jwks for offline/dev>`
+
+In Swagger UI, click **Authorize** and paste `Bearer <access_token>` from
+Keycloak.
+
 ## Keep docs current
 
 Generate the committed OpenAPI snapshot used by docs:

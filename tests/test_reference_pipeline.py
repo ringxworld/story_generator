@@ -110,6 +110,7 @@ class _FakeResponse:
     def __init__(self, *, text: str = "", json_payload: object = None) -> None:
         self.text = text
         self._json_payload = {} if json_payload is None else json_payload
+        self.status_code = 200
 
     def raise_for_status(self) -> None:
         return None

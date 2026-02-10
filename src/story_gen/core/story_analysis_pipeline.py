@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
 
 from story_gen.core.dashboard_views import (
@@ -62,6 +63,7 @@ class StoryAnalysisResult:
     translation_diagnostics: TranslationDiagnostics
     extraction_diagnostics: ExtractionDiagnostics
     graph_svg: str
+    timing: dict[str, float]
 
 
 def run_story_analysis(
@@ -73,12 +75,15 @@ def run_story_analysis(
     ingestion_artifact: IngestionArtifact | None = None,
 ) -> StoryAnalysisResult:
     """Run complete deterministic story analysis pipeline."""
+    timings: dict[str, float] = {}
+    started = time.perf_counter()
     logger.info(
         "analysis.start story_id=%s source_type=%s target_language=%s",
         story_id,
         source_type,
         target_language,
     )
+    step_start = time.perf_counter()
     artifact = ingestion_artifact or ingest_story_text(
         IngestionRequest(
             source_type=source_type,
@@ -86,12 +91,15 @@ def run_story_analysis(
             idempotency_key=story_id,
         )
     )
+    timings["ingestion_seconds"] = time.perf_counter() - step_start
+    step_start = time.perf_counter()
     translated_segments, alignments, source_language, translation_diagnostics = (
         translate_segments_with_diagnostics(
             segments=artifact.segments,
             target_language=target_language,
         )
     )
+    timings["translation_seconds"] = time.perf_counter() - step_start
     validate_extraction_input(translated_segments)
     logger.info(
         "analysis.translation story_id=%s segments=%s source_language=%s",
@@ -99,27 +107,39 @@ def run_story_analysis(
         len(translated_segments),
         source_language,
     )
+    step_start = time.perf_counter()
     events, entities, extraction_diagnostics = extract_events_and_entities_with_diagnostics(
         segments=translated_segments
     )
+    timings["extraction_seconds"] = time.perf_counter() - step_start
     validate_extraction_output(events)
     validate_beat_input(events)
+    step_start = time.perf_counter()
     beats = detect_story_beats(events=events)
+    timings["beat_detection_seconds"] = time.perf_counter() - step_start
     validate_beat_output(beats)
     validate_theme_input(beats)
+    step_start = time.perf_counter()
     themes, arcs, conflicts, emotions = track_theme_arc_signals(beats=beats, entities=entities)
+    timings["theme_tracking_seconds"] = time.perf_counter() - step_start
     validate_theme_output(themes)
     validate_timeline_input(events, beats)
+    step_start = time.perf_counter()
     timeline = compose_timeline(events=events, beats=beats)
+    timings["timeline_seconds"] = time.perf_counter() - step_start
     validate_timeline_output(timeline.narrative_order)
     validate_insight_input(beats, themes)
+    step_start = time.perf_counter()
     insights = generate_insights(beats=beats, themes=themes)
+    timings["insights_seconds"] = time.perf_counter() - step_start
     validate_insight_output(insights)
+    step_start = time.perf_counter()
     quality_gate, evaluation = evaluate_quality_gate(
         segments=translated_segments,
         insights=insights,
         timeline_consistency=timeline.consistency_score,
     )
+    timings["quality_gate_seconds"] = time.perf_counter() - step_start
     document = StoryDocument(
         story_id=story_id,
         source_language=source_language,
@@ -133,6 +153,7 @@ def run_story_analysis(
         insights=insights,
         quality_gate=quality_gate,
     )
+    step_start = time.perf_counter()
     dashboard = build_dashboard_read_model(
         document=document,
         arcs=arcs,
@@ -142,7 +163,11 @@ def run_story_analysis(
         timeline_narrative=timeline.narrative_order,
         timeline_conflicts=timeline.conflicts,
     )
+    timings["dashboard_build_seconds"] = time.perf_counter() - step_start
+    step_start = time.perf_counter()
     graph_svg = export_graph_svg(nodes=dashboard.graph_nodes, edges=dashboard.graph_edges)
+    timings["graph_svg_seconds"] = time.perf_counter() - step_start
+    timings["total_seconds"] = time.perf_counter() - started
     logger.info(
         "analysis.complete story_id=%s events=%s beats=%s themes=%s insights=%s quality_passed=%s",
         story_id,
@@ -164,4 +189,5 @@ def run_story_analysis(
         translation_diagnostics=translation_diagnostics,
         extraction_diagnostics=extraction_diagnostics,
         graph_svg=graph_svg,
+        timing=timings,
     )

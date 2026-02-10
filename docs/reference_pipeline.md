@@ -27,6 +27,37 @@ uv run story-reference \
   --max-episodes 3
 ```
 
+## Offline translation
+
+Install the optional group:
+
+```bash
+uv sync --group translation
+```
+
+Then run with:
+
+```bash
+uv run story-reference --translate-provider argos --max-episodes 3
+```
+
+Use `--translate-provider chain` to try Argos first and fall back to LibreTranslate.
+
+## Batch pipeline runner
+
+For chapter text files on disk, use the batch pipeline:
+
+```bash
+uv run story-pipeline-batch \
+  --source-dir work/resources/re_zero/n2267be/chapters \
+  --run-id re-zero \
+  --translate-provider none \
+  --mode analyze
+```
+
+Outputs land in `work/pipeline_runs/re-zero/` with per-chapter summaries and a
+`summary.json` timing report.
+
 ## Focus names for character tracking
 
 Edit:

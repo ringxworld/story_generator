@@ -16,6 +16,7 @@ from story_gen.cli import (
     blueprint,
     dashboard_export,
     features,
+    pipeline_batch,
     pipeline_canary,
     qa_evaluation,
     reference_pipeline,
@@ -60,6 +61,18 @@ def test_reference_main_builds_pipeline_args(monkeypatch: pytest.MonkeyPatch) ->
     reference_pipeline.main(["--project-id", "n2267be", "--max-episodes", "1"])
     assert seen
     assert seen[0].project_id == "n2267be"
+
+
+def test_pipeline_batch_main_builds_args(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[object] = []
+
+    def fake_run(args: object) -> None:
+        seen.append(args)
+
+    monkeypatch.setattr("story_gen.cli.pipeline_batch.run_pipeline_batch", fake_run)
+    pipeline_batch.main(["--source-dir", str(tmp_path), "--run-id", "batch-test"])
+    assert seen
+    assert getattr(seen[0], "run_id") == "batch-test"
 
 
 def test_video_main_builds_video_story_args(monkeypatch: pytest.MonkeyPatch) -> None:

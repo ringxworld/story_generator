@@ -66,6 +66,7 @@ from story_gen.api.contracts import (
     StoryUpdateRequest,
     UserResponse,
 )
+from story_gen.api.oidc import OidcClaims, validate_oidc_token
 from story_gen.core.dashboard_views import (
     GraphEdge,
     GraphNode,
@@ -183,6 +184,13 @@ def _int_env(name: str, default: int, *, minimum: int, maximum: int) -> int:
 
 def _utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+def _auth_mode() -> str:
+    raw = os.environ.get("STORY_GEN_AUTH_MODE", "local").strip().lower()
+    if raw in {"keycloak", "oidc"}:
+        return "keycloak"
+    return "local"
 
 
 def _hash_password(password: str) -> str:
@@ -638,6 +646,17 @@ def create_app(db_path: Path | None = None) -> FastAPI:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Missing bearer token",
             )
+        if _auth_mode() == "keycloak":
+            try:
+                return _user_from_oidc_token(credentials.credentials, store)
+            except HTTPException:
+                raise
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("oidc.auth_failed error=%s", exc)
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid or expired token",
+                ) from exc
         user = store.get_user_by_token(
             token_value=credentials.credentials, now_utc=_utc_now().isoformat()
         )
@@ -647,6 +666,33 @@ def create_app(db_path: Path | None = None) -> FastAPI:
                 detail="Invalid or expired token",
             )
         return user
+
+    def _user_from_oidc_token(token: str, store: SQLiteStoryStore) -> StoredUser:
+        claims = validate_oidc_token(token)
+        email = _oidc_email(claims)
+        display_name = _oidc_display_name(claims)
+        existing = store.get_user_by_email(email=email)
+        if existing is not None:
+            return existing
+        created = store.create_user(
+            email=email,
+            display_name=display_name,
+            password_hash=_hash_password(secrets.token_urlsafe(32)),
+        )
+        if created is None:
+            existing = store.get_user_by_email(email=email)
+            if existing is not None:
+                return existing
+            raise HTTPException(status_code=500, detail="OIDC user provisioning failed")
+        return created
+
+    def _oidc_email(claims: OidcClaims) -> str:
+        if claims.email:
+            return claims.email
+        return f"{claims.subject}@oidc.local"
+
+    def _oidc_display_name(claims: OidcClaims) -> str:
+        return claims.preferred_username or claims.name or claims.email or claims.subject
 
     @app.get("/healthz", response_model=HealthResponse, tags=["system"])
     def healthz() -> HealthResponse:
@@ -661,6 +707,11 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     @app.post("/api/v1/auth/register", response_model=UserResponse, tags=["auth"], status_code=201)
     def register(payload: AuthRegisterRequest) -> UserResponse:
         """Create a local user account for bearer-token authentication."""
+        if _auth_mode() == "keycloak":
+            raise HTTPException(
+                status_code=501,
+                detail="Local registration is disabled when auth mode is keycloak.",
+            )
         created = store.create_user(
             email=payload.email,
             display_name=payload.display_name.strip(),
@@ -673,6 +724,11 @@ def create_app(db_path: Path | None = None) -> FastAPI:
     @app.post("/api/v1/auth/login", response_model=AuthTokenResponse, tags=["auth"])
     def login(payload: AuthLoginRequest) -> AuthTokenResponse:
         """Authenticate credentials and issue a time-limited bearer token."""
+        if _auth_mode() == "keycloak":
+            raise HTTPException(
+                status_code=501,
+                detail="Local login is disabled when auth mode is keycloak.",
+            )
         user = store.get_user_by_email(email=payload.email)
         if user is None or not _verify_password(
             payload.password.get_secret_value(), user.password_hash

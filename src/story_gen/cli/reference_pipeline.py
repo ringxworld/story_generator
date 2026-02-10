@@ -17,7 +17,7 @@ import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal, Mapping, NotRequired, TypedDict
+from typing import Literal, Mapping, NotRequired, Protocol, TypedDict
 from urllib.parse import urljoin
 
 import httpx
@@ -29,6 +29,7 @@ DEFAULT_USER_AGENT = "story_gen_reference_bot/0.1 (respectful crawler; personal 
 DEFAULT_CRAWL_DELAY_SECONDS = 1.1
 DEFAULT_TRANSLATE_DELAY_SECONDS = 0.25
 DEFAULT_TRANSLATE_CHUNK_SIZE = 1200
+DEFAULT_TRANSLATE_MAX_RETRIES = 5
 
 
 @dataclass(frozen=True)
@@ -71,7 +72,7 @@ class PipelineArgs:
     max_episodes: int | None
     crawl_delay_seconds: float
     force_fetch: bool
-    translate_provider: Literal["none", "libretranslate"]
+    translate_provider: Literal["none", "libretranslate", "argos", "chain"]
     source_language: str
     target_language: str
     libretranslate_url: str
@@ -405,6 +406,8 @@ def _chunk_text(text: str, max_chars: int) -> list[str]:
 class LibreTranslateTranslator:
     """Translation adapter for LibreTranslate-compatible APIs."""
 
+    name = "libretranslate.v1"
+
     def __init__(
         self,
         *,
@@ -415,6 +418,7 @@ class LibreTranslateTranslator:
         api_key: str | None = None,
         delay_seconds: float = DEFAULT_TRANSLATE_DELAY_SECONDS,
         chunk_size: int = DEFAULT_TRANSLATE_CHUNK_SIZE,
+        max_retries: int = DEFAULT_TRANSLATE_MAX_RETRIES,
     ) -> None:
         self._client = client
         self._endpoint = f"{base_url.rstrip('/')}/translate"
@@ -423,6 +427,7 @@ class LibreTranslateTranslator:
         self._api_key = api_key
         self._delay_seconds = delay_seconds
         self._chunk_size = chunk_size
+        self._max_retries = max_retries
 
     def translate(self, text: str) -> str:
         """Translate text in chunks to avoid request size limits."""
@@ -442,21 +447,139 @@ class LibreTranslateTranslator:
             if self._api_key:
                 payload["api_key"] = self._api_key
 
-            response = self._client.post(self._endpoint, json=payload)
-            response.raise_for_status()
-            raw_data = response.json()
-            if not isinstance(raw_data, dict):
-                raise RuntimeError("LibreTranslate response was not a JSON object.")
-            data: Mapping[str, object] = raw_data
-            translated = data.get("translatedText")
-            if not isinstance(translated, str):
-                raise RuntimeError("LibreTranslate response missing translatedText.")
-            translated_chunks.append(translated.strip())
+            translated_chunks.append(
+                _translate_with_retry(
+                    client=self._client,
+                    endpoint=self._endpoint,
+                    payload=payload,
+                    max_retries=self._max_retries,
+                )
+            )
 
             if index < len(chunks) - 1 and self._delay_seconds > 0:
                 time.sleep(self._delay_seconds)
 
         return "\n\n".join(translated_chunks).strip()
+
+
+class TranslationError(RuntimeError):
+    """Raised when translation fails."""
+
+
+class Translator(Protocol):
+    name: str
+
+    def translate(self, text: str) -> str: ...
+
+
+class ArgosTranslateTranslator:
+    """Offline translation adapter for Argos Translate."""
+
+    name = "argos.v1"
+
+    def __init__(self, source_language: str, target_language: str) -> None:
+        try:
+            import argostranslate.translate as argos_translate  # type: ignore
+        except Exception as exc:  # noqa: BLE001
+            raise TranslationError("argostranslate is not installed") from exc
+        languages = argos_translate.get_installed_languages()
+        source = next((lang for lang in languages if lang.code == source_language), None)
+        target = next((lang for lang in languages if lang.code == target_language), None)
+        if source is None or target is None:
+            raise TranslationError(
+                f"argostranslate missing language pair {source_language}->{target_language}"
+            )
+        self._translator = source.get_translation(target)
+
+    def translate(self, text: str) -> str:
+        return str(self._translator.translate(text))
+
+
+def _translate_with_retry(
+    *,
+    client: httpx.Client,
+    endpoint: str,
+    payload: LibreTranslateRequest,
+    max_retries: int,
+) -> str:
+    last_error: Exception | None = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = client.post(endpoint, json=payload)
+            if response.status_code in {429, 503}:
+                raise TranslationError(f"LibreTranslate throttled: {response.status_code}")
+            response.raise_for_status()
+            raw_data = response.json()
+            if not isinstance(raw_data, dict):
+                raise TranslationError("LibreTranslate response was not a JSON object.")
+            data: Mapping[str, object] = raw_data
+            translated = data.get("translatedText")
+            if not isinstance(translated, str):
+                raise TranslationError("LibreTranslate response missing translatedText.")
+            return translated.strip()
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            time.sleep(min(8.0, 0.6 * attempt))
+    if last_error is not None:
+        raise TranslationError(str(last_error)) from last_error
+    raise TranslationError("LibreTranslate failed without error detail")
+
+
+def _looks_untranslated(source: str, translated: str) -> bool:
+    if not translated.strip():
+        return True
+    source_has_jp = sum(
+        1 for ch in source if "\u3040" <= ch <= "\u30ff" or "\u4e00" <= ch <= "\u9fff"
+    )
+    if source_has_jp == 0:
+        return False
+    translated_ascii = sum(1 for ch in translated if "a" <= ch.lower() <= "z")
+    unknown_ratio = translated.count("?") / max(1, len(translated))
+    return translated_ascii < 10 or unknown_ratio > 0.2
+
+
+def _translator_chain(args: PipelineArgs, client: httpx.Client) -> list[Translator]:
+    if args.translate_provider == "none":
+        return []
+    chain: list[Translator] = []
+    if args.translate_provider in {"argos", "chain"}:
+        try:
+            chain.append(ArgosTranslateTranslator(args.source_language, args.target_language))
+        except TranslationError:
+            if args.translate_provider == "argos":
+                raise
+    if args.translate_provider in {"libretranslate", "chain"}:
+        chain.append(
+            LibreTranslateTranslator(
+                client=client,
+                base_url=args.libretranslate_url,
+                source_language=args.source_language,
+                target_language=args.target_language,
+                api_key=args.libretranslate_api_key,
+                delay_seconds=args.translate_delay_seconds,
+                chunk_size=args.translate_chunk_size,
+            )
+        )
+    return chain
+
+
+def _translate_text(source_text: str, chain: list[Translator]) -> tuple[str, str]:
+    if not chain:
+        return source_text, "none"
+    last_error: Exception | None = None
+    for translator in chain:
+        name = getattr(translator, "name", "unknown")
+        try:
+            translated = translator.translate(source_text)
+            if _looks_untranslated(source_text, translated):
+                raise TranslationError(f"{name} produced low-quality output")
+            return translated, name
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            continue
+    if last_error is not None:
+        raise TranslationError(str(last_error)) from last_error
+    raise TranslationError("translation failed")
 
 
 def _load_focus_names(names_argument: str, work_dir: Path) -> list[str]:
@@ -724,49 +847,49 @@ def run_pipeline(args: PipelineArgs) -> None:
             )
 
         translated_map: dict[int, str] = {}
-        if args.translate_provider == "libretranslate":
-            translator = LibreTranslateTranslator(
-                client=client,
-                base_url=args.libretranslate_url,
-                source_language=args.source_language,
-                target_language=args.target_language,
-                api_key=args.libretranslate_api_key,
-                delay_seconds=args.translate_delay_seconds,
-                chunk_size=args.translate_chunk_size,
-            )
-            print(
-                "[translate] using LibreTranslate endpoint "
-                f"{args.libretranslate_url} ({args.source_language}->{args.target_language})"
-            )
-            for idx, episode in enumerate(episode_records, start=1):
-                output_file = translated_dir / f"{episode.episode_number:04d}.json"
-                if output_file.exists() and not args.force_translate:
-                    raw_cached = json.loads(output_file.read_text(encoding="utf-8"))
-                    translated_text = _translated_text_from_loaded(raw_cached)
-                    if translated_text is not None:
-                        translated_map[episode.episode_number] = translated_text
-                        print(
-                            "[translate] "
-                            f"{idx}/{len(episode_records)} episode {episode.episode_number}: cached"
-                        )
-                        continue
+    if args.translate_provider != "none":
+        chain = _translator_chain(args, client)
+        print(
+            "[translate] provider "
+            f"{args.translate_provider} ({args.source_language}->{args.target_language})"
+        )
+        for idx, episode in enumerate(episode_records, start=1):
+            output_file = translated_dir / f"{episode.episode_number:04d}.json"
+            if output_file.exists() and not args.force_translate:
+                raw_cached = json.loads(output_file.read_text(encoding="utf-8"))
+                translated_text = _translated_text_from_loaded(raw_cached)
+                if translated_text is not None:
+                    translated_map[episode.episode_number] = translated_text
+                    print(
+                        "[translate] "
+                        f"{idx}/{len(episode_records)} episode {episode.episode_number}: cached"
+                    )
+                    continue
 
-                translated_text = translator.translate(episode.text_jp)
-                translated_map[episode.episode_number] = translated_text
-                translated_payload: TranslationPayload = {
-                    "episode_number": episode.episode_number,
-                    "source_language": args.source_language,
-                    "target_language": args.target_language,
-                    "text_translated": translated_text,
-                }
-                _write_json(output_file, translated_payload)
+            try:
+                translated_text, provider_name = _translate_text(episode.text_jp, chain)
+            except Exception as exc:  # noqa: BLE001
                 print(
                     "[translate] "
                     f"{idx}/{len(episode_records)} episode {episode.episode_number}: "
-                    f"saved ({len(translated_text)} chars)"
+                    f"failed ({exc})"
                 )
-        else:
-            print("[translate] skipped (provider=none)")
+                continue
+            translated_map[episode.episode_number] = translated_text
+            translated_payload: TranslationPayload = {
+                "episode_number": episode.episode_number,
+                "source_language": args.source_language,
+                "target_language": args.target_language,
+                "text_translated": translated_text,
+            }
+            _write_json(output_file, translated_payload)
+            print(
+                "[translate] "
+                f"{idx}/{len(episode_records)} episode {episode.episode_number}: "
+                f"saved ({len(translated_text)} chars, provider={provider_name})"
+            )
+    else:
+        print("[translate] skipped (provider=none)")
 
     focus_names = _load_focus_names(args.analysis_names, work_dir)
     analysis = build_analysis(episode_records, focus_names)
@@ -805,7 +928,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-episodes", type=int, default=0)
     parser.add_argument("--crawl-delay-seconds", type=float, default=DEFAULT_CRAWL_DELAY_SECONDS)
     parser.add_argument("--force-fetch", action="store_true")
-    parser.add_argument("--translate-provider", choices=["none", "libretranslate"], default="none")
+    parser.add_argument(
+        "--translate-provider",
+        choices=["none", "libretranslate", "argos", "chain"],
+        default="none",
+    )
     parser.add_argument("--source-language", default="ja")
     parser.add_argument("--target-language", default="en")
     parser.add_argument(
@@ -832,9 +959,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 def _pipeline_args_from_namespace(namespace: argparse.Namespace) -> PipelineArgs:
     """Convert CLI namespace into fully-normalized pipeline arguments."""
-    translate_provider: Literal["none", "libretranslate"]
-    if namespace.translate_provider == "libretranslate":
-        translate_provider = "libretranslate"
+    translate_provider: Literal["none", "libretranslate", "argos", "chain"]
+    if namespace.translate_provider in {"libretranslate", "argos", "chain"}:
+        translate_provider = namespace.translate_provider
     else:
         translate_provider = "none"
 

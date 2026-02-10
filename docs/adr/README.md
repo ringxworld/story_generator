@@ -28,3 +28,5 @@ Latest ADR:
 - `0028-qa-evaluation-harness-and-calibration-gates.md`
 - `0029-nlp-provider-resilience-and-insight-calibration.md`
 - `0030-openapi-snapshot-and-hosted-api-reference.md`
+- `0031-keycloak-oidc-auth.md`
+- `0032-batch-pipeline-re-zero-benchmark.md`
