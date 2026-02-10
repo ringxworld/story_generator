@@ -1,6 +1,6 @@
 # story_gen
 
-![story_gen logo](docs/assets/brand/story-gen-mark.svg)
+<img src="docs/assets/brand/story-gen-mark.svg" alt="story_gen logo" width="180">
 
 [![CI](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/ci.yml)
 [![Deploy Pages](https://github.com/ringxworld/story_generator/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/ringxworld/story_generator/actions/workflows/deploy-pages.yml)

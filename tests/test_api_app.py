@@ -130,6 +130,7 @@ def test_api_root_reports_auth_and_story_endpoints() -> None:
     assert "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/graph/export.png" in payload["endpoints"]
     assert "/api/v1/essays" in payload["endpoints"]
     assert "/api/v1/essays/{essay_id}/evaluate" in payload["endpoints"]
