@@ -151,7 +151,7 @@ def evaluate_project_hygiene(
     if not readme.strip():
         errors.append("Project readme is empty.")
 
-    for required in ("Track", "Priority Band"):
+    for required in ("Track", "Priority Band", "Status"):
         if required not in field_names:
             errors.append(f"Missing triage field: {required}.")
 
@@ -174,11 +174,14 @@ def evaluate_project_hygiene(
 
         track = item.get("track")
         priority = item.get("priority Band")
+        status = item.get("status")
         title_text = item.get("title", f"issue-{number}")
         if not track:
             errors.append(f"Roadmap item missing Track: {title_text}.")
         if not priority:
             errors.append(f"Roadmap item missing Priority Band: {title_text}.")
+        if not status:
+            errors.append(f"Roadmap item missing Status: {title_text}.")
 
     missing_expected = sorted(roadmap_numbers_expected - roadmap_numbers_seen)
     if missing_expected:
