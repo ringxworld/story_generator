@@ -63,9 +63,7 @@ def test_reference_main_builds_pipeline_args(monkeypatch: pytest.MonkeyPatch) ->
     assert seen[0].project_id == "n2267be"
 
 
-def test_pipeline_batch_main_builds_args(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_pipeline_batch_main_builds_args(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     seen: list[object] = []
 
     def fake_run(args: object) -> None:

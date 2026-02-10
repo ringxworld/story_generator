@@ -68,11 +68,15 @@ def test_pipeline_reports_stage_timings() -> None:
         "total_seconds",
     }
     assert expected_keys.issubset(result.timing.keys())
-    assert result.timing["total_seconds"] >= sum(
-        result.timing[key]
-        for key in expected_keys
-        if key.endswith("_seconds") and key != "total_seconds"
-    ) * 0.5
+    assert (
+        result.timing["total_seconds"]
+        >= sum(
+            result.timing[key]
+            for key in expected_keys
+            if key.endswith("_seconds") and key != "total_seconds"
+        )
+        * 0.5
+    )
 
 
 def test_pipeline_generates_macro_meso_micro_insights() -> None:

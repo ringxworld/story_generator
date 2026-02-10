@@ -194,7 +194,9 @@ def _chunk_text(text: str, max_chars: int) -> list[str]:
 def _looks_untranslated(source: str, translated: str) -> bool:
     if not translated.strip():
         return True
-    source_has_jp = sum(1 for ch in source if "\u3040" <= ch <= "\u30ff" or "\u4e00" <= ch <= "\u9fff")
+    source_has_jp = sum(
+        1 for ch in source if "\u3040" <= ch <= "\u30ff" or "\u4e00" <= ch <= "\u9fff"
+    )
     if source_has_jp == 0:
         return False
     translated_ascii = sum(1 for ch in translated if "a" <= ch.lower() <= "z")
@@ -267,12 +269,8 @@ def _chapter_number(path: Path) -> int:
 
 
 def _summarize_document(document: StoryDocument) -> tuple[list[str], list[str]]:
-    entities = sorted(
-        document.entity_mentions, key=lambda ent: (-ent.mention_count, ent.name)
-    )
-    themes = sorted(
-        document.theme_signals, key=lambda theme: (-theme.intensity, theme.theme)
-    )
+    entities = sorted(document.entity_mentions, key=lambda ent: (-ent.mention_count, ent.name))
+    themes = sorted(document.theme_signals, key=lambda theme: (-theme.intensity, theme.theme))
     top_entities = [entity.name for entity in entities[:6]]
     top_themes = [theme.theme for theme in themes[:6]]
     return top_entities, top_themes
@@ -289,7 +287,9 @@ def run_pipeline_batch(args: argparse.Namespace) -> BatchSummary:
     output_root.mkdir(parents=True, exist_ok=True)
     summaries_dir = output_root / "chapters"
     summaries_dir.mkdir(parents=True, exist_ok=True)
-    translated_dir = Path(args.translated_dir) if args.translated_dir else output_root / "translated_en"
+    translated_dir = (
+        Path(args.translated_dir) if args.translated_dir else output_root / "translated_en"
+    )
     translated_dir.mkdir(parents=True, exist_ok=True)
 
     chain = _translator_chain(
@@ -343,17 +343,13 @@ def run_pipeline_batch(args: argparse.Namespace) -> BatchSummary:
         provider_used = "none"
         if args.mode in {"translate", "all"} and args.translate_provider != "none":
             try:
-                translated_text, provider_used = _translate_text(
-                    source_text=raw_text, chain=chain
-                )
+                translated_text, provider_used = _translate_text(source_text=raw_text, chain=chain)
                 translated = provider_used != "none"
                 translated_path = translated_dir / path.name
                 translated_path.write_text(translated_text + "\n", encoding="utf-8")
             except Exception as exc:  # noqa: BLE001
                 failed += 1
-                failures.append(
-                    {"chapter_number": number, "stage": "translate", "error": str(exc)}
-                )
+                failures.append({"chapter_number": number, "stage": "translate", "error": str(exc)})
                 if args.strict:
                     raise
                 continue
@@ -433,7 +429,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--chapter-start", type=int, default=1)
     parser.add_argument("--chapter-end", type=int, default=0)
     parser.add_argument("--max-chapters", type=int, default=0)
-    parser.add_argument("--translate-provider", choices=["none", "argos", "libretranslate", "chain"], default="chain")
+    parser.add_argument(
+        "--translate-provider",
+        choices=["none", "argos", "libretranslate", "chain"],
+        default="chain",
+    )
     parser.add_argument("--source-language", default="ja")
     parser.add_argument("--target-language", default="en")
     parser.add_argument("--libretranslate-url", default="http://localhost:5000")

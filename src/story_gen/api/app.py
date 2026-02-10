@@ -66,6 +66,7 @@ from story_gen.api.contracts import (
     StoryUpdateRequest,
     UserResponse,
 )
+from story_gen.api.oidc import OidcClaims, validate_oidc_token
 from story_gen.core.dashboard_views import (
     GraphEdge,
     GraphNode,
@@ -91,7 +92,6 @@ from story_gen.core.story_feature_pipeline import (
 )
 from story_gen.core.story_ingestion import IngestionRequest, ingest_story_text
 from story_gen.core.story_schema import StoryDocument, StoryStage
-from story_gen.api.oidc import OidcClaims, validate_oidc_token
 
 DEFAULT_DB_PATH = Path("work/local/story_gen.db")
 TOKEN_TTL_HOURS = 24

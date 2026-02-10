@@ -520,7 +520,9 @@ def _translate_with_retry(
 def _looks_untranslated(source: str, translated: str) -> bool:
     if not translated.strip():
         return True
-    source_has_jp = sum(1 for ch in source if "\u3040" <= ch <= "\u30ff" or "\u4e00" <= ch <= "\u9fff")
+    source_has_jp = sum(
+        1 for ch in source if "\u3040" <= ch <= "\u30ff" or "\u4e00" <= ch <= "\u9fff"
+    )
     if source_has_jp == 0:
         return False
     translated_ascii = sum(1 for ch in translated if "a" <= ch.lower() <= "z")

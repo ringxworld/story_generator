@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from fastapi.testclient import TestClient
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
+from fastapi.testclient import TestClient
 
 import story_gen.api.app as app_module
 from story_gen.adapters.sqlite_anomaly_store import SQLiteAnomalyStore
@@ -89,7 +89,9 @@ def _auth_headers(client: TestClient, email: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _oidc_token_and_jwks(*, issuer: str, audience: str, subject: str, email: str) -> tuple[str, dict[str, Any]]:
+def _oidc_token_and_jwks(
+    *, issuer: str, audience: str, subject: str, email: str
+) -> tuple[str, dict[str, Any]]:
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     public_key = key.public_key()
     jwk = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(public_key))
