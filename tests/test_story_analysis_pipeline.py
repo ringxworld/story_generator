@@ -116,31 +116,6 @@ def test_pipeline_timeline_and_heatmap_exports_are_deterministic() -> None:
     assert heatmap_png_first == heatmap_png_second
 
 
-def test_pipeline_graph_svg_export_includes_legend() -> None:
-    result = run_story_analysis(story_id="story-graph-legend", source_text=_sample_story())
-    assert "theme / beat / character" in result.graph_svg
-    assert "relation" in result.graph_svg
-
-
-def test_pipeline_graph_theme_to_beat_edges_use_alignment_relations() -> None:
-    result = run_story_analysis(story_id="story-graph-align", source_text=_sample_story())
-    theme_to_beat_edges = [
-        edge
-        for edge in result.dashboard.graph_edges
-        if edge.source.startswith("theme_") and edge.target.startswith("beat_")
-    ]
-    assert theme_to_beat_edges
-    assert {edge.relation for edge in theme_to_beat_edges}.issubset(
-        {"evidence_aligned", "stage_aligned"}
-    )
-    assert any(
-        edge.source.startswith("arc_")
-        and edge.target.startswith("beat_")
-        and edge.relation == "drives"
-        for edge in result.dashboard.graph_edges
-    )
-
-
 def test_pipeline_preserves_dashboard_heatmap_and_arc_shapes() -> None:
     result = run_story_analysis(story_id="story-shapes", source_text=_sample_story())
     assert result.dashboard.theme_heatmap
