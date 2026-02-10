@@ -1,0 +1,191 @@
+# AGENTS.md
+
+Repository operating rules for coding agents.
+
+## 0. Prime Directive
+
+- You may generate code quickly.
+- You may not change architecture without explicit approval.
+- If a requested change violates repository contracts, stop and ask for clarification.
+- Prefer correctness and boundary integrity over speed.
+
+## 1. Required Repository Contracts
+
+These artifacts must remain present:
+
+- `LICENSE`
+- `CONTRIBUTING.md`
+- `SECURITY.md`
+- `CODEOWNERS`
+- `docs/architecture.md`
+- `docs/adr/`
+
+If a change introduces new public behavior or a new dependency, add an ADR.
+
+## 2. Module Ownership and Boundaries
+
+Define and enforce module boundaries for this repo. Fill this with your project layout.
+
+Example:
+
+- `src/<pkg>/api/` -> public API layer
+- `src/<pkg>/core/` -> internal logic
+- `src/<pkg>/adapters/` -> side effects / IO
+- `src/<pkg>/cli/` -> command entrypoints
+
+Import rules (example):
+
+- `api` may import `core`, `adapters`
+- `core` must not import `api`, `adapters`
+- `adapters` must not be imported by `core`
+
+## 3. Quality and Enforcement
+
+Set the canonical local/CI commands here and keep them current.
+
+Required gates (template):
+
+- `<LOCK_CHECK_COMMAND>`
+- `<IMPORT_BOUNDARY_CHECK_COMMAND>`
+- `<LINT_COMMAND>`
+- `<FORMAT_CHECK_COMMAND>`
+- `<TYPECHECK_COMMAND>`
+- `<TEST_COMMAND>`
+- `<DOCS_BUILD_COMMAND>`
+
+Do not bypass pre-commit or CI.
+Do not remove tests to satisfy gates.
+Add or adjust tests to validate both working and failure paths.
+
+## 3.1 Mandatory Adversarial Self-Review
+
+For every implementation task, run an explicit adversarial pass before finalizing:
+
+- Assume the current approach is wrong until falsified.
+- Try malformed inputs, edge cases, and boundary values.
+- Check for regressions in contracts, schema compatibility, permissions, and data integrity.
+- Check for silent failure paths, weak error handling, and misleading success states.
+
+## 3.2 Mandatory PR Bug Sweep
+
+For every pull request, perform a bug-focused review of all changed files:
+
+- Inspect each changed file directly.
+- Record findings by severity; if no findings exist, state that explicitly.
+- Always call out residual risk and test gaps.
+- For every confirmed bug, add a regression test before merge.
+
+## 4. Entropy Prevention
+
+- No `utils` module names for new files; use domain-specific names.
+- No `TODO` without an issue reference (example: `TODO(#123): ...`).
+- No new public API without docs and tests.
+- Feature flags require an explicit removal plan.
+
+## 5. Backlog Execution Policy
+
+- Default execution order:
+  1. `Priority: Critical`
+  2. `Priority: High`
+  3. `Priority: Medium`
+  4. `Priority: Low`
+- Within a priority level, work oldest unblocked item first.
+- Continue automatically to next item unless explicitly redirected.
+
+## 6. Branch / Commit / PR Workflow
+
+For each issue:
+
+1. Create branch: `feature/<area>-<slug>-<issue-number>`
+2. Implement and test
+3. Run full quality gates
+4. Commit with clear message
+5. Push branch
+6. Open/update PR
+7. Fix CI until green
+8. Merge when policy allows
+
+PR body must include:
+
+- Summary in plain language
+- Linked issue URLs (full URLs, not shorthand)
+- Tradeoffs and risks
+- Exact validation commands run
+
+## 7. Completion Rule
+
+After each completed prompt:
+
+1. implement
+2. validate
+3. commit
+4. push to `origin/main` (or merged PR to `main`)
+
+## 8. Human-Facing Wording for Issues and PRs
+
+- Use specific, human language over boilerplate.
+- Prefer concrete intent and impact statements.
+- Link issues with full URLs.
+- State tradeoffs and test coverage explicitly.
+
+## 9. Human PR Status Comments
+
+Keep status comments short (3 to 6 lines) in this order:
+
+1. current state
+2. why
+3. next step
+
+## 10. Issue Close-Out Summaries
+
+When closing an issue, always add a structured summary comment first, then close.
+
+Use `.github/ISSUE_CLOSE_SUMMARY_TEMPLATE.md` with required headings:
+
+- `Work Summary`
+- `Objective`
+- `Root Cause`
+- `Approach`
+- `Implementation Details`
+- `Validation`
+- `Ownership / Follow-ups`
+
+Include concrete artifacts:
+
+- PR URLs
+- commit SHAs
+- tests/commands executed
+
+## 11. Project Board Hygiene
+
+- Keep issue title, `Status`, `Track`, and `Priority` fields up to date.
+- Synchronize board state with open PRs and active roadmap items.
+
+## 12. Dependabot and Maintenance PRs
+
+- Triage immediately.
+- Auto-merge safe patch/minor updates after required checks pass.
+- Manually review major/ambiguous updates.
+- If checks fail, identify compatibility cause and add regression coverage.
+
+## 13. Safety Defaults
+
+- Never use destructive git commands unless explicitly requested.
+- Never rewrite unrelated user changes.
+- If unexpected modifications appear during work, stop and ask how to proceed.
+
+## 14. Recommended Label Taxonomy
+
+- Priority: `Priority: Critical`, `Priority: High`, `Priority: Medium`, `Priority: Low`
+- Area: `Area: <domain>`
+- Planning: `Roadmap`, `needs-triage`, `needs-info`, `external`
+
+## 15. Setup Checklist for New Repos
+
+Before enabling autonomous agent execution, ensure:
+
+- `AGENTS.md` exists at repo root
+- `.github/pull_request_template.md` exists
+- `.github/ISSUE_CLOSE_SUMMARY_TEMPLATE.md` exists
+- CI runs the same quality gates documented above
+- pre-commit hooks are installed and match CI lint/format behavior
