@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import importlib.util
+import json
 import sys
+from pathlib import Path
 
 _SPEC = importlib.util.spec_from_file_location(
     "bug_prevention_log",
