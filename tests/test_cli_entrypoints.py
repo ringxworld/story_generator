@@ -164,6 +164,15 @@ def test_pipeline_canary_cli_runs_variant_matrix_and_writes_summary(
     )
     assert long_variant["key_metrics"]["segments"] >= 3
     assert long_variant["key_metrics"]["beats"] >= 3
+    multilingual_variant = next(
+        entry
+        for entry in payload["variants"]
+        if entry["variant_id"] == "multilingual_transcript_es"
+    )
+    translation_diag = multilingual_variant["stage_diagnostics"]["translation"]
+    assert translation_diag["source_language_distribution"]["es"] >= 1
+    assert translation_diag["non_target_language_segment_count"] >= 1
+    assert "es" in translation_diag["detected_languages"]
 
 
 def test_pipeline_canary_cli_rejects_source_file_with_variant_mode(tmp_path: Path) -> None:

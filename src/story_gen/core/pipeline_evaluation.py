@@ -154,6 +154,10 @@ def _evaluate_case(case: EvaluationFixtureCase) -> dict[str, Any]:
         segments=translated_source_segments,
         target_language=case.target_language,
     )
+    language_distribution = _language_distribution(
+        segments=translated_segments,
+        target_language=case.target_language,
+    )
     events, entities = extract_events_and_entities(segments=translated_segments)
     beats = detect_story_beats(events=events)
     themes, arcs, conflicts, emotions = track_theme_arc_signals(beats=beats, entities=entities)
@@ -181,6 +185,10 @@ def _evaluate_case(case: EvaluationFixtureCase) -> dict[str, Any]:
     timeline_conflict_codes = sorted({conflict.code for conflict in timeline.conflicts})
     metrics: dict[str, Any] = {
         "source_language": source_language,
+        "source_language_distribution": language_distribution["counts"],
+        "detected_languages": language_distribution["languages"],
+        "non_target_language_segment_count": language_distribution["non_target_count"],
+        "non_target_language_segment_share": language_distribution["non_target_share"],
         "segment_count": len(translated_segments),
         "event_count": len(events),
         "beat_count": len(beats),
@@ -232,6 +240,20 @@ def _evaluate_expectations(expectations: dict[str, Any], metrics: dict[str, Any]
     _min_check(
         expectations,
         metrics,
+        "min_non_target_language_segments",
+        "non_target_language_segment_count",
+        failures,
+    )
+    _min_check(
+        expectations,
+        metrics,
+        "min_non_target_language_share",
+        "non_target_language_segment_share",
+        failures,
+    )
+    _min_check(
+        expectations,
+        metrics,
         "min_non_story_theme_confidence",
         "non_story_theme_confidence_min",
         failures,
@@ -275,6 +297,13 @@ def _evaluate_expectations(expectations: dict[str, Any], metrics: dict[str, Any]
         metrics,
         "required_beat_stages",
         "beat_stage_sequence",
+        failures,
+    )
+    _subset_check(
+        expectations,
+        metrics,
+        "required_detected_languages",
+        "detected_languages",
         failures,
     )
     _subset_check(
@@ -443,6 +472,30 @@ def _segments_from_fixture(*, case_id: str, source_type: str, texts: list[str]) 
     if not segments:
         raise ValueError(f"Fixture case {case_id} produced no usable segments.")
     return segments
+
+
+def _language_distribution(
+    *,
+    segments: list[RawSegment],
+    target_language: str,
+) -> dict[str, Any]:
+    counts: dict[str, int] = {}
+    normalized_target = target_language.strip().lower()
+    non_target_count = 0
+    for segment in segments:
+        language = segment.language_code.strip().lower() or "und"
+        counts[language] = counts.get(language, 0) + 1
+        if language not in {normalized_target, "und"}:
+            non_target_count += 1
+    languages = sorted(counts)
+    total_segments = len(segments)
+    non_target_share = _round(non_target_count / total_segments) if total_segments else 0.0
+    return {
+        "counts": counts,
+        "languages": languages,
+        "non_target_count": non_target_count,
+        "non_target_share": non_target_share,
+    }
 
 
 def _subset_check(

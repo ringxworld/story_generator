@@ -28,7 +28,7 @@ from story_gen.core.pipeline_contracts import (
 from story_gen.core.quality_evaluation import evaluate_quality_gate
 from story_gen.core.story_extraction import extract_events_and_entities
 from story_gen.core.story_ingestion import IngestionRequest, ingest_story_text
-from story_gen.core.story_schema import StoryDocument
+from story_gen.core.story_schema import RawSegment, StoryDocument
 from story_gen.core.theme_arc_tracking import track_theme_arc_signals
 from story_gen.core.timeline_composer import compose_timeline
 
@@ -49,7 +49,9 @@ class CanaryExpectations:
     min_themes: int | None = None
     min_insights: int | None = None
     min_graph_nodes: int | None = None
+    min_non_target_language_segments: int | None = None
     required_beat_stages: tuple[str, ...] = ()
+    required_detected_languages: tuple[str, ...] = ()
     expected_source_language: str | None = None
 
 
@@ -119,7 +121,11 @@ DEFAULT_VARIANTS: Final[dict[str, CanaryVariant]] = {
         source_type="transcript",
         target_language="en",
         source_text=SPANISH_SOURCE_TEXT,
-        expectations=CanaryExpectations(expected_source_language="es"),
+        expectations=CanaryExpectations(
+            expected_source_language="es",
+            min_non_target_language_segments=1,
+            required_detected_languages=("es",),
+        ),
     ),
     "code_switch_transcript_es_en": CanaryVariant(
         variant_id="code_switch_transcript_es_en",
@@ -127,7 +133,10 @@ DEFAULT_VARIANTS: Final[dict[str, CanaryVariant]] = {
         source_type="transcript",
         target_language="en",
         source_text=CODE_SWITCH_SOURCE_TEXT,
-        expectations=CanaryExpectations(expected_source_language="en"),
+        expectations=CanaryExpectations(
+            expected_source_language="en",
+            required_detected_languages=("en",),
+        ),
     ),
     "long_transcript_multi_segment_en": CanaryVariant(
         variant_id="long_transcript_multi_segment_en",
@@ -144,6 +153,7 @@ DEFAULT_VARIANTS: Final[dict[str, CanaryVariant]] = {
             min_insights=3,
             min_graph_nodes=12,
             required_beat_stages=("setup", "escalation", "climax", "resolution"),
+            required_detected_languages=("en",),
             expected_source_language="en",
         ),
     ),
@@ -253,7 +263,9 @@ def _parse_expectations(raw: object) -> CanaryExpectations:
         "min_themes",
         "min_insights",
         "min_graph_nodes",
+        "min_non_target_language_segments",
         "required_beat_stages",
+        "required_detected_languages",
         "expected_source_language",
     }
     unknown = sorted(set(raw) - known)
@@ -284,6 +296,19 @@ def _parse_expectations(raw: object) -> CanaryExpectations:
                 f"{', '.join(invalid)}. Valid stages: {valid}."
             )
 
+    required_languages_raw = raw.get("required_detected_languages")
+    required_detected_languages: tuple[str, ...]
+    if required_languages_raw is None:
+        required_detected_languages = ()
+    else:
+        if not isinstance(required_languages_raw, list):
+            raise ValueError("Variant expectation 'required_detected_languages' must be a list.")
+        required_detected_languages = tuple(
+            str(language).strip().lower()
+            for language in required_languages_raw
+            if str(language).strip()
+        )
+
     expected_source_language_raw = raw.get("expected_source_language")
     expected_source_language: str | None
     if expected_source_language_raw is None:
@@ -303,7 +328,11 @@ def _parse_expectations(raw: object) -> CanaryExpectations:
         min_themes=_optional_non_negative_int("min_themes"),
         min_insights=_optional_non_negative_int("min_insights"),
         min_graph_nodes=_optional_non_negative_int("min_graph_nodes"),
+        min_non_target_language_segments=_optional_non_negative_int(
+            "min_non_target_language_segments"
+        ),
         required_beat_stages=required_beat_stages,
+        required_detected_languages=required_detected_languages,
         expected_source_language=expected_source_language,
     )
 
@@ -375,6 +404,30 @@ def _metric_value(details: dict[str, object], key: str) -> int:
     return 0
 
 
+def _language_distribution(
+    *,
+    segments: list[RawSegment],
+    target_language: str,
+) -> dict[str, object]:
+    counts: dict[str, int] = {}
+    normalized_target = target_language.strip().lower()
+    non_target_count = 0
+    for segment in segments:
+        language_raw = getattr(segment, "language_code", "und")
+        language = str(language_raw).strip().lower() or "und"
+        counts[language] = counts.get(language, 0) + 1
+        if language not in {normalized_target, "und"}:
+            non_target_count += 1
+    total_segments = len(segments)
+    non_target_share = round(non_target_count / total_segments, 3) if total_segments else 0.0
+    return {
+        "counts": counts,
+        "languages": sorted(counts),
+        "non_target_count": non_target_count,
+        "non_target_share": non_target_share,
+    }
+
+
 def _evaluate_variant_expectations(
     *,
     variant: CanaryVariant,
@@ -391,7 +444,9 @@ def _evaluate_variant_expectations(
             expectations.min_themes is not None,
             expectations.min_insights is not None,
             expectations.min_graph_nodes is not None,
+            expectations.min_non_target_language_segments is not None,
             bool(expectations.required_beat_stages),
+            bool(expectations.required_detected_languages),
             expectations.expected_source_language is not None,
         )
     )
@@ -447,6 +502,13 @@ def _evaluate_variant_expectations(
                 "expected dashboard_projection.graph_nodes >= "
                 f"{expectations.min_graph_nodes}, observed {observed}"
             )
+    if expectations.min_non_target_language_segments is not None:
+        observed = _metric_value(translation, "non_target_language_segment_count")
+        if observed < expectations.min_non_target_language_segments:
+            failures.append(
+                "expected translation.non_target_language_segment_count >= "
+                f"{expectations.min_non_target_language_segments}, observed {observed}"
+            )
 
     if expectations.expected_source_language is not None:
         observed_language = str(translation.get("source_language", "")).strip().lower()
@@ -471,6 +533,26 @@ def _evaluate_variant_expectations(
                 "expected beat_detection.stages to include "
                 f"{', '.join(expectations.required_beat_stages)}, "
                 f"missing {', '.join(missing)}"
+            )
+    if expectations.required_detected_languages:
+        observed_languages_raw = translation.get("detected_languages")
+        observed_languages: set[str]
+        if isinstance(observed_languages_raw, list):
+            observed_languages = {
+                str(language).strip().lower() for language in observed_languages_raw
+            }
+        else:
+            observed_languages = set()
+        missing_languages = sorted(
+            language
+            for language in expectations.required_detected_languages
+            if language not in observed_languages
+        )
+        if missing_languages:
+            failures.append(
+                "expected translation.detected_languages to include "
+                f"{', '.join(expectations.required_detected_languages)}, "
+                f"missing {', '.join(missing_languages)}"
             )
 
     status = "failed" if failures else "ok"
@@ -635,6 +717,10 @@ def run_canary(
             segments=artifact.segments,
             target_language=target_language,
         )
+        language_distribution = _language_distribution(
+            segments=translated_segments,
+            target_language=target_language,
+        )
         validate_extraction_input(translated_segments)
         checks.append(
             StageCheck(
@@ -644,6 +730,10 @@ def run_canary(
                     "segments": len(translated_segments),
                     "alignments": len(alignments),
                     "source_language": source_language,
+                    "source_language_distribution": language_distribution["counts"],
+                    "detected_languages": language_distribution["languages"],
+                    "non_target_language_segment_count": language_distribution["non_target_count"],
+                    "non_target_language_segment_share": language_distribution["non_target_share"],
                 },
             )
         )
