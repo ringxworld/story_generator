@@ -284,6 +284,8 @@ def _timeline_consistency_score(*, conflicts: list[TimelineConflict], total_poin
         return 1.0
     errors = sum(1 for conflict in conflicts if conflict.severity == "error")
     warnings = sum(1 for conflict in conflicts if conflict.severity == "warning")
-    penalty = errors + (warnings * 0.35)
+    # Chronology order conflicts are high-severity regressions and should weigh heavier than
+    # missing-time warnings in consistency calibration.
+    penalty = (errors * 1.2) + (warnings * 0.35)
     score = 1.0 - min(1.0, penalty / total_points)
     return round(max(0.0, score), 3)

@@ -746,6 +746,94 @@ def test_analysis_quality_failure_is_persisted_as_anomaly(tmp_path: Path) -> Non
     assert story_id in quality_failures[0].metadata_json
 
 
+def test_analysis_translation_degradation_is_persisted_as_anomaly(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    monkeypatch.setenv("STORY_GEN_TRANSLATION_PROVIDER", "failing")
+    monkeypatch.setenv("STORY_GEN_TRANSLATION_RETRY_COUNT", "1")
+    db_path = tmp_path / "stories.db"
+    client = TestClient(create_app(db_path=db_path))
+    headers = _auth_headers(client, "translation-anomaly@example.com")
+
+    created = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Translation Degrade", "blueprint": _sample_blueprint()},
+    )
+    assert created.status_code == 201
+    story_id = created.json()["story_id"]
+
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={"source_text": "La historia de la familia cambia cuando aparece el conflicto."},
+    )
+    assert run.status_code == 200
+
+    anomalies = SQLiteAnomalyStore(db_path=db_path).list_recent(limit=20)
+    translation_degraded = [event for event in anomalies if event.code == "translation_degraded"]
+    assert translation_degraded
+    assert '"fallback_used": true' in translation_degraded[0].metadata_json
+    assert "translation_provider_fallback_used" in translation_degraded[0].metadata_json
+
+
+def test_analysis_insight_consistency_failure_is_actionable(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    from story_gen.core.story_schema import ConfidenceScore, Insight, ProvenanceRecord
+
+    def inconsistent_insights(*, beats: list[Any], themes: list[Any]) -> list[Insight]:
+        del themes
+        segment_id = beats[0].evidence_segment_ids[0]
+        return [
+            Insight(
+                insight_id="ins_bad",
+                granularity="macro",
+                title="Disconnected insight",
+                content="Orbital trade policy collapsed on unrelated continents.",
+                stage=None,
+                beat_id=None,
+                evidence_segment_ids=[segment_id],
+                confidence=ConfidenceScore(method="insight.test.v1", score=0.9),
+                provenance=ProvenanceRecord(
+                    source_segment_ids=[segment_id],
+                    generator="test_override",
+                ),
+            )
+        ]
+
+    monkeypatch.setattr(
+        "story_gen.core.story_analysis_pipeline.generate_insights", inconsistent_insights
+    )
+
+    db_path = tmp_path / "stories.db"
+    client = TestClient(create_app(db_path=db_path))
+    headers = _auth_headers(client, "insight-anomaly@example.com")
+
+    created = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Insight Inconsistency", "blueprint": _sample_blueprint()},
+    )
+    assert created.status_code == 201
+    story_id = created.json()["story_id"]
+
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={"source_text": "Rhea opens the archive and confirms the ledger."},
+    )
+    assert run.status_code == 200
+    assert run.json()["quality_gate"]["passed"] is False
+    assert "insight_evidence_inconsistent" in run.json()["quality_gate"]["reasons"]
+
+    anomalies = SQLiteAnomalyStore(db_path=db_path).list_recent(limit=20)
+    insight_failures = [event for event in anomalies if event.code == "insight_consistency_failed"]
+    assert insight_failures
+    assert "inconsistent_insight_ids" in insight_failures[0].metadata_json
+    assert "ins_bad" in insight_failures[0].metadata_json
+
+
 def test_dashboard_payload_shape_error_records_anomaly(tmp_path: Path) -> None:
     import sqlite3
 
