@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import statistics
 import time
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -123,6 +125,50 @@ class LibreTranslateClient:
                 if index < len(chunks) and self._delay_seconds > 0:
                     time.sleep(self._delay_seconds)
         return "\n\n".join(translated).strip()
+
+
+_STAGE_ORDER = ("setup", "escalation", "climax", "resolution")
+_STOPWORD_ENTITIES = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "be",
+    "but",
+    "by",
+    "for",
+    "from",
+    "he",
+    "her",
+    "his",
+    "i",
+    "if",
+    "in",
+    "is",
+    "it",
+    "its",
+    "me",
+    "my",
+    "of",
+    "on",
+    "or",
+    "she",
+    "so",
+    "that",
+    "the",
+    "their",
+    "them",
+    "there",
+    "they",
+    "this",
+    "to",
+    "was",
+    "we",
+    "were",
+    "with",
+    "you",
+}
 
 
 def _translate_with_retry(
@@ -288,6 +334,337 @@ def _write_json(path: Path, payload: object) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def _parse_string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
+
+
+def _parse_float_mapping(value: object) -> dict[str, float]:
+    if not isinstance(value, dict):
+        return {}
+    parsed: dict[str, float] = {}
+    for key, raw in value.items():
+        if not isinstance(key, str):
+            continue
+        if isinstance(raw, (int, float)):
+            parsed[key] = float(raw)
+    return parsed
+
+
+def _chapter_summary_from_payload(payload: object) -> ChapterSummary | None:
+    if not isinstance(payload, dict):
+        return None
+    chapter_number = payload.get("chapter_number")
+    source_path = payload.get("source_path")
+    translated = payload.get("translated")
+    translation_provider = payload.get("translation_provider")
+    source_language = payload.get("source_language")
+    source_chars = payload.get("source_chars")
+    translated_chars = payload.get("translated_chars")
+    event_count = payload.get("event_count")
+    beat_count = payload.get("beat_count")
+    theme_count = payload.get("theme_count")
+    insight_count = payload.get("insight_count")
+    quality_passed = payload.get("quality_passed")
+    translation_quality = payload.get("translation_quality")
+
+    if not isinstance(chapter_number, int):
+        return None
+    if not isinstance(source_path, str):
+        return None
+    if not isinstance(translated, bool):
+        return None
+    if not isinstance(translation_provider, str):
+        return None
+    if not isinstance(source_language, str):
+        return None
+    if not isinstance(source_chars, int):
+        return None
+    if not isinstance(translated_chars, int):
+        return None
+    if not isinstance(event_count, int):
+        return None
+    if not isinstance(beat_count, int):
+        return None
+    if not isinstance(theme_count, int):
+        return None
+    if not isinstance(insight_count, int):
+        return None
+    if not isinstance(quality_passed, bool):
+        return None
+    if not isinstance(translation_quality, (int, float)):
+        return None
+
+    return ChapterSummary(
+        chapter_number=chapter_number,
+        source_path=source_path,
+        translated=translated,
+        translation_provider=translation_provider,
+        source_language=source_language,
+        source_chars=source_chars,
+        translated_chars=translated_chars,
+        event_count=event_count,
+        beat_count=beat_count,
+        theme_count=theme_count,
+        insight_count=insight_count,
+        top_entities=_parse_string_list(payload.get("top_entities")),
+        top_themes=_parse_string_list(payload.get("top_themes")),
+        quality_passed=quality_passed,
+        translation_quality=float(translation_quality),
+        timing_seconds=_parse_float_mapping(payload.get("timing_seconds")),
+    )
+
+
+def _clean_entity(value: str) -> str:
+    normalized = re.sub(r"[^a-zA-Z0-9 '\-]", "", value.strip().lower()).strip()
+    if len(normalized) < 3:
+        return ""
+    if normalized in _STOPWORD_ENTITIES:
+        return ""
+    if normalized.isdigit():
+        return ""
+    return normalized
+
+
+def _chapter_stage(index: int, total: int) -> str:
+    if total <= 1:
+        return "setup"
+    ratio = (index + 1) / float(total)
+    if ratio <= 0.25:
+        return "setup"
+    if ratio <= 0.6:
+        return "escalation"
+    if ratio <= 0.85:
+        return "climax"
+    return "resolution"
+
+
+def _dashboard_payload(
+    *,
+    run_summary: BatchSummary,
+    chapter_summaries: list[ChapterSummary],
+) -> dict[str, object]:
+    sorted_chapters = sorted(chapter_summaries, key=lambda item: item.chapter_number)
+    chapter_count = len(sorted_chapters)
+    chapter_chars = [item.source_chars for item in sorted_chapters]
+    total_chars = sum(chapter_chars)
+    median_chars = int(statistics.median(chapter_chars)) if chapter_chars else 0
+    over_10k = sum(1 for chars in chapter_chars if chars >= 10_000)
+    event_total = sum(item.event_count for item in sorted_chapters)
+    beat_total = sum(item.beat_count for item in sorted_chapters)
+    theme_total = sum(item.theme_count for item in sorted_chapters)
+    insight_total = sum(item.insight_count for item in sorted_chapters)
+    pass_count = sum(1 for item in sorted_chapters if item.quality_passed)
+    quality_pass_rate = (pass_count / chapter_count) if chapter_count else 0.0
+    average_translation_quality = (
+        sum(item.translation_quality for item in sorted_chapters) / chapter_count
+        if chapter_count
+        else 0.0
+    )
+
+    theme_scores: dict[str, float] = {}
+    theme_stage_scores: dict[tuple[str, str], float] = {}
+    stage_buckets: dict[str, dict[str, list[float]]] = {
+        stage: {"events_per_1k_chars": [], "themes_per_1k_chars": [], "translation_quality": []}
+        for stage in _STAGE_ORDER
+    }
+    timeline_story_items: list[dict[str, object]] = []
+    timeline_quality_items: list[dict[str, object]] = []
+    chapter_theme_map: dict[int, list[str]] = {}
+    chapter_entity_map: dict[int, list[str]] = {}
+
+    for index, chapter in enumerate(sorted_chapters):
+        stage = _chapter_stage(index, chapter_count)
+        top_themes = [theme for theme in chapter.top_themes if theme.strip()]
+        top_theme_labels = ", ".join(top_themes[:2]) if top_themes else "no dominant theme"
+        timeline_story_items.append(
+            {
+                "id": f"chapter-{chapter.chapter_number:04d}",
+                "label": f"Chapter {chapter.chapter_number:04d}: {top_theme_labels}",
+                "order": index + 1,
+                "time": None,
+            }
+        )
+        quality_label = "pass" if chapter.quality_passed else "fail"
+        timeline_quality_items.append(
+            {
+                "id": f"quality-{chapter.chapter_number:04d}",
+                "label": (
+                    f"Chapter {chapter.chapter_number:04d}: {quality_label}, "
+                    f"tq={chapter.translation_quality:.2f}, events={chapter.event_count}"
+                ),
+                "order": index + 1,
+                "time": None,
+            }
+        )
+
+        chapter_theme_map[chapter.chapter_number] = top_themes
+        cleaned_entities = [_clean_entity(entity) for entity in chapter.top_entities]
+        chapter_entity_map[chapter.chapter_number] = [
+            entity for entity in cleaned_entities if entity
+        ]
+
+        char_scale = max(1, chapter.source_chars)
+        stage_buckets[stage]["events_per_1k_chars"].append(
+            chapter.event_count * 1000.0 / char_scale
+        )
+        stage_buckets[stage]["themes_per_1k_chars"].append(
+            chapter.theme_count * 1000.0 / char_scale
+        )
+        stage_buckets[stage]["translation_quality"].append(chapter.translation_quality)
+
+        for rank, theme in enumerate(top_themes[:4]):
+            score = 1.0 / float(rank + 1)
+            theme_scores[theme] = theme_scores.get(theme, 0.0) + score
+            key = (theme, stage)
+            theme_stage_scores[key] = theme_stage_scores.get(key, 0.0) + score
+
+    max_theme_stage_score = max(theme_stage_scores.values(), default=0.0)
+    heatmap = [
+        {
+            "theme": theme,
+            "stage": stage,
+            "intensity": round(
+                (score / max_theme_stage_score) if max_theme_stage_score > 0 else 0.0, 2
+            ),
+        }
+        for (theme, stage), score in sorted(
+            theme_stage_scores.items(),
+            key=lambda item: (-item[1], item[0][0], item[0][1]),
+        )[:24]
+    ]
+
+    arc_points: list[dict[str, object]] = []
+    for lane in ("events_per_1k_chars", "themes_per_1k_chars", "translation_quality"):
+        for stage in _STAGE_ORDER:
+            values = stage_buckets[stage][lane]
+            if not values:
+                continue
+            average_value = sum(values) / len(values)
+            arc_points.append(
+                {
+                    "lane": lane,
+                    "stage": stage,
+                    "value": round(average_value, 3),
+                    "label": f"{average_value:.3f}",
+                }
+            )
+
+    top_themes = [
+        theme for theme, _ in sorted(theme_scores.items(), key=lambda item: (-item[1], item[0]))[:8]
+    ]
+    chapter_nodes = sorted_chapters[:16]
+    graph_nodes: list[dict[str, object]] = []
+    graph_edges: list[dict[str, object]] = []
+
+    for index, theme in enumerate(top_themes):
+        graph_nodes.append(
+            {
+                "id": f"theme:{theme}",
+                "label": theme,
+                "group": "theme",
+                "stage": None,
+                "layout_x": 60 + index * 64,
+                "layout_y": 40,
+            }
+        )
+
+    for index, chapter in enumerate(chapter_nodes):
+        x_slot = index % 8
+        y_slot = index // 8
+        chapter_node_id = f"chapter:{chapter.chapter_number:04d}"
+        graph_nodes.append(
+            {
+                "id": chapter_node_id,
+                "label": f"C{chapter.chapter_number:04d}",
+                "group": "chapter",
+                "stage": _chapter_stage(index, len(chapter_nodes)),
+                "layout_x": 60 + x_slot * 64,
+                "layout_y": 122 + y_slot * 70,
+            }
+        )
+        for rank, theme in enumerate(chapter_theme_map.get(chapter.chapter_number, [])[:2]):
+            if theme not in top_themes:
+                continue
+            graph_edges.append(
+                {
+                    "source": chapter_node_id,
+                    "target": f"theme:{theme}",
+                    "relation": "mentions_theme",
+                    "weight": round(1.0 / float(rank + 1), 3),
+                }
+            )
+        for entity in chapter_entity_map.get(chapter.chapter_number, [])[:1]:
+            entity_node_id = f"entity:{entity}"
+            if all(node["id"] != entity_node_id for node in graph_nodes):
+                graph_nodes.append(
+                    {
+                        "id": entity_node_id,
+                        "label": entity[:18],
+                        "group": "entity",
+                        "stage": None,
+                        "layout_x": 420 + (len(graph_nodes) % 3) * 52,
+                        "layout_y": 40 + (len(graph_nodes) % 4) * 42,
+                    }
+                )
+            graph_edges.append(
+                {
+                    "source": chapter_node_id,
+                    "target": entity_node_id,
+                    "relation": "mentions_entity",
+                    "weight": 0.4,
+                }
+            )
+
+    dominant_theme = top_themes[0] if top_themes else "story"
+    macro_thesis = (
+        f"Across {chapter_count} chapters, the strongest recurring signal is '{dominant_theme}' "
+        f"with {event_total} extracted events and {insight_total} generated insights."
+    )
+
+    return {
+        "run": {
+            "run_id": run_summary.run_id,
+            "started_at_utc": run_summary.started_at_utc,
+            "finished_at_utc": run_summary.finished_at_utc,
+            "elapsed_seconds": run_summary.elapsed_seconds,
+            "average_chapter_seconds": run_summary.average_chapter_seconds,
+            "translation_provider": run_summary.translation_provider,
+            "timing_totals": run_summary.timing_totals,
+        },
+        "overview": {
+            "title": "Re:Zero End-to-End Batch Dashboard",
+            "macro_thesis": macro_thesis,
+            "confidence_floor": round(average_translation_quality, 3),
+            "quality_passed": run_summary.failed_chapters == 0 and quality_pass_rate >= 0.5,
+            "events_count": event_total,
+            "beats_count": beat_total,
+            "themes_count": theme_total,
+            "insights_count": insight_total,
+        },
+        "kpis": {
+            "chapter_count": chapter_count,
+            "chapter_chars_total": total_chars,
+            "chapter_chars_median": median_chars,
+            "chapters_over_10000_chars": over_10k,
+            "quality_pass_rate": round(quality_pass_rate, 3),
+            "average_translation_quality": round(average_translation_quality, 3),
+            "failed_chapters": run_summary.failed_chapters,
+        },
+        "timeline": [
+            {"lane": "chapter_order", "items": timeline_story_items},
+            {"lane": "quality_gate", "items": timeline_quality_items},
+        ],
+        "heatmap": heatmap,
+        "arcs": arc_points,
+        "graph": {
+            "nodes": graph_nodes,
+            "edges": graph_edges,
+        },
+    }
+
+
 def run_pipeline_batch(args: argparse.Namespace) -> BatchSummary:
     source_dir = Path(args.source_dir)
     output_root = Path(args.output_dir) / args.run_id
@@ -328,11 +705,17 @@ def run_pipeline_batch(args: argparse.Namespace) -> BatchSummary:
     failed = 0
     failures: list[dict[str, object]] = []
     timing_totals: dict[str, float] = {}
+    chapter_summaries: list[ChapterSummary] = []
 
     for path in filtered:
         number = _chapter_number(path)
         summary_path = summaries_dir / f"{number:04d}.json"
         if summary_path.exists() and not args.force:
+            existing_summary = _chapter_summary_from_payload(
+                json.loads(summary_path.read_text(encoding="utf-8"))
+            )
+            if existing_summary is not None:
+                chapter_summaries.append(existing_summary)
             skipped += 1
             continue
 
@@ -397,6 +780,7 @@ def run_pipeline_batch(args: argparse.Namespace) -> BatchSummary:
                 timing_seconds=analysis.timing,
             )
             _write_json(summary_path, asdict(chapter_summary))
+            chapter_summaries.append(chapter_summary)
             processed += 1
             for key, value in analysis.timing.items():
                 timing_totals[key] = timing_totals.get(key, 0.0) + value
@@ -424,6 +808,13 @@ def run_pipeline_batch(args: argparse.Namespace) -> BatchSummary:
         timing_totals={key: round(value, 3) for key, value in timing_totals.items()},
     )
     _write_json(output_root / "summary.json", asdict(batch_summary))
+    dashboard_payload = _dashboard_payload(
+        run_summary=batch_summary,
+        chapter_summaries=chapter_summaries,
+    )
+    _write_json(output_root / "dashboard.json", dashboard_payload)
+    if args.dashboard_path:
+        _write_json(Path(args.dashboard_path), dashboard_payload)
     return batch_summary
 
 
@@ -449,6 +840,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--translate-chunk-size", type=int, default=1800)
     parser.add_argument("--mode", choices=["translate", "analyze", "all"], default="all")
     parser.add_argument("--story-id-prefix", default="chapter-")
+    parser.add_argument("--dashboard-path", default="")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--strict", action="store_true")
     return parser
@@ -463,6 +855,7 @@ def main(argv: list[str] | None = None) -> None:
     args.chapter_end = int(args.chapter_end) if int(args.chapter_end) > 0 else 0
     args.max_chapters = int(args.max_chapters) if int(args.max_chapters) > 0 else 0
     args.translated_dir = str(args.translated_dir).strip()
+    args.dashboard_path = str(args.dashboard_path).strip()
     run_pipeline_batch(args)
 
 
