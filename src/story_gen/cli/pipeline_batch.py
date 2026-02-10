@@ -8,6 +8,7 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Protocol
 
 import httpx
 
@@ -55,6 +56,12 @@ class TranslationError(RuntimeError):
     """Raised when translation fails for a chapter."""
 
 
+class Translator(Protocol):
+    name: str
+
+    def translate(self, text: str) -> str: ...
+
+
 class ArgosTranslator:
     name = "argos.v1"
 
@@ -73,7 +80,7 @@ class ArgosTranslator:
         self._translator = source.get_translation(target)
 
     def translate(self, text: str) -> str:
-        return self._translator.translate(text)
+        return str(self._translator.translate(text))
 
 
 class LibreTranslateClient:
@@ -213,10 +220,10 @@ def _translator_chain(
     libretranslate_api_key: str | None,
     translate_delay_seconds: float,
     translate_chunk_size: int,
-) -> list[object]:
+) -> list[Translator]:
     if provider == "none":
         return []
-    chain: list[object] = []
+    chain: list[Translator] = []
     if provider in {"argos", "chain"}:
         try:
             chain.append(ArgosTranslator(source_language, target_language))
@@ -240,7 +247,7 @@ def _translator_chain(
 def _translate_text(
     *,
     source_text: str,
-    chain: list[object],
+    chain: list[Translator],
 ) -> tuple[str, str]:
     if not chain:
         return source_text, "none"
@@ -270,9 +277,9 @@ def _chapter_number(path: Path) -> int:
 
 def _summarize_document(document: StoryDocument) -> tuple[list[str], list[str]]:
     entities = sorted(document.entity_mentions, key=lambda ent: (-ent.mention_count, ent.name))
-    themes = sorted(document.theme_signals, key=lambda theme: (-theme.intensity, theme.theme))
+    themes = sorted(document.theme_signals, key=lambda theme: (-theme.strength, theme.label))
     top_entities = [entity.name for entity in entities[:6]]
-    top_themes = [theme.theme for theme in themes[:6]]
+    top_themes = [theme.label for theme in themes[:6]]
     return top_entities, top_themes
 
 
@@ -371,7 +378,7 @@ def run_pipeline_batch(args: argparse.Namespace) -> BatchSummary:
                 target_language=args.target_language,
             )
             top_entities, top_themes = _summarize_document(analysis.document)
-            summary = ChapterSummary(
+            chapter_summary = ChapterSummary(
                 chapter_number=number,
                 source_path=str(path),
                 translated=translated,
@@ -389,7 +396,7 @@ def run_pipeline_batch(args: argparse.Namespace) -> BatchSummary:
                 translation_quality=analysis.document.quality_gate.translation_quality,
                 timing_seconds=analysis.timing,
             )
-            _write_json(summary_path, asdict(summary))
+            _write_json(summary_path, asdict(chapter_summary))
             processed += 1
             for key, value in analysis.timing.items():
                 timing_totals[key] = timing_totals.get(key, 0.0) + value
@@ -402,7 +409,7 @@ def run_pipeline_batch(args: argparse.Namespace) -> BatchSummary:
     finished_at = datetime.now(UTC).isoformat()
     elapsed = time.perf_counter() - started
     average = elapsed / processed if processed else 0.0
-    summary = BatchSummary(
+    batch_summary = BatchSummary(
         run_id=args.run_id,
         started_at_utc=started_at,
         finished_at_utc=finished_at,
@@ -416,8 +423,8 @@ def run_pipeline_batch(args: argparse.Namespace) -> BatchSummary:
         translation_provider=args.translate_provider,
         timing_totals={key: round(value, 3) for key, value in timing_totals.items()},
     )
-    _write_json(output_root / "summary.json", asdict(summary))
-    return summary
+    _write_json(output_root / "summary.json", asdict(batch_summary))
+    return batch_summary
 
 
 def build_arg_parser() -> argparse.ArgumentParser:

@@ -17,7 +17,7 @@ import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Literal, Mapping, NotRequired, TypedDict
+from typing import Literal, Mapping, NotRequired, Protocol, TypedDict
 from urllib.parse import urljoin
 
 import httpx
@@ -464,6 +464,12 @@ class TranslationError(RuntimeError):
     """Raised when translation fails."""
 
 
+class Translator(Protocol):
+    name: str
+
+    def translate(self, text: str) -> str: ...
+
+
 class ArgosTranslateTranslator:
     """Offline translation adapter for Argos Translate."""
 
@@ -484,7 +490,7 @@ class ArgosTranslateTranslator:
         self._translator = source.get_translation(target)
 
     def translate(self, text: str) -> str:
-        return self._translator.translate(text)
+        return str(self._translator.translate(text))
 
 
 def _translate_with_retry(
@@ -530,10 +536,10 @@ def _looks_untranslated(source: str, translated: str) -> bool:
     return translated_ascii < 10 or unknown_ratio > 0.2
 
 
-def _translator_chain(args: PipelineArgs, client: httpx.Client) -> list[object]:
+def _translator_chain(args: PipelineArgs, client: httpx.Client) -> list[Translator]:
     if args.translate_provider == "none":
         return []
-    chain: list[object] = []
+    chain: list[Translator] = []
     if args.translate_provider in {"argos", "chain"}:
         try:
             chain.append(ArgosTranslateTranslator(args.source_language, args.target_language))
@@ -555,7 +561,7 @@ def _translator_chain(args: PipelineArgs, client: httpx.Client) -> list[object]:
     return chain
 
 
-def _translate_text(source_text: str, chain: list[object]) -> tuple[str, str]:
+def _translate_text(source_text: str, chain: list[Translator]) -> tuple[str, str]:
     if not chain:
         return source_text, "none"
     last_error: Exception | None = None

@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import httpx
 import jwt
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
 
 @dataclass(frozen=True)
@@ -128,15 +129,15 @@ def validate_oidc_token(token: str) -> OidcClaims:
     kid = header.get("kid") if isinstance(header, dict) else None
     jwks = _fetch_jwks(issuer)
     jwk = _select_jwk(jwks, kid)
-    public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(jwk))
-    options = {"verify_aud": bool(audience)}
+    public_key = cast(RSAPublicKey, jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(jwk)))
+    options: dict[str, bool] = {"verify_aud": bool(audience)}
     payload = jwt.decode(
         token,
         key=public_key,
         algorithms=algorithms,
         audience=audience or None,
         issuer=issuer,
-        options=options,
+        options=cast(Any, options),
     )
     if not isinstance(payload, dict):
         raise RuntimeError("OIDC token payload was not an object.")
