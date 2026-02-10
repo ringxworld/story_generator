@@ -406,6 +406,8 @@ def _chunk_text(text: str, max_chars: int) -> list[str]:
 class LibreTranslateTranslator:
     """Translation adapter for LibreTranslate-compatible APIs."""
 
+    name = "libretranslate.v1"
+
     def __init__(
         self,
         *,
