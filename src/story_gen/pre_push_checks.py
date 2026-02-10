@@ -36,7 +36,19 @@ def main() -> None:
     run_tool("ruff", "format", "--check", ".")
     run_tool("mypy")
     run_tool("pytest")
-    run([uv_executable, "run", "story-pipeline-canary", "--strict"])
+    run(
+        [
+            uv_executable,
+            "run",
+            "story-pipeline-canary",
+            "--strict",
+            "--run-all-variants",
+            "--variants-file",
+            "tests/fixtures/pipeline_canary_variants.v1.json",
+            "--matrix-output",
+            "work/qa/pipeline_canary_summary.json",
+        ]
+    )
     run(
         [
             uv_executable,

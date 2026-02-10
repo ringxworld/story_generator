@@ -34,6 +34,9 @@ Repository-level quality workflow updates:
 
 - QA fixtures are versioned and stored in-repo.
 - Harness computes and records per-segment translation alignment scores.
+- Harness computes and records per-case segment language distributions (counts,
+  detected languages, non-target-language share) for multilingual regression
+  visibility.
 - Strict mode fails when fixture expectations or calibration thresholds fail.
 - Fixture corpus always includes:
   - mixed-language/code-switch translation cases
@@ -45,6 +48,7 @@ Repository-level quality workflow updates:
 ## Test plan
 
 - Add unit tests for evaluation harness pass/fail behavior and fixture coverage.
+- Add regression tests for language-distribution expectation failures.
 - Add CLI entrypoint tests for QA evaluation command output.
 - Extend project contract tests for:
   - Makefile QA target

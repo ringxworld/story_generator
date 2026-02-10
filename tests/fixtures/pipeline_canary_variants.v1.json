@@ -1,0 +1,86 @@
+{
+  "fixture_version": "pipeline_canary_variants.v1",
+  "variants": [
+    {
+      "variant_id": "default_transcript_en",
+      "description": "Baseline transcript path in English.",
+      "source_type": "transcript",
+      "target_language": "en",
+      "source_text": "[00:01] Narrator: Rhea enters the archive and finds her family's ledger.\n[00:40] Council: The council denies the records and tension rises.\n[01:10] Rhea: She confronts the council in the central hall.\n[01:42] Narrator: The city accepts the truth and begins to heal.\n",
+      "expectations": {
+        "expected_source_language": "en",
+        "min_segments": 1,
+        "min_events": 1,
+        "min_beats": 1
+      }
+    },
+    {
+      "variant_id": "multilingual_transcript_es",
+      "description": "Non-English transcript path with Spanish markers and translation alignment.",
+      "source_type": "transcript",
+      "target_language": "en",
+      "source_text": "[00:01] Narrador: La historia de la familia protege la memoria.\n[00:45] Consejo: El consejo niega el archivo y el conflicto crece.\n[01:20] Rhea: Ella confronta al consejo y busca la verdad.\n[01:50] Narrador: La ciudad acepta la verdad y sana.\n",
+      "expectations": {
+        "expected_source_language": "es",
+        "min_segments": 1,
+        "min_non_target_language_segments": 1,
+        "min_events": 1,
+        "min_beats": 1,
+        "required_detected_languages": ["es"]
+      }
+    },
+    {
+      "variant_id": "code_switch_transcript_es_en",
+      "description": "Code-switch transcript with mixed Spanish and English cues.",
+      "source_type": "transcript",
+      "target_language": "en",
+      "source_text": "[00:02] Narrator: La historia starts in the archive with missing records.\n[00:36] Council: El consejo denies the ledger and tension rises.\n[01:05] Rhea: Ella confronts the council in public.\n[01:42] Narrator: The city accepts la verdad and starts to heal.\n",
+      "expectations": {
+        "expected_source_language": "en",
+        "min_segments": 1,
+        "min_events": 1,
+        "min_beats": 1,
+        "required_detected_languages": ["en"]
+      }
+    },
+    {
+      "variant_id": "long_transcript_multi_segment_en",
+      "description": "Long transcript path validating multi-segment and stage coverage behavior.",
+      "source_type": "transcript",
+      "target_language": "en",
+      "source_text": "[00:01] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:02] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:03] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:04] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:05] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:06] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:07] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:08] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:09] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:10] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:11] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:12] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:13] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:14] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:15] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:16] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:17] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:18] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:19] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n[00:20] Narrator: Rhea enters the archive and finds conflicting records while the council responds with escalating denials and public debate across the city.\n",
+      "expectations": {
+        "expected_source_language": "en",
+        "min_segments": 3,
+        "min_alignments": 3,
+        "min_events": 3,
+        "min_beats": 3,
+        "min_themes": 1,
+        "min_insights": 3,
+        "min_graph_nodes": 12,
+        "required_detected_languages": [
+          "en"
+        ],
+        "required_beat_stages": [
+          "setup",
+          "escalation",
+          "climax",
+          "resolution"
+        ]
+      }
+    },
+    {
+      "variant_id": "document_timeline_en",
+      "description": "Document source adaptation path with deterministic chronology markers.",
+      "source_type": "document",
+      "target_language": "en",
+      "source_text": "# Incident Report\n1. 2024-01-03 Rhea enters the archive and finds conflicting records.\n2. 2024-01-04 The council denies the evidence.\n3. 2024-01-05 Rhea presents the ledger in the central hall.\n4. 2024-01-06 The city accepts the truth.\n",
+      "expectations": {
+        "expected_source_language": "en",
+        "min_segments": 1,
+        "min_events": 1,
+        "min_beats": 1
+      }
+    }
+  ]
+}

@@ -38,6 +38,12 @@ def test_qa_evaluation_harness_passes_default_fixture(tmp_path: Path) -> None:
     assert cases
     assert all("alignment_scores" in case for case in cases)
     assert all(case["alignment_scores"] for case in cases)
+    mixed_case = next(case for case in cases if case["case_id"] == "translation_mixed_language_v1")
+    mixed_metrics = cast(dict[str, Any], mixed_case["metrics"])
+    assert "source_language_distribution" in mixed_metrics
+    assert mixed_metrics["source_language_distribution"]["es"] >= 1
+    assert mixed_metrics["non_target_language_segment_count"] >= 1
+    assert "es" in mixed_metrics["detected_languages"]
 
 
 def test_qa_evaluation_harness_fails_on_alignment_regression(tmp_path: Path) -> None:
@@ -51,6 +57,24 @@ def test_qa_evaluation_harness_fails_on_alignment_regression(tmp_path: Path) -> 
     assert summary["status"] == "failed"
     with pytest.raises(SystemExit):
         run_evaluation(fixtures_path=mutated, output_path=output, strict=True)
+
+
+def test_qa_evaluation_harness_fails_on_language_distribution_regression(tmp_path: Path) -> None:
+    mutated = tmp_path / "fixtures.json"
+    payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    target_case = next(
+        case for case in payload["cases"] if case["case_id"] == "translation_mixed_language_v1"
+    )
+    target_case["expectations"]["min_non_target_language_segments"] = 2
+    mutated.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    output = tmp_path / "evaluation-summary.json"
+    summary = run_evaluation(fixtures_path=mutated, output_path=output, strict=False)
+    assert summary["status"] == "failed"
+    cases = cast(list[dict[str, Any]], summary["cases"])
+    mixed_case = next(case for case in cases if case["case_id"] == "translation_mixed_language_v1")
+    failures = cast(list[str], mixed_case["failures"])
+    assert any("non_target_language_segment_count" in failure for failure in failures)
 
 
 def test_fixture_loader_rejects_missing_cases(tmp_path: Path) -> None:

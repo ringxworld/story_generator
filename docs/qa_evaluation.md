@@ -2,6 +2,21 @@
 
 The repository ships a fixture-driven quality harness for story pipeline QA.
 
+It also ships a variant-matrix canary that runs end-to-end pipeline stages
+across multilingual and multi-source inputs.
+Each canary variant can also define explicit stage expectations so CI fails
+when coverage depth regresses (for example multi-segment beat coverage).
+
+Run the canary matrix locally:
+
+```bash
+uv run story-pipeline-canary \
+  --strict \
+  --run-all-variants \
+  --variants-file tests/fixtures/pipeline_canary_variants.v1.json \
+  --matrix-output work/qa/pipeline_canary_summary.json
+```
+
 Run it locally:
 
 ```bash
@@ -58,6 +73,8 @@ Supported `expectations` keys:
   - `min_insight_count`
   - `min_translation_quality`
   - `min_timeline_consistency`
+  - `min_non_target_language_segments`
+  - `min_non_target_language_share`
   - `min_non_story_theme_confidence`
   - `min_arc_confidence`
 - Maximum checks:
@@ -68,6 +85,7 @@ Supported `expectations` keys:
 - Set/sequence checks:
   - `expected_beat_stage_sequence`
   - `required_beat_stages`
+  - `required_detected_languages`
   - `required_theme_labels`
   - `forbidden_theme_labels`
   - `required_timeline_conflict_codes`
@@ -97,12 +115,16 @@ Gates compare observed metrics against configured thresholds in:
 CI runs the harness in strict mode and uploads:
 
 - `work/qa/evaluation_summary.json`
+- `work/qa/pipeline_canary_summary.json`
 
 The summary includes:
 
 - Per-case pass/fail and failure reasons.
 - Per-segment alignment scores (segment id + quality score + method).
+- Per-case language distribution (`source_language_distribution`,
+  `detected_languages`, and non-target-language share/count).
 - Confidence distributions to track threshold drift over time.
+- Per-variant assertion outcomes under `variant_assertions` in canary checks.
 
 ## Fixture Update Process
 

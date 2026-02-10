@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import runpy
 from pathlib import Path
@@ -119,6 +120,122 @@ def test_pipeline_canary_cli_reports_stage_successes(
     assert '"stage": "ingestion"' in captured.out
     assert '"stage": "timeline"' in captured.out
     assert '"stage": "insights"' in captured.out
+
+
+def test_pipeline_canary_cli_runs_variant_matrix_and_writes_summary(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    summary_output = tmp_path / "pipeline-canary-summary.json"
+    pipeline_canary.main(
+        [
+            "--strict",
+            "--run-all-variants",
+            "--variants-file",
+            "tests/fixtures/pipeline_canary_variants.v1.json",
+            "--matrix-output",
+            str(summary_output),
+        ]
+    )
+    captured = capsys.readouterr()
+    assert '"status": "ok"' in captured.out
+    assert '"totals"' in captured.out
+    assert summary_output.exists()
+
+    payload = json.loads(summary_output.read_text(encoding="utf-8"))
+    assert payload["status"] == "ok"
+    assert payload["totals"]["failed"] == 0
+    assert payload["totals"]["variants"] >= 5
+    variant_ids = {entry["variant_id"] for entry in payload["variants"]}
+    assert "multilingual_transcript_es" in variant_ids
+    assert "code_switch_transcript_es_en" in variant_ids
+    assert "long_transcript_multi_segment_en" in variant_ids
+    assert "document_timeline_en" in variant_ids
+    assert all("stage_diagnostics" in entry for entry in payload["variants"])
+    assert all("key_metrics" in entry for entry in payload["variants"])
+    assert all(
+        any(check["stage"] == "variant_assertions" for check in entry["checks"])
+        for entry in payload["variants"]
+    )
+    long_variant = next(
+        entry
+        for entry in payload["variants"]
+        if entry["variant_id"] == "long_transcript_multi_segment_en"
+    )
+    assert long_variant["key_metrics"]["segments"] >= 3
+    assert long_variant["key_metrics"]["beats"] >= 3
+    multilingual_variant = next(
+        entry
+        for entry in payload["variants"]
+        if entry["variant_id"] == "multilingual_transcript_es"
+    )
+    translation_diag = multilingual_variant["stage_diagnostics"]["translation"]
+    assert translation_diag["source_language_distribution"]["es"] >= 1
+    assert translation_diag["non_target_language_segment_count"] >= 1
+    assert "es" in translation_diag["detected_languages"]
+
+
+def test_pipeline_canary_cli_rejects_source_file_with_variant_mode(tmp_path: Path) -> None:
+    source_path = tmp_path / "story.txt"
+    source_path.write_text("test", encoding="utf-8")
+    with pytest.raises(SystemExit, match="--source-file is not supported"):
+        pipeline_canary.main(
+            [
+                "--variant",
+                "default_transcript_en",
+                "--source-file",
+                str(source_path),
+            ]
+        )
+
+
+def test_pipeline_canary_cli_fails_when_variant_expectations_are_not_met(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    variants_path = tmp_path / "variants.json"
+    variants_path.write_text(
+        json.dumps(
+            {
+                "fixture_version": "pipeline_canary_variants.v1",
+                "variants": [
+                    {
+                        "variant_id": "failing_expectations_variant",
+                        "description": "Expectations should fail for short transcript input.",
+                        "source_type": "transcript",
+                        "target_language": "en",
+                        "source_text": (
+                            "[00:01] Narrator: Rhea enters the archive.\n"
+                            "[00:02] Council: The council denies the record.\n"
+                        ),
+                        "expectations": {
+                            "min_segments": 2,
+                            "required_beat_stages": [
+                                "setup",
+                                "escalation",
+                                "climax",
+                                "resolution",
+                            ],
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(SystemExit, match="1"):
+        pipeline_canary.main(
+            [
+                "--strict",
+                "--run-all-variants",
+                "--variants-file",
+                str(variants_path),
+            ]
+        )
+    captured = capsys.readouterr()
+    assert '"status": "failed"' in captured.out
+    assert '"failed_stage": "variant_assertions"' in captured.out
 
 
 def test_qa_evaluation_cli_reports_status(

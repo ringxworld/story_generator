@@ -48,6 +48,8 @@
         "min_beat_count": 3,
         "min_alignment_mean": 0.75,
         "min_alignment_min": 0.75,
+        "min_non_target_language_segments": 1,
+        "required_detected_languages": ["es", "en"],
         "required_insight_granularities": ["macro", "meso", "micro"],
         "min_translation_quality": 0.5,
         "min_non_story_theme_confidence": 0.49
@@ -59,7 +61,7 @@
       "source_type": "transcript",
       "source_text": "[00:01] Narrator: la memoria stays alive.",
       "segments": [
-        "Narrator: la memoria stays alive while Rhea audits the archive.",
+        "Narrator: la memoria permanece while Rhea audits el archivo.",
         "Council: el conflicto grows, but trust appears when proofs arrive.",
         "Rhea: la familia accepts the story and peace returns."
       ],
@@ -70,6 +72,8 @@
         "min_beat_count": 3,
         "min_alignment_mean": 0.75,
         "min_alignment_min": 0.75,
+        "min_non_target_language_segments": 1,
+        "required_detected_languages": ["es", "en"],
         "min_translation_quality": 0.5,
         "required_insight_granularities": ["macro", "meso", "micro"]
       }
