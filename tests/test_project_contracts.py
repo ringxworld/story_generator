@@ -77,6 +77,9 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "Upload story QA evaluation summary" in workflow
     assert "story-qa-evaluation-summary" in workflow
     assert "uv run mkdocs build --strict" in workflow
+    assert "e2e:" in workflow
+    assert "Live-stack E2E (analysis + dashboard)" in workflow
+    assert "uv run pytest tests/test_e2e_stack.py -q --no-cov" in workflow
     assert "uv run python tools/check_imports.py" in workflow
     assert "uv run python tools/check_contract_drift.py" in workflow
     assert "Configure CMake" in workflow
