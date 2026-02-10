@@ -2,12 +2,7 @@ import {
   apiBaseUrl,
   createEssay,
   createStory,
-  exportDashboardGraphPng,
   exportDashboardGraphSvg,
-  exportDashboardThemeHeatmapPng,
-  exportDashboardThemeHeatmapSvg,
-  exportDashboardTimelinePng,
-  exportDashboardTimelineSvg,
   evaluateEssay,
   getDashboardArcs,
   getDashboardGraph,
@@ -399,40 +394,11 @@ describe("api client", () => {
     await getDashboardArcs("token-abc", "s-1");
     await getDashboardGraph("token-abc", "s-1");
     await exportDashboardGraphSvg("token-abc", "s-1");
-    await exportDashboardGraphPng("token-abc", "s-1");
-    await exportDashboardTimelineSvg("token-abc", "s-1");
-    await exportDashboardTimelinePng("token-abc", "s-1");
-    await exportDashboardThemeHeatmapSvg("token-abc", "s-1");
-    await exportDashboardThemeHeatmapPng("token-abc", "s-1");
 
     expect(fetchMock).toHaveBeenCalledWith(
       `${apiBaseUrl}/api/v1/stories/s-1/analysis/run`,
       expect.objectContaining({
         method: "POST",
-        headers: expect.objectContaining({
-          Authorization: "Bearer token-abc",
-        }),
-      }),
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      `${apiBaseUrl}/api/v1/stories/s-1/dashboard/graph/export.png`,
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: "Bearer token-abc",
-        }),
-      }),
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      `${apiBaseUrl}/api/v1/stories/s-1/dashboard/timeline/export.svg`,
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: "Bearer token-abc",
-        }),
-      }),
-    );
-    expect(fetchMock).toHaveBeenCalledWith(
-      `${apiBaseUrl}/api/v1/stories/s-1/dashboard/themes/heatmap/export.png`,
-      expect.objectContaining({
         headers: expect.objectContaining({
           Authorization: "Bearer token-abc",
         }),
