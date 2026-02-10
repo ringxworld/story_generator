@@ -265,6 +265,7 @@ class StoryAnalysisRunRequest(ContractModel):
 
     source_text: str | None = Field(default=None, max_length=200000)
     source_type: Literal["text", "document", "transcript"] = "text"
+    idempotency_key: str | None = Field(default=None, min_length=3, max_length=140)
     target_language: str = Field(default="en", min_length=2, max_length=16)
 
 
@@ -294,6 +295,28 @@ class StoryAnalysisRunResponse(ContractModel):
     theme_count: int = Field(ge=0)
     insight_count: int = Field(ge=1)
     quality_gate: StoryAnalysisGateResponse
+
+
+class IngestionStatusResponse(ContractModel):
+    """Ingestion job status payload for dashboard polling."""
+
+    job_id: str
+    story_id: str
+    owner_id: str
+    source_type: str
+    idempotency_key: str
+    source_hash: str
+    dedupe_key: str
+    status: Literal["processing", "succeeded", "failed"]
+    attempt_count: int = Field(ge=1)
+    retry_count: int = Field(ge=0)
+    segment_count: int = Field(ge=0)
+    issue_count: int = Field(ge=0)
+    run_id: str | None = None
+    last_error: str | None = None
+    created_at_utc: str
+    updated_at_utc: str
+    completed_at_utc: str | None = None
 
 
 class DashboardOverviewResponse(ContractModel):
@@ -369,18 +392,26 @@ class DashboardGraphResponse(ContractModel):
     edges: list[DashboardGraphEdgeResponse]
 
 
-class DashboardGraphExportResponse(ContractModel):
-    """Graph export payload."""
+class DashboardSvgExportResponse(ContractModel):
+    """SVG export payload."""
 
     format: Literal["svg"] = "svg"
     svg: str
 
 
-class DashboardGraphPngExportResponse(ContractModel):
-    """Graph PNG export payload."""
+class DashboardPngExportResponse(ContractModel):
+    """PNG export payload."""
 
     format: Literal["png"] = "png"
     png_base64: str
+
+
+class DashboardGraphExportResponse(DashboardSvgExportResponse):
+    """Graph export payload."""
+
+
+class DashboardGraphPngExportResponse(DashboardPngExportResponse):
+    """Graph PNG export payload."""
 
 
 class EssaySectionRequirement(ContractModel):

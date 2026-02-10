@@ -31,10 +31,22 @@ def main() -> None:
         raise SystemExit("uv executable not found in PATH")
     run([uv_executable, "lock", "--check"])
     run([sys.executable, str(REPO_ROOT / "tools" / "check_imports.py")])
+    run([sys.executable, str(REPO_ROOT / "tools" / "check_contract_drift.py")])
     run_tool("ruff", "check", ".")
     run_tool("ruff", "format", "--check", ".")
     run_tool("mypy")
     run_tool("pytest")
+    run([uv_executable, "run", "story-pipeline-canary", "--strict"])
+    run(
+        [
+            uv_executable,
+            "run",
+            "story-qa-eval",
+            "--strict",
+            "--output",
+            "work/qa/evaluation_summary.json",
+        ]
+    )
     run_tool("mkdocs", "build", "--strict")
     web_package = Path("web") / "package.json"
     if web_package.exists():

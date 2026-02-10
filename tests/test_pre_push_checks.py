@@ -36,14 +36,20 @@ def test_pre_push_checks_runs_expected_commands_in_order(
     assert executed[1][-2:] == ["lock", "--check"]
     assert executed[2][0] == sys.executable
     assert executed[2][-1].endswith("check_imports.py")
-    assert executed[3][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "ruff"]
-    assert executed[3][-2:] == ["check", "."]
+    assert executed[3][0] == sys.executable
+    assert executed[3][-1].endswith("check_contract_drift.py")
     assert executed[4][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "ruff"]
-    assert executed[4][-3:] == ["format", "--check", "."]
-    assert executed[5][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "mypy"]
-    assert executed[6][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "pytest"]
-    assert executed[7][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "mkdocs"]
-    assert executed[7][-2:] == ["build", "--strict"]
+    assert executed[4][-2:] == ["check", "."]
+    assert executed[5][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "ruff"]
+    assert executed[5][-3:] == ["format", "--check", "."]
+    assert executed[6][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "mypy"]
+    assert executed[7][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "pytest"]
+    assert executed[8][:3] == ["uv", "run", "story-pipeline-canary"]
+    assert executed[8][-1] == "--strict"
+    assert executed[9][:3] == ["uv", "run", "story-qa-eval"]
+    assert executed[9][-2:] == ["--output", "work/qa/evaluation_summary.json"]
+    assert executed[10][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "mkdocs"]
+    assert executed[10][-2:] == ["build", "--strict"]
     assert ["npm", "run", "--prefix", "web", "typecheck"] in executed
     assert ["npm", "run", "--prefix", "web", "test:coverage"] in executed
     assert ["npm", "run", "--prefix", "web", "build"] in executed
@@ -97,7 +103,9 @@ def test_pre_push_checks_stops_on_command_failure(
     assert executed[0][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "pre-commit"]
     assert executed[1][-2:] == ["lock", "--check"]
     assert executed[2][0] == sys.executable
-    assert executed[3][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "ruff"]
+    assert executed[3][0] == sys.executable
+    assert executed[3][-1].endswith("check_contract_drift.py")
+    assert executed[4][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "ruff"]
 
 
 def test_pre_push_checks_skips_clang_when_no_cpp_sources(

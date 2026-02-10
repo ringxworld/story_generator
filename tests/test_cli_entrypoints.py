@@ -16,6 +16,8 @@ from story_gen.cli import (
     blueprint,
     dashboard_export,
     features,
+    pipeline_canary,
+    qa_evaluation,
     reference_pipeline,
     story_collector,
     youtube_downloader,
@@ -106,6 +108,28 @@ def test_api_cli_sets_db_path_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("story_gen.cli.api.uvicorn.run", lambda *args, **kwargs: None)
     api_cli.main(["--db-path", "work/local/custom.db"])
     assert os.environ["STORY_GEN_DB_PATH"] == "work/local/custom.db"
+
+
+def test_pipeline_canary_cli_reports_stage_successes(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    pipeline_canary.main(["--strict"])
+    captured = capsys.readouterr()
+    assert '"status": "ok"' in captured.out
+    assert '"stage": "ingestion"' in captured.out
+    assert '"stage": "timeline"' in captured.out
+    assert '"stage": "insights"' in captured.out
+
+
+def test_qa_evaluation_cli_reports_status(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    output = tmp_path / "qa-eval.json"
+    qa_evaluation.main(["--strict", "--output", str(output)])
+    captured = capsys.readouterr()
+    assert '"status": "passed"' in captured.out
+    assert output.exists()
 
 
 def test_blueprint_cli_validates_and_rewrites_json(tmp_path: Path) -> None:
@@ -343,6 +367,122 @@ def test_dashboard_export_cli_writes_svg_and_png(tmp_path: Path) -> None:
     assert first_png.startswith(b"\x89PNG\r\n\x1a\n")
     assert first_png == second_png
 
+    timeline_svg_path = tmp_path / "timeline.svg"
+    dashboard_export.main(
+        [
+            "--db-path",
+            str(db_path),
+            "--story-id",
+            story.story_id,
+            "--owner-id",
+            user.user_id,
+            "--view",
+            "timeline",
+            "--format",
+            "svg",
+            "--output",
+            str(timeline_svg_path),
+        ]
+    )
+    assert timeline_svg_path.read_text(encoding="utf-8").startswith("<svg")
+
+    timeline_png_path = tmp_path / "timeline.png"
+    timeline_png_second_path = tmp_path / "timeline-second.png"
+    dashboard_export.main(
+        [
+            "--db-path",
+            str(db_path),
+            "--story-id",
+            story.story_id,
+            "--owner-id",
+            user.user_id,
+            "--view",
+            "timeline",
+            "--format",
+            "png",
+            "--output",
+            str(timeline_png_path),
+        ]
+    )
+    dashboard_export.main(
+        [
+            "--db-path",
+            str(db_path),
+            "--story-id",
+            story.story_id,
+            "--owner-id",
+            user.user_id,
+            "--view",
+            "timeline",
+            "--format",
+            "png",
+            "--output",
+            str(timeline_png_second_path),
+        ]
+    )
+    timeline_first_png = timeline_png_path.read_bytes()
+    timeline_second_png = timeline_png_second_path.read_bytes()
+    assert timeline_first_png.startswith(b"\x89PNG\r\n\x1a\n")
+    assert timeline_first_png == timeline_second_png
+
+    heatmap_svg_path = tmp_path / "theme-heatmap.svg"
+    dashboard_export.main(
+        [
+            "--db-path",
+            str(db_path),
+            "--story-id",
+            story.story_id,
+            "--owner-id",
+            user.user_id,
+            "--view",
+            "theme-heatmap",
+            "--format",
+            "svg",
+            "--output",
+            str(heatmap_svg_path),
+        ]
+    )
+    assert heatmap_svg_path.read_text(encoding="utf-8").startswith("<svg")
+
+    heatmap_png_path = tmp_path / "theme-heatmap.png"
+    heatmap_png_second_path = tmp_path / "theme-heatmap-second.png"
+    dashboard_export.main(
+        [
+            "--db-path",
+            str(db_path),
+            "--story-id",
+            story.story_id,
+            "--owner-id",
+            user.user_id,
+            "--view",
+            "theme-heatmap",
+            "--format",
+            "png",
+            "--output",
+            str(heatmap_png_path),
+        ]
+    )
+    dashboard_export.main(
+        [
+            "--db-path",
+            str(db_path),
+            "--story-id",
+            story.story_id,
+            "--owner-id",
+            user.user_id,
+            "--view",
+            "theme-heatmap",
+            "--format",
+            "png",
+            "--output",
+            str(heatmap_png_second_path),
+        ]
+    )
+    heatmap_first_png = heatmap_png_path.read_bytes()
+    heatmap_second_png = heatmap_png_second_path.read_bytes()
+    assert heatmap_first_png.startswith(b"\x89PNG\r\n\x1a\n")
+    assert heatmap_first_png == heatmap_second_png
+
 
 def test_dashboard_export_cli_rejects_owner_mismatch(tmp_path: Path) -> None:
     db_path = tmp_path / "stories.db"
@@ -379,5 +519,132 @@ def test_dashboard_export_cli_rejects_owner_mismatch(tmp_path: Path) -> None:
                 "another-owner",
                 "--output",
                 str(tmp_path / "graph.svg"),
+            ]
+        )
+
+
+def test_dashboard_export_cli_fails_when_requested_view_payload_is_missing(tmp_path: Path) -> None:
+    import sqlite3
+
+    db_path = tmp_path / "stories.db"
+    story_store = SQLiteStoryStore(db_path=db_path)
+    analysis_store = SQLiteStoryAnalysisStore(db_path=db_path)
+    user = story_store.create_user(
+        email="alice@example.com",
+        display_name="Alice",
+        password_hash="hash",
+    )
+    assert user is not None
+    blueprint_payload = StoryBlueprint.model_validate(
+        {
+            "premise": "Premise",
+            "themes": [{"key": "memory", "statement": "x", "priority": 1}],
+            "characters": [{"key": "rhea", "role": "investigator", "motivation": "find"}],
+            "chapters": [],
+            "canon_rules": [],
+        }
+    )
+    story = story_store.create_story(
+        owner_id=user.user_id,
+        title="Story",
+        blueprint_json=blueprint_payload.model_dump_json(),
+    )
+    analysis = run_story_analysis(
+        story_id=story.story_id,
+        source_text="Rhea enters the archive and confronts the council.",
+    )
+    analysis_store.write_analysis_result(owner_id=user.user_id, result=analysis)
+
+    with sqlite3.connect(str(db_path)) as connection:
+        connection.execute(
+            """
+            UPDATE story_analysis_runs
+            SET dashboard_json = ?
+            WHERE story_id = ?
+            """,
+            ('{"overview": {}}', story.story_id),
+        )
+        connection.commit()
+
+    with pytest.raises(SystemExit, match="missing timeline_lanes"):
+        dashboard_export.main(
+            [
+                "--db-path",
+                str(db_path),
+                "--story-id",
+                story.story_id,
+                "--owner-id",
+                user.user_id,
+                "--view",
+                "timeline",
+                "--format",
+                "png",
+                "--output",
+                str(tmp_path / "timeline.png"),
+            ]
+        )
+
+
+def test_dashboard_export_cli_fails_on_unknown_heatmap_stage(tmp_path: Path) -> None:
+    import sqlite3
+
+    db_path = tmp_path / "stories.db"
+    story_store = SQLiteStoryStore(db_path=db_path)
+    analysis_store = SQLiteStoryAnalysisStore(db_path=db_path)
+    user = story_store.create_user(
+        email="alice@example.com",
+        display_name="Alice",
+        password_hash="hash",
+    )
+    assert user is not None
+    blueprint_payload = StoryBlueprint.model_validate(
+        {
+            "premise": "Premise",
+            "themes": [{"key": "memory", "statement": "x", "priority": 1}],
+            "characters": [{"key": "rhea", "role": "investigator", "motivation": "find"}],
+            "chapters": [],
+            "canon_rules": [],
+        }
+    )
+    story = story_store.create_story(
+        owner_id=user.user_id,
+        title="Story",
+        blueprint_json=blueprint_payload.model_dump_json(),
+    )
+    analysis = run_story_analysis(
+        story_id=story.story_id,
+        source_text="Rhea enters the archive and confronts the council.",
+    )
+    analysis_store.write_analysis_result(owner_id=user.user_id, result=analysis)
+
+    with sqlite3.connect(str(db_path)) as connection:
+        connection.execute(
+            """
+            UPDATE story_analysis_runs
+            SET dashboard_json = ?
+            WHERE story_id = ?
+            """,
+            (
+                ('{"theme_heatmap": [{"theme": "memory", "stage": "epilogue", "intensity": 0.6}]}'),
+                story.story_id,
+            ),
+        )
+        connection.commit()
+
+    with pytest.raises(SystemExit, match="unsupported stage"):
+        dashboard_export.main(
+            [
+                "--db-path",
+                str(db_path),
+                "--story-id",
+                story.story_id,
+                "--owner-id",
+                user.user_id,
+                "--view",
+                "theme-heatmap",
+                "--format",
+                "png",
+                "--output",
+                str(tmp_path / "theme-heatmap.png"),
             ]
         )

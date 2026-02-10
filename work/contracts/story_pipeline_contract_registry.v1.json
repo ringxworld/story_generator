@@ -127,6 +127,14 @@
     },
     {
       "category": "response",
+      "contract_id": "story.ingestion.status",
+      "description": "Ingestion job status response for polling and retries.",
+      "model_path": "story_gen.api.contracts.IngestionStatusResponse",
+      "owner": "api",
+      "schema_version": "story_analysis_run.v1"
+    },
+    {
+      "category": "response",
       "contract_id": "dashboard.overview",
       "description": "Dashboard macro overview response contract.",
       "model_path": "story_gen.api.contracts.DashboardOverviewResponse",
@@ -202,6 +210,38 @@
       "contract_id": "dashboard.graph_export_png",
       "description": "Graph export contract used for deterministic PNG output.",
       "model_path": "story_gen.api.contracts.DashboardGraphPngExportResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.timeline_export",
+      "description": "Timeline export contract used for static SVG output.",
+      "model_path": "story_gen.api.contracts.DashboardSvgExportResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.timeline_export_png",
+      "description": "Timeline export contract used for deterministic PNG output.",
+      "model_path": "story_gen.api.contracts.DashboardPngExportResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.theme_heatmap_export",
+      "description": "Theme heatmap export contract used for static SVG output.",
+      "model_path": "story_gen.api.contracts.DashboardSvgExportResponse",
+      "owner": "api",
+      "schema_version": "dashboard_read_model.v1"
+    },
+    {
+      "category": "response",
+      "contract_id": "dashboard.theme_heatmap_export_png",
+      "description": "Theme heatmap export contract used for deterministic PNG output.",
+      "model_path": "story_gen.api.contracts.DashboardPngExportResponse",
       "owner": "api",
       "schema_version": "dashboard_read_model.v1"
     },

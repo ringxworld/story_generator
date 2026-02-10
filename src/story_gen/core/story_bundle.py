@@ -414,6 +414,11 @@ def _decode_evaluation(data: bytes) -> EvaluationMetrics:
         confidence_floor=float(parsed["confidence_floor"]),
         hallucination_risk=float(parsed["hallucination_risk"]),
         translation_quality=float(parsed["translation_quality"]),
+        timeline_consistency=float(parsed.get("timeline_consistency", 1.0)),
+        insight_evidence_consistency=float(parsed.get("insight_evidence_consistency", 1.0)),
+        inconsistent_insight_ids=tuple(
+            str(item) for item in parsed.get("inconsistent_insight_ids", [])
+        ),
     )
 
 

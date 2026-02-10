@@ -4,24 +4,14 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
+from story_gen.adapters.story_analysis_store_types import LatestAnalysisPayload, StoredAnalysisRun
 from story_gen.core.story_analysis_pipeline import StoryAnalysisResult
 from story_gen.core.story_schema import STORY_SCHEMA_VERSION, StoryDocument
-
-
-@dataclass(frozen=True)
-class StoredAnalysisRun:
-    """Persisted analysis run metadata."""
-
-    run_id: str
-    story_id: str
-    owner_id: str
-    schema_version: str
-    analyzed_at_utc: str
 
 
 class SQLiteStoryAnalysisStore:
@@ -145,7 +135,7 @@ class SQLiteStoryAnalysisStore:
         *,
         owner_id: str,
         story_id: str,
-    ) -> tuple[StoredAnalysisRun, StoryDocument, dict[str, object], str] | None:
+    ) -> LatestAnalysisPayload | None:
         """Load latest analysis run for one owner/story pair."""
         with self._connect() as connection:
             row = connection.execute(

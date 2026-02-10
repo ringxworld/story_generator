@@ -1,0 +1,23 @@
+{
+  "fixture_version": "translation_corpus.v1",
+  "cases": [
+    {
+      "case_id": "es_ledger_story",
+      "text": "La historia de la familia protege la memoria.",
+      "expected_language": "es",
+      "expected_translated_contains": ["story", "family", "memory"]
+    },
+    {
+      "case_id": "fr_archive_conflict",
+      "text": "La famille defend l'archive et le conflit grandit.",
+      "expected_language": "fr",
+      "expected_translated_contains": ["family", "archive", "conflict"]
+    },
+    {
+      "case_id": "ja_untranslated_warning",
+      "text": "これは危険だ。スバルは記憶を追いかける。",
+      "expected_language": "ja",
+      "expected_translated_contains": []
+    }
+  ]
+}

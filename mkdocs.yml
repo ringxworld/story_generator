@@ -44,8 +44,11 @@ nav:
   - Studio: studio.md
   - Droplet Stack: droplet_stack.md
   - Feature Pipeline: feature_pipeline.md
+  - QA Evaluation: qa_evaluation.md
   - Story Bundle: story_bundle.md
   - Graph Strategy: graph_strategy.md
+  - Storage Decision Matrix: storage_decision_matrix.md
+  - Storage Ops Runbook: storage_operations_runbook.md
   - ADR:
       - Index: adr/README.md
       - Template: adr/0000-template.md
@@ -72,6 +75,11 @@ nav:
       - 0021 Pages Hosted Python API Reference: adr/0021-pages-hosted-python-api-reference.md
       - 0022 Dashboard PNG Export Surface: adr/0022-dashboard-png-export-surface.md
       - 0023 Dashboard Read-Model v1 Endpoints: adr/0023-dashboard-read-model-v1-endpoints.md
+      - 0024 Dashboard Timeline and Heatmap Export Surfaces: adr/0024-dashboard-timeline-and-heatmap-export-surfaces.md
+      - 0026 Storage Adapter Boundary and Decision Spike: adr/0026-storage-adapter-boundary-and-decision-spike.md
+      - 0027 Pipeline Ingestion Resilience and Canary Enforcement: adr/0027-pipeline-ingestion-resilience-and-canary.md
+      - 0028 QA Evaluation Harness and Calibration Gates: adr/0028-qa-evaluation-harness-and-calibration-gates.md
+      - 0029 NLP Provider Resilience and Insight Calibration: adr/0029-nlp-provider-resilience-and-insight-calibration.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md

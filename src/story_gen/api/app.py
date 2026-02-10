@@ -22,11 +22,13 @@ from pydantic import BaseModel, Field
 from story_gen.adapters.sqlite_anomaly_store import SQLiteAnomalyStore
 from story_gen.adapters.sqlite_essay_store import SQLiteEssayStore, StoredEssay
 from story_gen.adapters.sqlite_feature_store import SQLiteFeatureStore, StoredFeatureRun
-from story_gen.adapters.sqlite_story_analysis_store import (
-    SQLiteStoryAnalysisStore,
-    StoredAnalysisRun,
-)
+from story_gen.adapters.sqlite_ingestion_store import SQLiteIngestionStore, StoredIngestionJob
 from story_gen.adapters.sqlite_story_store import SQLiteStoryStore, StoredStory, StoredUser
+from story_gen.adapters.story_analysis_store_factory import (
+    StoryAnalysisStorePort,
+    create_story_analysis_store,
+)
+from story_gen.adapters.story_analysis_store_types import StoredAnalysisRun
 from story_gen.api.contracts import (
     AuthLoginRequest,
     AuthRegisterRequest,
@@ -40,6 +42,8 @@ from story_gen.api.contracts import (
     DashboardGraphPngExportResponse,
     DashboardGraphResponse,
     DashboardOverviewResponse,
+    DashboardPngExportResponse,
+    DashboardSvgExportResponse,
     DashboardThemeHeatmapCellResponse,
     DashboardTimelineLaneResponse,
     EssayBlueprint,
@@ -50,6 +54,7 @@ from story_gen.api.contracts import (
     EssayResponse,
     EssaySectionRequirement,
     EssayUpdateRequest,
+    IngestionStatusResponse,
     StoryAnalysisGateResponse,
     StoryAnalysisRunRequest,
     StoryAnalysisRunResponse,
@@ -61,7 +66,17 @@ from story_gen.api.contracts import (
     StoryUpdateRequest,
     UserResponse,
 )
-from story_gen.core.dashboard_views import GraphEdge, GraphNode, export_graph_png
+from story_gen.core.dashboard_views import (
+    GraphEdge,
+    GraphNode,
+    ThemeHeatmapCell,
+    TimelineLaneView,
+    export_graph_png,
+    export_theme_heatmap_png,
+    export_theme_heatmap_svg,
+    export_timeline_png,
+    export_timeline_svg,
+)
 from story_gen.core.essay_quality import (
     EssayDraftInput,
     EssayPolicySpec,
@@ -74,6 +89,7 @@ from story_gen.core.story_feature_pipeline import (
     StoryFeatureExtractionResult,
     extract_story_features,
 )
+from story_gen.core.story_ingestion import IngestionRequest, ingest_story_text
 from story_gen.core.story_schema import StoryDocument, StoryStage
 
 DEFAULT_DB_PATH = Path("work/local/story_gen.db")
@@ -108,14 +124,19 @@ class ApiRootResponse(BaseModel):
             "/api/v1/stories/{story_id}",
             "/api/v1/stories/{story_id}/features/extract",
             "/api/v1/stories/{story_id}/features/latest",
+            "/api/v1/stories/{story_id}/ingestion/status",
             "/api/v1/stories/{story_id}/analysis/run",
             "/api/v1/stories/{story_id}/analysis/latest",
             "/api/v1/stories/{story_id}/dashboard/overview",
             "/api/v1/stories/{story_id}/dashboard/v1/overview",
             "/api/v1/stories/{story_id}/dashboard/timeline",
             "/api/v1/stories/{story_id}/dashboard/v1/timeline",
+            "/api/v1/stories/{story_id}/dashboard/timeline/export.svg",
+            "/api/v1/stories/{story_id}/dashboard/timeline/export.png",
             "/api/v1/stories/{story_id}/dashboard/themes/heatmap",
             "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap",
+            "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg",
+            "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png",
             "/api/v1/stories/{story_id}/dashboard/arcs",
             "/api/v1/stories/{story_id}/dashboard/drilldown/{item_id}",
             "/api/v1/stories/{story_id}/dashboard/graph",
@@ -319,12 +340,35 @@ def _analysis_summary_response(
     )
 
 
+def _ingestion_status_response(job: StoredIngestionJob) -> IngestionStatusResponse:
+    return IngestionStatusResponse(
+        job_id=job.job_id,
+        story_id=job.story_id,
+        owner_id=job.owner_id,
+        source_type=job.source_type,
+        idempotency_key=job.idempotency_key,
+        source_hash=job.source_hash,
+        dedupe_key=job.dedupe_key,
+        status=job.status,
+        attempt_count=job.attempt_count,
+        retry_count=job.retry_count,
+        segment_count=job.segment_count,
+        issue_count=job.issue_count,
+        run_id=job.run_id,
+        last_error=job.last_error,
+        created_at_utc=job.created_at_utc,
+        updated_at_utc=job.updated_at_utc,
+        completed_at_utc=job.completed_at_utc,
+    )
+
+
 def create_app(db_path: Path | None = None) -> FastAPI:
     """Create the API application."""
     effective_db_path = _resolve_db_path(db_path)
     store = SQLiteStoryStore(db_path=effective_db_path)
     feature_store = SQLiteFeatureStore(db_path=effective_db_path)
-    analysis_store = SQLiteStoryAnalysisStore(db_path=effective_db_path)
+    analysis_store: StoryAnalysisStorePort = create_story_analysis_store(db_path=effective_db_path)
+    ingestion_store = SQLiteIngestionStore(db_path=effective_db_path)
     essay_store = SQLiteEssayStore(db_path=effective_db_path)
     anomaly_store = SQLiteAnomalyStore(db_path=effective_db_path)
     anomaly_retention_days = _int_env(
@@ -486,6 +530,103 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         )
         raise HTTPException(status_code=500, detail=f"Invalid dashboard {key} payload")
 
+    def dashboard_timeline_lanes(
+        *,
+        dashboard: dict[str, object],
+        story: StoredStory,
+    ) -> list[DashboardTimelineLaneResponse]:
+        payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="timeline_lanes",
+            story_id=story.story_id,
+            expected="array",
+        )
+        return [DashboardTimelineLaneResponse.model_validate(item) for item in payload]
+
+    def dashboard_theme_heatmap_cells(
+        *,
+        dashboard: dict[str, object],
+        story: StoredStory,
+    ) -> list[DashboardThemeHeatmapCellResponse]:
+        payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="theme_heatmap",
+            story_id=story.story_id,
+            expected="array",
+        )
+        return [DashboardThemeHeatmapCellResponse.model_validate(item) for item in payload]
+
+    def dashboard_graph_projection(
+        *,
+        dashboard: dict[str, object],
+        story: StoredStory,
+    ) -> tuple[list[DashboardGraphNodeResponse], list[DashboardGraphEdgeResponse]]:
+        node_payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="graph_nodes",
+            story_id=story.story_id,
+            expected="array",
+        )
+        edge_payload = require_dashboard_list(
+            dashboard=dashboard,
+            key="graph_edges",
+            story_id=story.story_id,
+            expected="array",
+        )
+        nodes = [DashboardGraphNodeResponse.model_validate(item) for item in node_payload]
+        edges = [DashboardGraphEdgeResponse.model_validate(item) for item in edge_payload]
+        return nodes, edges
+
+    def to_timeline_lane_views(
+        lanes: list[DashboardTimelineLaneResponse],
+    ) -> list[TimelineLaneView]:
+        converted: list[TimelineLaneView] = []
+        for lane in lanes:
+            items: list[dict[str, object]] = []
+            for item in lane.items:
+                normalized: dict[str, object] = {}
+                for key, value in item.items():
+                    if isinstance(value, (str, int, float, bool, list, dict)) or value is None:
+                        normalized[str(key)] = value
+                    else:
+                        normalized[str(key)] = str(value)
+                items.append(normalized)
+            converted.append(TimelineLaneView(lane=lane.lane, items=items))
+        return converted
+
+    def to_theme_heatmap_cells(
+        *,
+        cells: list[DashboardThemeHeatmapCellResponse],
+        story: StoredStory,
+    ) -> list[ThemeHeatmapCell]:
+        allowed_stages = {"setup", "escalation", "climax", "resolution"}
+        converted: list[ThemeHeatmapCell] = []
+        for cell in cells:
+            if cell.stage not in allowed_stages:
+                record_anomaly(
+                    scope="dashboard",
+                    code="invalid_payload_shape",
+                    severity="error",
+                    message="Theme heatmap stage must be a known story stage.",
+                    metadata={
+                        "story_id": story.story_id,
+                        "dashboard_key": "theme_heatmap",
+                        "field": "stage",
+                        "value": cell.stage,
+                    },
+                )
+                raise HTTPException(
+                    status_code=500, detail="Invalid dashboard theme_heatmap payload"
+                )
+            converted.append(
+                ThemeHeatmapCell(
+                    theme=cell.theme,
+                    stage=cast(StoryStage, cell.stage),
+                    intensity=cell.intensity,
+                )
+            )
+        return converted
+
     def current_user(
         credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
     ) -> StoredUser:
@@ -609,6 +750,21 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         return _feature_run_response(run=run, result=result)
 
     @app.get(
+        "/api/v1/stories/{story_id}/ingestion/status",
+        response_model=IngestionStatusResponse,
+        tags=["stories", "analysis"],
+    )
+    def ingestion_status(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> IngestionStatusResponse:
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = ingestion_store.get_latest_job(owner_id=user.user_id, story_id=story.story_id)
+        if latest is None:
+            raise HTTPException(status_code=404, detail="Ingestion status not found")
+        return _ingestion_status_response(latest)
+
+    @app.get(
         "/api/v1/stories/{story_id}/features/latest",
         response_model=StoryFeatureRunResponse,
         tags=["stories", "features"],
@@ -646,13 +802,150 @@ def create_app(db_path: Path | None = None) -> FastAPI:
                 status_code=422,
                 detail="Story must include source text or chapter content to run analysis.",
             )
-        analysis_result = run_story_analysis(
-            story_id=story.story_id,
-            source_text=source_text,
-            source_type=payload.source_type,
-            target_language=payload.target_language,
+        idempotency_key = (
+            payload.idempotency_key.strip()
+            if payload.idempotency_key
+            else f"{story.story_id}:{payload.source_type}"
         )
+        try:
+            ingestion_artifact = ingest_story_text(
+                IngestionRequest(
+                    source_type=payload.source_type,
+                    source_text=source_text,
+                    idempotency_key=idempotency_key,
+                )
+            )
+        except ValueError as exc:
+            record_anomaly(
+                scope="ingestion",
+                code="ingestion_input_invalid",
+                severity="warning",
+                message="Ingestion input was invalid after normalization.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "error": str(exc),
+                },
+            )
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        ingestion_job, dedupe_hit = ingestion_store.begin_job(
+            owner_id=user.user_id,
+            story_id=story.story_id,
+            artifact=ingestion_artifact,
+        )
+        if ingestion_artifact.issues:
+            record_anomaly(
+                scope="ingestion",
+                code="ingestion_adapter_warnings",
+                severity="warning",
+                message="Ingestion source adapter reported recoverable warnings.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "job_id": ingestion_job.job_id,
+                    "issue_count": len(ingestion_artifact.issues),
+                    "codes": sorted({issue.code for issue in ingestion_artifact.issues}),
+                },
+            )
+        if dedupe_hit and ingestion_job.run_id:
+            latest = analysis_store.get_latest_analysis(
+                owner_id=user.user_id, story_id=story.story_id
+            )
+            if latest is not None and latest[0].run_id == ingestion_job.run_id:
+                return _analysis_summary_response(run=latest[0], document=latest[1])
+        try:
+            analysis_result = run_story_analysis(
+                story_id=story.story_id,
+                source_text=source_text,
+                source_type=payload.source_type,
+                target_language=payload.target_language,
+                ingestion_artifact=ingestion_artifact,
+            )
+        except Exception as exc:
+            ingestion_store.mark_failed(job_id=ingestion_job.job_id, error_message=str(exc))
+            record_anomaly(
+                scope="ingestion",
+                code="ingestion_run_failed",
+                severity="error",
+                message="Ingestion or analysis stage failed during run.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "job_id": ingestion_job.job_id,
+                    "error": str(exc),
+                },
+            )
+            raise
+        if (
+            analysis_result.translation_diagnostics.fallback_used
+            or analysis_result.translation_diagnostics.issue_count > 0
+        ):
+            issue_codes = sorted(
+                {
+                    issue.code
+                    for issue in analysis_result.translation_diagnostics.issues
+                    if issue.code
+                }
+            )
+            record_anomaly(
+                scope="analysis",
+                code="translation_degraded",
+                severity="warning",
+                message="Translation provider degraded and required retry/fallback handling.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "provider": analysis_result.translation_diagnostics.provider,
+                    "language_id_provider": analysis_result.translation_diagnostics.language_id_provider,
+                    "fallback_used": analysis_result.translation_diagnostics.fallback_used,
+                    "degraded_segments": analysis_result.translation_diagnostics.degraded_segments,
+                    "issue_count": analysis_result.translation_diagnostics.issue_count,
+                    "issue_codes": issue_codes,
+                },
+            )
+        if (
+            analysis_result.extraction_diagnostics.fallback_used
+            or analysis_result.extraction_diagnostics.issue_count > 0
+        ):
+            issue_codes = sorted(
+                {
+                    issue.code
+                    for issue in analysis_result.extraction_diagnostics.issues
+                    if issue.code
+                }
+            )
+            record_anomaly(
+                scope="analysis",
+                code="extraction_degraded",
+                severity="warning",
+                message="Extraction provider degraded and deterministic fallback path was used.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "provider": analysis_result.extraction_diagnostics.provider,
+                    "fallback_used": analysis_result.extraction_diagnostics.fallback_used,
+                    "issue_count": analysis_result.extraction_diagnostics.issue_count,
+                    "issue_codes": issue_codes,
+                },
+            )
         if not analysis_result.document.quality_gate.passed:
+            if "insight_evidence_inconsistent" in analysis_result.document.quality_gate.reasons:
+                record_anomaly(
+                    scope="analysis",
+                    code="insight_consistency_failed",
+                    severity="warning",
+                    message="Quality gate rejected insights due to evidence inconsistency.",
+                    metadata={
+                        "story_id": story.story_id,
+                        "owner_id": user.user_id,
+                        "inconsistent_insight_ids": list(
+                            analysis_result.evaluation.inconsistent_insight_ids
+                        ),
+                        "insight_evidence_consistency": (
+                            analysis_result.evaluation.insight_evidence_consistency
+                        ),
+                    },
+                )
             record_anomaly(
                 scope="analysis",
                 code="quality_gate_failed",
@@ -665,9 +958,40 @@ def create_app(db_path: Path | None = None) -> FastAPI:
                     "confidence_floor": analysis_result.document.quality_gate.confidence_floor,
                     "hallucination_risk": analysis_result.document.quality_gate.hallucination_risk,
                     "translation_quality": analysis_result.document.quality_gate.translation_quality,
+                    "timeline_consistency": analysis_result.evaluation.timeline_consistency,
+                    "insight_evidence_consistency": (
+                        analysis_result.evaluation.insight_evidence_consistency
+                    ),
+                    "inconsistent_insight_ids": list(
+                        analysis_result.evaluation.inconsistent_insight_ids
+                    ),
                 },
             )
-        run = analysis_store.write_analysis_result(owner_id=user.user_id, result=analysis_result)
+        try:
+            run = analysis_store.write_analysis_result(
+                owner_id=user.user_id, result=analysis_result
+            )
+            ingestion_store.mark_succeeded(
+                job_id=ingestion_job.job_id,
+                segment_count=len(analysis_result.document.raw_segments),
+                issue_count=len(ingestion_artifact.issues),
+                run_id=run.run_id,
+            )
+        except Exception as exc:
+            ingestion_store.mark_failed(job_id=ingestion_job.job_id, error_message=str(exc))
+            record_anomaly(
+                scope="ingestion",
+                code="ingestion_persistence_failed",
+                severity="error",
+                message="Analysis persistence failed after ingestion completed.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "job_id": ingestion_job.job_id,
+                    "error": str(exc),
+                },
+            )
+            raise
         return _analysis_summary_response(run=run, document=analysis_result.document)
 
     @app.get(
@@ -726,13 +1050,39 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="timeline_lanes",
-            story_id=story.story_id,
-            expected="array",
-        )
-        return [DashboardTimelineLaneResponse.model_validate(item) for item in payload]
+        return dashboard_timeline_lanes(dashboard=dashboard, story=story)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/timeline/export.svg",
+        response_model=DashboardSvgExportResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_timeline_export_svg(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardSvgExportResponse:
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
+        _, _, dashboard, _ = latest
+        lanes = dashboard_timeline_lanes(dashboard=dashboard, story=story)
+        svg = export_timeline_svg(lanes=to_timeline_lane_views(lanes))
+        return DashboardSvgExportResponse(svg=svg)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/timeline/export.png",
+        response_model=DashboardPngExportResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_timeline_export_png(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardPngExportResponse:
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
+        _, _, dashboard, _ = latest
+        lanes = dashboard_timeline_lanes(dashboard=dashboard, story=story)
+        png_bytes = export_timeline_png(lanes=to_timeline_lane_views(lanes))
+        return DashboardPngExportResponse(png_base64=base64.b64encode(png_bytes).decode("ascii"))
 
     @app.get(
         "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap",
@@ -751,13 +1101,39 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="theme_heatmap",
-            story_id=story.story_id,
-            expected="array",
-        )
-        return [DashboardThemeHeatmapCellResponse.model_validate(item) for item in payload]
+        return dashboard_theme_heatmap_cells(dashboard=dashboard, story=story)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg",
+        response_model=DashboardSvgExportResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_theme_heatmap_export_svg(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardSvgExportResponse:
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
+        _, _, dashboard, _ = latest
+        cells = dashboard_theme_heatmap_cells(dashboard=dashboard, story=story)
+        svg = export_theme_heatmap_svg(cells=to_theme_heatmap_cells(cells=cells, story=story))
+        return DashboardSvgExportResponse(svg=svg)
+
+    @app.get(
+        "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png",
+        response_model=DashboardPngExportResponse,
+        tags=["stories", "dashboard"],
+    )
+    def dashboard_theme_heatmap_export_png(
+        story_id: str,
+        user: StoredUser = Depends(current_user),
+    ) -> DashboardPngExportResponse:
+        story = owned_story_or_404(story_id=story_id, user=user)
+        latest = latest_analysis_or_404(story=story, user=user)
+        _, _, dashboard, _ = latest
+        cells = dashboard_theme_heatmap_cells(dashboard=dashboard, story=story)
+        png_bytes = export_theme_heatmap_png(cells=to_theme_heatmap_cells(cells=cells, story=story))
+        return DashboardPngExportResponse(png_base64=base64.b64encode(png_bytes).decode("ascii"))
 
     @app.get(
         "/api/v1/stories/{story_id}/dashboard/arcs",
@@ -829,20 +1205,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        node_payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="graph_nodes",
-            story_id=story.story_id,
-            expected="array",
-        )
-        edge_payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="graph_edges",
-            story_id=story.story_id,
-            expected="array",
-        )
-        nodes = [DashboardGraphNodeResponse.model_validate(item) for item in node_payload]
-        edges = [DashboardGraphEdgeResponse.model_validate(item) for item in edge_payload]
+        nodes, edges = dashboard_graph_projection(dashboard=dashboard, story=story)
         return DashboardGraphResponse(nodes=nodes, edges=edges)
 
     @app.get(
@@ -871,20 +1234,7 @@ def create_app(db_path: Path | None = None) -> FastAPI:
         story = owned_story_or_404(story_id=story_id, user=user)
         latest = latest_analysis_or_404(story=story, user=user)
         _, _, dashboard, _ = latest
-        node_payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="graph_nodes",
-            story_id=story.story_id,
-            expected="array",
-        )
-        edge_payload = require_dashboard_list(
-            dashboard=dashboard,
-            key="graph_edges",
-            story_id=story.story_id,
-            expected="array",
-        )
-        nodes = [DashboardGraphNodeResponse.model_validate(item) for item in node_payload]
-        edges = [DashboardGraphEdgeResponse.model_validate(item) for item in edge_payload]
+        nodes, edges = dashboard_graph_projection(dashboard=dashboard, story=story)
         png_bytes = export_graph_png(
             nodes=[
                 GraphNode(

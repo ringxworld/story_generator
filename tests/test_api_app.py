@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
+import story_gen.api.app as app_module
 from story_gen.adapters.sqlite_anomaly_store import SQLiteAnomalyStore
 from story_gen.api.app import create_app
 
@@ -119,11 +120,16 @@ def test_api_root_reports_auth_and_story_endpoints() -> None:
     assert "/api/v1/auth/register" in payload["endpoints"]
     assert "/api/v1/stories" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/features/extract" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/ingestion/status" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/analysis/run" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/overview" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/v1/overview" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/v1/timeline" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/timeline/export.svg" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/timeline/export.png" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/v1/themes/heatmap" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg" in payload["endpoints"]
+    assert "/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png" in payload["endpoints"]
     assert "/api/v1/stories/{story_id}/dashboard/graph/export.png" in payload["endpoints"]
     assert "/api/v1/essays" in payload["endpoints"]
     assert "/api/v1/essays/{essay_id}/evaluate" in payload["endpoints"]
@@ -214,6 +220,13 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
     latest_analysis = client.get(f"/api/v1/stories/{story_id}/analysis/latest", headers=headers)
     assert latest_analysis.status_code == 200
     assert latest_analysis.json()["run_id"] == analysis_payload["run_id"]
+    ingestion_status = client.get(f"/api/v1/stories/{story_id}/ingestion/status", headers=headers)
+    assert ingestion_status.status_code == 200
+    ingestion_payload = ingestion_status.json()
+    assert ingestion_payload["story_id"] == story_id
+    assert ingestion_payload["status"] == "succeeded"
+    assert ingestion_payload["segment_count"] >= 1
+    assert ingestion_payload["run_id"] == analysis_payload["run_id"]
 
     overview = client.get(f"/api/v1/stories/{story_id}/dashboard/overview", headers=headers)
     assert overview.status_code == 200
@@ -233,6 +246,24 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
     )
     assert versioned_timeline.status_code == 200
     assert versioned_timeline.json() == timeline.json()
+    timeline_export = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/timeline/export.svg", headers=headers
+    )
+    assert timeline_export.status_code == 200
+    assert timeline_export.json()["format"] == "svg"
+    assert timeline_export.json()["svg"].startswith("<svg")
+    timeline_export_png = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/timeline/export.png", headers=headers
+    )
+    assert timeline_export_png.status_code == 200
+    timeline_png_payload = timeline_export_png.json()
+    assert timeline_png_payload["format"] == "png"
+    assert timeline_png_payload["png_base64"]
+    timeline_export_png_second = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/timeline/export.png", headers=headers
+    )
+    assert timeline_export_png_second.status_code == 200
+    assert timeline_export_png_second.json()["png_base64"] == timeline_png_payload["png_base64"]
 
     heatmap = client.get(f"/api/v1/stories/{story_id}/dashboard/themes/heatmap", headers=headers)
     assert heatmap.status_code == 200
@@ -242,6 +273,24 @@ def test_story_crud_lifecycle_with_auth(tmp_path: Path) -> None:
     )
     assert versioned_heatmap.status_code == 200
     assert versioned_heatmap.json() == heatmap.json()
+    heatmap_export = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg", headers=headers
+    )
+    assert heatmap_export.status_code == 200
+    assert heatmap_export.json()["format"] == "svg"
+    assert heatmap_export.json()["svg"].startswith("<svg")
+    heatmap_export_png = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png", headers=headers
+    )
+    assert heatmap_export_png.status_code == 200
+    heatmap_png_payload = heatmap_export_png.json()
+    assert heatmap_png_payload["format"] == "png"
+    assert heatmap_png_payload["png_base64"]
+    heatmap_export_png_second = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png", headers=headers
+    )
+    assert heatmap_export_png_second.status_code == 200
+    assert heatmap_export_png_second.json()["png_base64"] == heatmap_png_payload["png_base64"]
 
     arcs = client.get(f"/api/v1/stories/{story_id}/dashboard/arcs", headers=headers)
     assert arcs.status_code == 200
@@ -301,6 +350,9 @@ def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     )
     bob_extract = client.post(f"/api/v1/stories/{story_id}/features/extract", headers=bob_headers)
     bob_latest = client.get(f"/api/v1/stories/{story_id}/features/latest", headers=bob_headers)
+    bob_ingestion_status = client.get(
+        f"/api/v1/stories/{story_id}/ingestion/status", headers=bob_headers
+    )
     bob_analysis_run = client.post(
         f"/api/v1/stories/{story_id}/analysis/run", headers=bob_headers, json={}
     )
@@ -313,14 +365,23 @@ def test_story_access_is_isolated_by_owner(tmp_path: Path) -> None:
     bob_versioned_dashboard = client.get(
         f"/api/v1/stories/{story_id}/dashboard/v1/overview", headers=bob_headers
     )
+    bob_timeline_export = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/timeline/export.svg", headers=bob_headers
+    )
+    bob_heatmap_export = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png", headers=bob_headers
+    )
     assert bob_get.status_code == 404
     assert bob_put.status_code == 404
     assert bob_extract.status_code == 404
     assert bob_latest.status_code == 404
+    assert bob_ingestion_status.status_code == 404
     assert bob_analysis_run.status_code == 404
     assert bob_analysis_latest.status_code == 404
     assert bob_dashboard.status_code == 404
     assert bob_versioned_dashboard.status_code == 404
+    assert bob_timeline_export.status_code == 404
+    assert bob_heatmap_export.status_code == 404
 
 
 def test_story_analysis_accepts_custom_source_text(tmp_path: Path) -> None:
@@ -346,6 +407,120 @@ def test_story_analysis_accepts_custom_source_text(tmp_path: Path) -> None:
     assert run.status_code == 200
     payload = run.json()
     assert payload["source_language"] == "es"
+
+
+def test_analysis_ingestion_is_idempotent_for_same_dedupe_key(tmp_path: Path) -> None:
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    headers = _auth_headers(client, "idempotent@example.com")
+    create = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Retry-safe Story", "blueprint": _sample_blueprint()},
+    )
+    assert create.status_code == 201
+    story_id = create.json()["story_id"]
+
+    first = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={"idempotency_key": "canary-retry-1"},
+    )
+    assert first.status_code == 200
+    second = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={"idempotency_key": "canary-retry-1"},
+    )
+    assert second.status_code == 200
+    assert second.json()["run_id"] == first.json()["run_id"]
+
+    status_payload = client.get(
+        f"/api/v1/stories/{story_id}/ingestion/status",
+        headers=headers,
+    )
+    assert status_payload.status_code == 200
+    assert status_payload.json()["attempt_count"] >= 2
+    assert status_payload.json()["run_id"] == first.json()["run_id"]
+
+
+def test_ingestion_status_surfaces_adapter_warnings_for_malformed_transcript(
+    tmp_path: Path,
+) -> None:
+    client = TestClient(create_app(db_path=tmp_path / "stories.db"))
+    headers = _auth_headers(client, "transcript@example.com")
+    create = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Transcript Story", "blueprint": _sample_blueprint()},
+    )
+    assert create.status_code == 201
+    story_id = create.json()["story_id"]
+    malformed = (
+        "[00:01] Narrator: First line\n[00:02] \n::: not parseable :::\n[00:03] Rhea: Final line"
+    )
+
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={
+            "source_type": "transcript",
+            "source_text": malformed,
+            "idempotency_key": "transcript-1",
+        },
+    )
+    assert run.status_code == 200
+    status_response = client.get(
+        f"/api/v1/stories/{story_id}/ingestion/status",
+        headers=headers,
+    )
+    assert status_response.status_code == 200
+    status_payload = status_response.json()
+    assert status_payload["status"] == "succeeded"
+    assert status_payload["issue_count"] >= 1
+
+
+def test_ingestion_status_marks_failed_when_analysis_persistence_fails(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    class FailingAnalysisStore:
+        def write_analysis_result(self, *, owner_id: str, result: Any) -> Any:
+            raise RuntimeError("simulated persistence failure")
+
+        def get_latest_analysis(self, *, owner_id: str, story_id: str) -> None:
+            return None
+
+    monkeypatch.setattr(
+        app_module,
+        "create_story_analysis_store",
+        lambda *, db_path: FailingAnalysisStore(),
+    )
+    client = TestClient(
+        app_module.create_app(db_path=tmp_path / "stories.db"), raise_server_exceptions=False
+    )
+    headers = _auth_headers(client, "persist-fail@example.com")
+    create = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Persistence Failure Story", "blueprint": _sample_blueprint()},
+    )
+    assert create.status_code == 201
+    story_id = create.json()["story_id"]
+
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={"idempotency_key": "persist-fail-1"},
+    )
+    assert run.status_code == 500
+
+    status_response = client.get(
+        f"/api/v1/stories/{story_id}/ingestion/status",
+        headers=headers,
+    )
+    assert status_response.status_code == 200
+    status_payload = status_response.json()
+    assert status_payload["status"] == "failed"
+    assert "simulated persistence failure" in (status_payload["last_error"] or "")
 
 
 def test_essay_crud_and_evaluation_lifecycle(tmp_path: Path) -> None:
@@ -571,6 +746,94 @@ def test_analysis_quality_failure_is_persisted_as_anomaly(tmp_path: Path) -> Non
     assert story_id in quality_failures[0].metadata_json
 
 
+def test_analysis_translation_degradation_is_persisted_as_anomaly(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    monkeypatch.setenv("STORY_GEN_TRANSLATION_PROVIDER", "failing")
+    monkeypatch.setenv("STORY_GEN_TRANSLATION_RETRY_COUNT", "1")
+    db_path = tmp_path / "stories.db"
+    client = TestClient(create_app(db_path=db_path))
+    headers = _auth_headers(client, "translation-anomaly@example.com")
+
+    created = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Translation Degrade", "blueprint": _sample_blueprint()},
+    )
+    assert created.status_code == 201
+    story_id = created.json()["story_id"]
+
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={"source_text": "La historia de la familia cambia cuando aparece el conflicto."},
+    )
+    assert run.status_code == 200
+
+    anomalies = SQLiteAnomalyStore(db_path=db_path).list_recent(limit=20)
+    translation_degraded = [event for event in anomalies if event.code == "translation_degraded"]
+    assert translation_degraded
+    assert '"fallback_used": true' in translation_degraded[0].metadata_json
+    assert "translation_provider_fallback_used" in translation_degraded[0].metadata_json
+
+
+def test_analysis_insight_consistency_failure_is_actionable(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    from story_gen.core.story_schema import ConfidenceScore, Insight, ProvenanceRecord
+
+    def inconsistent_insights(*, beats: list[Any], themes: list[Any]) -> list[Insight]:
+        del themes
+        segment_id = beats[0].evidence_segment_ids[0]
+        return [
+            Insight(
+                insight_id="ins_bad",
+                granularity="macro",
+                title="Disconnected insight",
+                content="Orbital trade policy collapsed on unrelated continents.",
+                stage=None,
+                beat_id=None,
+                evidence_segment_ids=[segment_id],
+                confidence=ConfidenceScore(method="insight.test.v1", score=0.9),
+                provenance=ProvenanceRecord(
+                    source_segment_ids=[segment_id],
+                    generator="test_override",
+                ),
+            )
+        ]
+
+    monkeypatch.setattr(
+        "story_gen.core.story_analysis_pipeline.generate_insights", inconsistent_insights
+    )
+
+    db_path = tmp_path / "stories.db"
+    client = TestClient(create_app(db_path=db_path))
+    headers = _auth_headers(client, "insight-anomaly@example.com")
+
+    created = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Insight Inconsistency", "blueprint": _sample_blueprint()},
+    )
+    assert created.status_code == 201
+    story_id = created.json()["story_id"]
+
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={"source_text": "Rhea opens the archive and confirms the ledger."},
+    )
+    assert run.status_code == 200
+    assert run.json()["quality_gate"]["passed"] is False
+    assert "insight_evidence_inconsistent" in run.json()["quality_gate"]["reasons"]
+
+    anomalies = SQLiteAnomalyStore(db_path=db_path).list_recent(limit=20)
+    insight_failures = [event for event in anomalies if event.code == "insight_consistency_failed"]
+    assert insight_failures
+    assert "inconsistent_insight_ids" in insight_failures[0].metadata_json
+    assert "ins_bad" in insight_failures[0].metadata_json
+
+
 def test_dashboard_payload_shape_error_records_anomaly(tmp_path: Path) -> None:
     import sqlite3
 
@@ -610,8 +873,67 @@ def test_dashboard_payload_shape_error_records_anomaly(tmp_path: Path) -> None:
     )
     assert versioned_bad_response.status_code == 500
     assert versioned_bad_response.json()["detail"] == "Invalid dashboard overview payload"
+    timeline_export_bad = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/timeline/export.svg",
+        headers=headers,
+    )
+    assert timeline_export_bad.status_code == 500
+    assert timeline_export_bad.json()["detail"] == "Invalid dashboard timeline_lanes payload"
+    heatmap_export_bad = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.png",
+        headers=headers,
+    )
+    assert heatmap_export_bad.status_code == 500
+    assert heatmap_export_bad.json()["detail"] == "Invalid dashboard theme_heatmap payload"
 
     anomalies = SQLiteAnomalyStore(db_path=db_path).list_recent(limit=20)
     payload_errors = [event for event in anomalies if event.code == "invalid_payload_shape"]
     assert payload_errors
-    assert "overview" in payload_errors[0].metadata_json
+    assert any("overview" in event.metadata_json for event in payload_errors)
+
+
+def test_dashboard_heatmap_export_rejects_unknown_stage_value(tmp_path: Path) -> None:
+    import sqlite3
+
+    db_path = tmp_path / "stories.db"
+    client = TestClient(create_app(db_path=db_path))
+    headers = _auth_headers(client, "alice@example.com")
+    created = client.post(
+        "/api/v1/stories",
+        headers=headers,
+        json={"title": "Dashboard Heatmap Corruption", "blueprint": _sample_blueprint()},
+    )
+    assert created.status_code == 201
+    story_id = created.json()["story_id"]
+    run = client.post(
+        f"/api/v1/stories/{story_id}/analysis/run",
+        headers=headers,
+        json={},
+    )
+    assert run.status_code == 200
+
+    with sqlite3.connect(str(db_path)) as connection:
+        connection.execute(
+            """
+            UPDATE story_analysis_runs
+            SET dashboard_json = ?
+            WHERE story_id = ?
+            """,
+            (
+                ('{"theme_heatmap": [{"theme": "memory", "stage": "epilogue", "intensity": 0.6}]}'),
+                story_id,
+            ),
+        )
+        connection.commit()
+
+    bad_response = client.get(
+        f"/api/v1/stories/{story_id}/dashboard/themes/heatmap/export.svg",
+        headers=headers,
+    )
+    assert bad_response.status_code == 500
+    assert bad_response.json()["detail"] == "Invalid dashboard theme_heatmap payload"
+
+    anomalies = SQLiteAnomalyStore(db_path=db_path).list_recent(limit=20)
+    payload_errors = [event for event in anomalies if event.code == "invalid_payload_shape"]
+    assert payload_errors
+    assert any('"value": "epilogue"' in event.metadata_json for event in payload_errors)

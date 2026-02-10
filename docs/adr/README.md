@@ -22,3 +22,8 @@ Latest ADR:
 - `0021-pages-hosted-python-api-reference.md`
 - `0022-dashboard-png-export-surface.md`
 - `0023-dashboard-read-model-v1-endpoints.md`
+- `0024-dashboard-timeline-and-heatmap-export-surfaces.md`
+- `0026-storage-adapter-boundary-and-decision-spike.md`
+- `0027-pipeline-ingestion-resilience-and-canary.md`
+- `0028-qa-evaluation-harness-and-calibration-gates.md`
+- `0029-nlp-provider-resilience-and-insight-calibration.md`
