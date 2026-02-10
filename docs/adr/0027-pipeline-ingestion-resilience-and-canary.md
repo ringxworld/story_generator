@@ -32,6 +32,9 @@ represented in CI.
 - Extend canary execution to a fixture-driven variant matrix that includes
   multilingual and code-switching transcript paths plus at least one
   non-transcript source-type path.
+- Add per-variant expectation assertions (for example minimum segments/beats,
+  required beat stages, expected source language) so canary depth regressions
+  fail explicitly.
 - Upgrade timeline composition to include dual-view diagnostics and a
   consistency score consumed by the quality gate.
 
@@ -63,6 +66,8 @@ New or updated public surfaces:
 - Canary output is structured JSON and stage-specific on failure.
 - Matrix canary output contains per-variant stage diagnostics, key metrics,
   and explicit failing stage/error payloads when regressions occur.
+- Matrix canary includes a long transcript variant that enforces multi-segment
+  and setup/escalation/climax/resolution stage coverage.
 
 ## Test plan
 
@@ -72,6 +77,7 @@ New or updated public surfaces:
   warning surfacing, and persistence-failure status transitions.
 - CLI tests for pipeline canary success output.
 - CLI tests for variant matrix mode and summary output persistence.
+- CLI tests for expectation failure paths (`failed_stage=variant_assertions`).
 - Contract-registry snapshot checks include ingestion status contract.
 - CI executes strict matrix canary after full pytest and uploads canary summary
   artifact.

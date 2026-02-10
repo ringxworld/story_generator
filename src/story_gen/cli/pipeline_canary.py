@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final
@@ -41,12 +41,26 @@ class StageCheck:
 
 
 @dataclass(frozen=True)
+class CanaryExpectations:
+    min_segments: int | None = None
+    min_alignments: int | None = None
+    min_events: int | None = None
+    min_beats: int | None = None
+    min_themes: int | None = None
+    min_insights: int | None = None
+    min_graph_nodes: int | None = None
+    required_beat_stages: tuple[str, ...] = ()
+    expected_source_language: str | None = None
+
+
+@dataclass(frozen=True)
 class CanaryVariant:
     variant_id: str
     description: str
     source_type: str
     target_language: str
     source_text: str
+    expectations: CanaryExpectations = field(default_factory=CanaryExpectations)
 
 
 class CanaryStageError(RuntimeError):
@@ -77,6 +91,11 @@ CODE_SWITCH_SOURCE_TEXT = (
     "[01:05] Rhea: Ella confronts the council in public.\n"
     "[01:42] Narrator: The city accepts la verdad and starts to heal.\n"
 )
+LONG_TRANSCRIPT_LINE = (
+    "[00:01] Narrator: Rhea enters the archive and finds conflicting records while the "
+    "council responds with escalating denials and public debate across the city.\n"
+)
+LONG_TRANSCRIPT_SOURCE_TEXT = LONG_TRANSCRIPT_LINE * 20
 DOCUMENT_SOURCE_TEXT = (
     "# Incident Report\n"
     "1. 2024-01-03 Rhea enters the archive and finds conflicting records.\n"
@@ -84,6 +103,7 @@ DOCUMENT_SOURCE_TEXT = (
     "3. 2024-01-05 Rhea presents the ledger in the central hall.\n"
     "4. 2024-01-06 The city accepts the truth.\n"
 )
+_VALID_BEAT_STAGES: Final[set[str]] = {"setup", "escalation", "climax", "resolution"}
 DEFAULT_VARIANTS: Final[dict[str, CanaryVariant]] = {
     "default_transcript_en": CanaryVariant(
         variant_id="default_transcript_en",
@@ -91,6 +111,7 @@ DEFAULT_VARIANTS: Final[dict[str, CanaryVariant]] = {
         source_type="transcript",
         target_language="en",
         source_text=DEFAULT_SOURCE_TEXT,
+        expectations=CanaryExpectations(expected_source_language="en"),
     ),
     "multilingual_transcript_es": CanaryVariant(
         variant_id="multilingual_transcript_es",
@@ -98,6 +119,7 @@ DEFAULT_VARIANTS: Final[dict[str, CanaryVariant]] = {
         source_type="transcript",
         target_language="en",
         source_text=SPANISH_SOURCE_TEXT,
+        expectations=CanaryExpectations(expected_source_language="es"),
     ),
     "code_switch_transcript_es_en": CanaryVariant(
         variant_id="code_switch_transcript_es_en",
@@ -105,6 +127,25 @@ DEFAULT_VARIANTS: Final[dict[str, CanaryVariant]] = {
         source_type="transcript",
         target_language="en",
         source_text=CODE_SWITCH_SOURCE_TEXT,
+        expectations=CanaryExpectations(expected_source_language="en"),
+    ),
+    "long_transcript_multi_segment_en": CanaryVariant(
+        variant_id="long_transcript_multi_segment_en",
+        description="Long transcript path validating multi-segment and stage coverage behavior.",
+        source_type="transcript",
+        target_language="en",
+        source_text=LONG_TRANSCRIPT_SOURCE_TEXT,
+        expectations=CanaryExpectations(
+            min_segments=3,
+            min_alignments=3,
+            min_events=3,
+            min_beats=3,
+            min_themes=1,
+            min_insights=3,
+            min_graph_nodes=12,
+            required_beat_stages=("setup", "escalation", "climax", "resolution"),
+            expected_source_language="en",
+        ),
     ),
     "document_timeline_en": CanaryVariant(
         variant_id="document_timeline_en",
@@ -145,7 +186,7 @@ def _parser() -> argparse.ArgumentParser:
         default=None,
         help=(
             "Optional JSON file with canary variants. Schema: "
-            "{fixture_version, variants:[{variant_id,description,source_type,target_language,source_text}]}"
+            "{fixture_version, variants:[{variant_id,description,source_type,target_language,source_text,expectations?}]}"
         ),
     )
     parser.add_argument(
@@ -185,6 +226,7 @@ def _load_variant_catalog(variants_file: str | None) -> tuple[dict[str, CanaryVa
             source_type=str(raw["source_type"]),
             target_language=str(raw["target_language"]),
             source_text=str(raw["source_text"]),
+            expectations=_parse_expectations(raw.get("expectations")),
         )
         if variant.source_type not in {"text", "document", "transcript"}:
             raise ValueError(
@@ -195,6 +237,75 @@ def _load_variant_catalog(variants_file: str | None) -> tuple[dict[str, CanaryVa
         catalog[variant.variant_id] = variant
     fixture_version = str(payload.get("fixture_version", "pipeline_canary_variants.v1"))
     return catalog, fixture_version
+
+
+def _parse_expectations(raw: object) -> CanaryExpectations:
+    if raw is None:
+        return CanaryExpectations()
+    if not isinstance(raw, dict):
+        raise ValueError("Variant expectations must be an object when provided.")
+
+    known = {
+        "min_segments",
+        "min_alignments",
+        "min_events",
+        "min_beats",
+        "min_themes",
+        "min_insights",
+        "min_graph_nodes",
+        "required_beat_stages",
+        "expected_source_language",
+    }
+    unknown = sorted(set(raw) - known)
+    if unknown:
+        raise ValueError(f"Variant expectations include unsupported key(s): {', '.join(unknown)}.")
+
+    def _optional_non_negative_int(key: str) -> int | None:
+        value = raw.get(key)
+        if value is None:
+            return None
+        if not isinstance(value, int) or value < 0:
+            raise ValueError(f"Variant expectation '{key}' must be a non-negative integer.")
+        return value
+
+    required_stages_raw = raw.get("required_beat_stages")
+    required_beat_stages: tuple[str, ...]
+    if required_stages_raw is None:
+        required_beat_stages = ()
+    else:
+        if not isinstance(required_stages_raw, list):
+            raise ValueError("Variant expectation 'required_beat_stages' must be a list.")
+        required_beat_stages = tuple(str(stage) for stage in required_stages_raw)
+        invalid = sorted(stage for stage in required_beat_stages if stage not in _VALID_BEAT_STAGES)
+        if invalid:
+            valid = ", ".join(sorted(_VALID_BEAT_STAGES))
+            raise ValueError(
+                "Variant expectation 'required_beat_stages' includes unsupported stage(s): "
+                f"{', '.join(invalid)}. Valid stages: {valid}."
+            )
+
+    expected_source_language_raw = raw.get("expected_source_language")
+    expected_source_language: str | None
+    if expected_source_language_raw is None:
+        expected_source_language = None
+    else:
+        expected_source_language = str(expected_source_language_raw).strip().lower()
+        if not expected_source_language:
+            raise ValueError(
+                "Variant expectation 'expected_source_language' must be a non-empty string."
+            )
+
+    return CanaryExpectations(
+        min_segments=_optional_non_negative_int("min_segments"),
+        min_alignments=_optional_non_negative_int("min_alignments"),
+        min_events=_optional_non_negative_int("min_events"),
+        min_beats=_optional_non_negative_int("min_beats"),
+        min_themes=_optional_non_negative_int("min_themes"),
+        min_insights=_optional_non_negative_int("min_insights"),
+        min_graph_nodes=_optional_non_negative_int("min_graph_nodes"),
+        required_beat_stages=required_beat_stages,
+        expected_source_language=expected_source_language,
+    )
 
 
 def _select_variants(
@@ -257,6 +368,122 @@ def _failure_payload(*, error: CanaryStageError) -> dict[str, object]:
     }
 
 
+def _metric_value(details: dict[str, object], key: str) -> int:
+    value = details.get(key, 0)
+    if isinstance(value, int):
+        return value
+    return 0
+
+
+def _evaluate_variant_expectations(
+    *,
+    variant: CanaryVariant,
+    stage_diagnostics: dict[str, dict[str, object]],
+) -> StageCheck:
+    expectations = variant.expectations
+    failures: list[str] = []
+    applied = any(
+        (
+            expectations.min_segments is not None,
+            expectations.min_alignments is not None,
+            expectations.min_events is not None,
+            expectations.min_beats is not None,
+            expectations.min_themes is not None,
+            expectations.min_insights is not None,
+            expectations.min_graph_nodes is not None,
+            bool(expectations.required_beat_stages),
+            expectations.expected_source_language is not None,
+        )
+    )
+
+    ingestion = stage_diagnostics.get("ingestion", {})
+    translation = stage_diagnostics.get("translation", {})
+    extraction = stage_diagnostics.get("extraction", {})
+    beat_detection = stage_diagnostics.get("beat_detection", {})
+    theme_tracking = stage_diagnostics.get("theme_tracking", {})
+    insights = stage_diagnostics.get("insights", {})
+    dashboard_projection = stage_diagnostics.get("dashboard_projection", {})
+
+    if expectations.min_segments is not None:
+        observed = _metric_value(ingestion, "segments")
+        if observed < expectations.min_segments:
+            failures.append(
+                f"expected ingestion.segments >= {expectations.min_segments}, observed {observed}"
+            )
+    if expectations.min_alignments is not None:
+        observed = _metric_value(translation, "alignments")
+        if observed < expectations.min_alignments:
+            failures.append(
+                f"expected translation.alignments >= {expectations.min_alignments}, observed {observed}"
+            )
+    if expectations.min_events is not None:
+        observed = _metric_value(extraction, "events")
+        if observed < expectations.min_events:
+            failures.append(
+                f"expected extraction.events >= {expectations.min_events}, observed {observed}"
+            )
+    if expectations.min_beats is not None:
+        observed = _metric_value(beat_detection, "beats")
+        if observed < expectations.min_beats:
+            failures.append(
+                f"expected beat_detection.beats >= {expectations.min_beats}, observed {observed}"
+            )
+    if expectations.min_themes is not None:
+        observed = _metric_value(theme_tracking, "themes")
+        if observed < expectations.min_themes:
+            failures.append(
+                f"expected theme_tracking.themes >= {expectations.min_themes}, observed {observed}"
+            )
+    if expectations.min_insights is not None:
+        observed = _metric_value(insights, "insights")
+        if observed < expectations.min_insights:
+            failures.append(
+                f"expected insights.insights >= {expectations.min_insights}, observed {observed}"
+            )
+    if expectations.min_graph_nodes is not None:
+        observed = _metric_value(dashboard_projection, "graph_nodes")
+        if observed < expectations.min_graph_nodes:
+            failures.append(
+                "expected dashboard_projection.graph_nodes >= "
+                f"{expectations.min_graph_nodes}, observed {observed}"
+            )
+
+    if expectations.expected_source_language is not None:
+        observed_language = str(translation.get("source_language", "")).strip().lower()
+        if observed_language != expectations.expected_source_language:
+            failures.append(
+                "expected translation.source_language == "
+                f"{expectations.expected_source_language}, observed {observed_language or 'missing'}"
+            )
+
+    if expectations.required_beat_stages:
+        observed_stages_raw = beat_detection.get("stages")
+        observed_stages: set[str]
+        if isinstance(observed_stages_raw, list):
+            observed_stages = {str(stage) for stage in observed_stages_raw}
+        else:
+            observed_stages = set()
+        missing = sorted(
+            stage for stage in expectations.required_beat_stages if stage not in observed_stages
+        )
+        if missing:
+            failures.append(
+                "expected beat_detection.stages to include "
+                f"{', '.join(expectations.required_beat_stages)}, "
+                f"missing {', '.join(missing)}"
+            )
+
+    status = "failed" if failures else "ok"
+    return StageCheck(
+        stage="variant_assertions",
+        status=status,
+        details={
+            "applied": applied,
+            "failures": failures,
+        },
+    )
+
+
 def _run_variant(*, variant: CanaryVariant, strict: bool) -> dict[str, object]:
     story_id = f"story-canary-{variant.variant_id}"
     try:
@@ -288,11 +515,39 @@ def _run_variant(*, variant: CanaryVariant, strict: bool) -> dict[str, object]:
                     details={str(key): value for key, value in details.items()},
                 )
             )
+        expectation_check = _evaluate_variant_expectations(
+            variant=variant,
+            stage_diagnostics=_checks_to_stage_diagnostics(checks),
+        )
+        checks.append(expectation_check)
         stage_diagnostics = _checks_to_stage_diagnostics(checks)
+        payload_with_assertions = {
+            **payload,
+            "checks": [asdict(check) for check in checks],
+        }
+        if expectation_check.status != "ok":
+            failures = expectation_check.details.get("failures", [])
+            if isinstance(failures, list):
+                failure_text = "; ".join(str(value) for value in failures)
+            else:
+                failure_text = "variant expectations failed"
+            return {
+                "variant_id": variant.variant_id,
+                "description": variant.description,
+                "story_id": story_id,
+                "source_type": variant.source_type,
+                "target_language": variant.target_language,
+                "status": "failed",
+                "failed_stage": "variant_assertions",
+                "error": failure_text or "variant expectations failed",
+                "checks": [asdict(check) for check in checks],
+                "stage_diagnostics": stage_diagnostics,
+                "key_metrics": _key_metrics(stage_diagnostics),
+            }
         return {
             "variant_id": variant.variant_id,
             "description": variant.description,
-            **payload,
+            **payload_with_assertions,
             "stage_diagnostics": stage_diagnostics,
             "key_metrics": _key_metrics(stage_diagnostics),
         }

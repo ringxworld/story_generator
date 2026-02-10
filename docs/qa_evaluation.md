@@ -4,6 +4,8 @@ The repository ships a fixture-driven quality harness for story pipeline QA.
 
 It also ships a variant-matrix canary that runs end-to-end pipeline stages
 across multilingual and multi-source inputs.
+Each canary variant can also define explicit stage expectations so CI fails
+when coverage depth regresses (for example multi-segment beat coverage).
 
 Run the canary matrix locally:
 
@@ -117,6 +119,7 @@ The summary includes:
 - Per-case pass/fail and failure reasons.
 - Per-segment alignment scores (segment id + quality score + method).
 - Confidence distributions to track threshold drift over time.
+- Per-variant assertion outcomes under `variant_assertions` in canary checks.
 
 ## Fixture Update Process
 
