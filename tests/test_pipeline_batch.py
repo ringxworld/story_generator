@@ -36,8 +36,9 @@ def test_pipeline_batch_analyzes_chapters_and_writes_summary(tmp_path: Path) -> 
     summary = run_pipeline_batch(args)
     assert summary.processed_chapters == 2
     assert summary.failed_chapters == 0
-    assert summary.elapsed_seconds > 0
+    assert summary.elapsed_seconds >= 0
     assert summary.timing_totals
+    assert summary.timing_totals["total_seconds"] > 0
 
     summary_path = output_dir / "test-run" / "summary.json"
     payload = json.loads(summary_path.read_text(encoding="utf-8"))
