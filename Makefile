@@ -42,7 +42,7 @@ help:
 	@echo "  make native-quality       - native format check + cppcheck"
 	@echo "  make check                - full local gate (python + frontend + native)"
 	@echo "  make story                - run the story_gen CLI"
-	@echo "  make pipeline-canary      - run end-to-end ingest->insights pipeline canary"
+	@echo "  make pipeline-canary      - run canary matrix (multilingual + multi-source variants)"
 	@echo "  make qa-eval              - run fixture-driven QA evaluation harness"
 	@echo "  make build-site           - build MkDocs pages site"
 	@echo "  make docs-serve           - serve MkDocs locally"
@@ -149,7 +149,7 @@ story:
 	$(RUN) story-gen
 
 pipeline-canary:
-	$(RUN) story-pipeline-canary --strict
+	$(RUN) story-pipeline-canary --strict --run-all-variants --variants-file tests/fixtures/pipeline_canary_variants.v1.json --matrix-output work/qa/pipeline_canary_summary.json
 
 qa-eval:
 	$(RUN) story-qa-eval --strict --output work/qa/evaluation_summary.json

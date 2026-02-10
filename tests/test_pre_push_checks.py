@@ -45,7 +45,12 @@ def test_pre_push_checks_runs_expected_commands_in_order(
     assert executed[6][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "mypy"]
     assert executed[7][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "pytest"]
     assert executed[8][:3] == ["uv", "run", "story-pipeline-canary"]
-    assert executed[8][-1] == "--strict"
+    assert "--strict" in executed[8]
+    assert "--run-all-variants" in executed[8]
+    assert "--variants-file" in executed[8]
+    assert "tests/fixtures/pipeline_canary_variants.v1.json" in executed[8]
+    assert "--matrix-output" in executed[8]
+    assert "work/qa/pipeline_canary_summary.json" in executed[8]
     assert executed[9][:3] == ["uv", "run", "story-qa-eval"]
     assert executed[9][-2:] == ["--output", "work/qa/evaluation_summary.json"]
     assert executed[10][:3] == [sys.executable, str(pre_push_checks.TOOL_RUNNER), "mkdocs"]

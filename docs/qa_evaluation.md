@@ -2,6 +2,19 @@
 
 The repository ships a fixture-driven quality harness for story pipeline QA.
 
+It also ships a variant-matrix canary that runs end-to-end pipeline stages
+across multilingual and multi-source inputs.
+
+Run the canary matrix locally:
+
+```bash
+uv run story-pipeline-canary \
+  --strict \
+  --run-all-variants \
+  --variants-file tests/fixtures/pipeline_canary_variants.v1.json \
+  --matrix-output work/qa/pipeline_canary_summary.json
+```
+
 Run it locally:
 
 ```bash
@@ -97,6 +110,7 @@ Gates compare observed metrics against configured thresholds in:
 CI runs the harness in strict mode and uploads:
 
 - `work/qa/evaluation_summary.json`
+- `work/qa/pipeline_canary_summary.json`
 
 The summary includes:
 

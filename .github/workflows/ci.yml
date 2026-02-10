@@ -61,7 +61,20 @@ jobs:
         run: uv run pytest
 
       - name: Pipeline canary
-        run: uv run story-pipeline-canary --strict
+        run: >
+          uv run story-pipeline-canary
+          --strict
+          --run-all-variants
+          --variants-file tests/fixtures/pipeline_canary_variants.v1.json
+          --matrix-output work/qa/pipeline_canary_summary.json
+
+      - name: Upload pipeline canary summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-canary-summary
+          path: work/qa/pipeline_canary_summary.json
+          if-no-files-found: error
 
       - name: Story QA evaluation harness
         run: uv run story-qa-eval --strict --output work/qa/evaluation_summary.json

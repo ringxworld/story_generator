@@ -67,7 +67,12 @@ def test_ci_workflow_includes_code_quality_steps() -> None:
     assert "uv run ruff format --check ." in workflow
     assert "uv run mypy" in workflow
     assert "uv run pytest" in workflow
-    assert "uv run story-pipeline-canary --strict" in workflow
+    assert "uv run story-pipeline-canary" in workflow
+    assert "--run-all-variants" in workflow
+    assert "--variants-file tests/fixtures/pipeline_canary_variants.v1.json" in workflow
+    assert "--matrix-output work/qa/pipeline_canary_summary.json" in workflow
+    assert "Upload pipeline canary summary" in workflow
+    assert "pipeline-canary-summary" in workflow
     assert "uv run story-qa-eval --strict --output work/qa/evaluation_summary.json" in workflow
     assert "Upload story QA evaluation summary" in workflow
     assert "story-qa-evaluation-summary" in workflow
@@ -385,6 +390,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "droplet_stack.md").exists()
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
     assert (ROOT / "docs" / "qa_evaluation.md").exists()
+    assert (ROOT / "tests" / "fixtures" / "pipeline_canary_variants.v1.json").exists()
     assert (ROOT / "docs" / "architecture_diagrams.md").exists()
     assert (ROOT / "docs" / "javascripts" / "mermaid.js").exists()
     architecture = _read("docs/architecture.md")

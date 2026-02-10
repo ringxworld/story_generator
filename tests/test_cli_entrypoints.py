@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import runpy
 from pathlib import Path
@@ -119,6 +120,52 @@ def test_pipeline_canary_cli_reports_stage_successes(
     assert '"stage": "ingestion"' in captured.out
     assert '"stage": "timeline"' in captured.out
     assert '"stage": "insights"' in captured.out
+
+
+def test_pipeline_canary_cli_runs_variant_matrix_and_writes_summary(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    summary_output = tmp_path / "pipeline-canary-summary.json"
+    pipeline_canary.main(
+        [
+            "--strict",
+            "--run-all-variants",
+            "--variants-file",
+            "tests/fixtures/pipeline_canary_variants.v1.json",
+            "--matrix-output",
+            str(summary_output),
+        ]
+    )
+    captured = capsys.readouterr()
+    assert '"status": "ok"' in captured.out
+    assert '"totals"' in captured.out
+    assert summary_output.exists()
+
+    payload = json.loads(summary_output.read_text(encoding="utf-8"))
+    assert payload["status"] == "ok"
+    assert payload["totals"]["failed"] == 0
+    assert payload["totals"]["variants"] >= 4
+    variant_ids = {entry["variant_id"] for entry in payload["variants"]}
+    assert "multilingual_transcript_es" in variant_ids
+    assert "code_switch_transcript_es_en" in variant_ids
+    assert "document_timeline_en" in variant_ids
+    assert all("stage_diagnostics" in entry for entry in payload["variants"])
+    assert all("key_metrics" in entry for entry in payload["variants"])
+
+
+def test_pipeline_canary_cli_rejects_source_file_with_variant_mode(tmp_path: Path) -> None:
+    source_path = tmp_path / "story.txt"
+    source_path.write_text("test", encoding="utf-8")
+    with pytest.raises(SystemExit, match="--source-file is not supported"):
+        pipeline_canary.main(
+            [
+                "--variant",
+                "default_transcript_en",
+                "--source-file",
+                str(source_path),
+            ]
+        )
 
 
 def test_qa_evaluation_cli_reports_status(
