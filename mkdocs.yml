@@ -87,6 +87,7 @@ nav:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md
       - Lessons Learned (Re:Zero E2E): lessons_learned/re_zero_e2e.md
+      - Bug Prevention Log: bug_prevention.md
       - GitHub Collaboration: github_collaboration.md
       - Native C++: native_cpp.md
 
