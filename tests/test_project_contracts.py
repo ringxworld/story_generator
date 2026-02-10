@@ -241,6 +241,7 @@ def test_mkdocs_configuration_exists() -> None:
     assert "Feature Pipeline:" in config
     assert "QA Evaluation:" in config
     assert "Lessons Learned (Re:Zero E2E):" in config
+    assert "Bug Prevention Log:" in config
     assert "Story Bundle:" in config
     assert "Graph Strategy:" in config
     assert "Architecture:" in config
@@ -401,6 +402,7 @@ def test_architecture_docs_and_adr_scaffold_exist() -> None:
     assert (ROOT / "docs" / "droplet_stack.md").exists()
     assert (ROOT / "docs" / "feature_pipeline.md").exists()
     assert (ROOT / "docs" / "qa_evaluation.md").exists()
+    assert (ROOT / "docs" / "bug_prevention.md").exists()
     assert (ROOT / "docs" / "architecture_diagrams.md").exists()
     assert (ROOT / "docs" / "javascripts" / "mermaid.js").exists()
     architecture = _read("docs/architecture.md")
