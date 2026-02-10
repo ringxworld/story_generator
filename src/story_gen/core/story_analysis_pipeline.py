@@ -11,7 +11,11 @@ from story_gen.core.dashboard_views import (
     export_graph_svg,
 )
 from story_gen.core.insight_engine import generate_insights
-from story_gen.core.language_translation import SegmentAlignment, translate_segments
+from story_gen.core.language_translation import (
+    SegmentAlignment,
+    TranslationDiagnostics,
+    translate_segments_with_diagnostics,
+)
 from story_gen.core.narrative_analysis import detect_story_beats
 from story_gen.core.pipeline_contracts import (
     validate_beat_input,
@@ -26,7 +30,10 @@ from story_gen.core.pipeline_contracts import (
     validate_timeline_output,
 )
 from story_gen.core.quality_evaluation import EvaluationMetrics, evaluate_quality_gate
-from story_gen.core.story_extraction import extract_events_and_entities
+from story_gen.core.story_extraction import (
+    ExtractionDiagnostics,
+    extract_events_and_entities_with_diagnostics,
+)
 from story_gen.core.story_ingestion import IngestionArtifact, IngestionRequest, ingest_story_text
 from story_gen.core.story_schema import StoryDocument
 from story_gen.core.theme_arc_tracking import (
@@ -52,6 +59,8 @@ class StoryAnalysisResult:
     conflicts: list[ConflictShift]
     emotions: list[EmotionSignal]
     evaluation: EvaluationMetrics
+    translation_diagnostics: TranslationDiagnostics
+    extraction_diagnostics: ExtractionDiagnostics
     graph_svg: str
 
 
@@ -77,9 +86,11 @@ def run_story_analysis(
             idempotency_key=story_id,
         )
     )
-    translated_segments, alignments, source_language = translate_segments(
-        segments=artifact.segments,
-        target_language=target_language,
+    translated_segments, alignments, source_language, translation_diagnostics = (
+        translate_segments_with_diagnostics(
+            segments=artifact.segments,
+            target_language=target_language,
+        )
     )
     validate_extraction_input(translated_segments)
     logger.info(
@@ -88,7 +99,9 @@ def run_story_analysis(
         len(translated_segments),
         source_language,
     )
-    events, entities = extract_events_and_entities(segments=translated_segments)
+    events, entities, extraction_diagnostics = extract_events_and_entities_with_diagnostics(
+        segments=translated_segments
+    )
     validate_extraction_output(events)
     validate_beat_input(events)
     beats = detect_story_beats(events=events)
@@ -148,5 +161,7 @@ def run_story_analysis(
         conflicts=conflicts,
         emotions=emotions,
         evaluation=evaluation,
+        translation_diagnostics=translation_diagnostics,
+        extraction_diagnostics=extraction_diagnostics,
         graph_svg=graph_svg,
     )

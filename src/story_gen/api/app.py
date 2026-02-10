@@ -876,7 +876,76 @@ def create_app(db_path: Path | None = None) -> FastAPI:
                 },
             )
             raise
+        if (
+            analysis_result.translation_diagnostics.fallback_used
+            or analysis_result.translation_diagnostics.issue_count > 0
+        ):
+            issue_codes = sorted(
+                {
+                    issue.code
+                    for issue in analysis_result.translation_diagnostics.issues
+                    if issue.code
+                }
+            )
+            record_anomaly(
+                scope="analysis",
+                code="translation_degraded",
+                severity="warning",
+                message="Translation provider degraded and required retry/fallback handling.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "provider": analysis_result.translation_diagnostics.provider,
+                    "language_id_provider": analysis_result.translation_diagnostics.language_id_provider,
+                    "fallback_used": analysis_result.translation_diagnostics.fallback_used,
+                    "degraded_segments": analysis_result.translation_diagnostics.degraded_segments,
+                    "issue_count": analysis_result.translation_diagnostics.issue_count,
+                    "issue_codes": issue_codes,
+                },
+            )
+        if (
+            analysis_result.extraction_diagnostics.fallback_used
+            or analysis_result.extraction_diagnostics.issue_count > 0
+        ):
+            issue_codes = sorted(
+                {
+                    issue.code
+                    for issue in analysis_result.extraction_diagnostics.issues
+                    if issue.code
+                }
+            )
+            record_anomaly(
+                scope="analysis",
+                code="extraction_degraded",
+                severity="warning",
+                message="Extraction provider degraded and deterministic fallback path was used.",
+                metadata={
+                    "story_id": story.story_id,
+                    "owner_id": user.user_id,
+                    "provider": analysis_result.extraction_diagnostics.provider,
+                    "fallback_used": analysis_result.extraction_diagnostics.fallback_used,
+                    "issue_count": analysis_result.extraction_diagnostics.issue_count,
+                    "issue_codes": issue_codes,
+                },
+            )
         if not analysis_result.document.quality_gate.passed:
+            if "insight_evidence_inconsistent" in analysis_result.document.quality_gate.reasons:
+                record_anomaly(
+                    scope="analysis",
+                    code="insight_consistency_failed",
+                    severity="warning",
+                    message="Quality gate rejected insights due to evidence inconsistency.",
+                    metadata={
+                        "story_id": story.story_id,
+                        "owner_id": user.user_id,
+                        "inconsistent_insight_ids": list(
+                            analysis_result.evaluation.inconsistent_insight_ids
+                        ),
+                        "insight_evidence_consistency": (
+                            analysis_result.evaluation.insight_evidence_consistency
+                        ),
+                    },
+                )
             record_anomaly(
                 scope="analysis",
                 code="quality_gate_failed",
@@ -889,6 +958,13 @@ def create_app(db_path: Path | None = None) -> FastAPI:
                     "confidence_floor": analysis_result.document.quality_gate.confidence_floor,
                     "hallucination_risk": analysis_result.document.quality_gate.hallucination_risk,
                     "translation_quality": analysis_result.document.quality_gate.translation_quality,
+                    "timeline_consistency": analysis_result.evaluation.timeline_consistency,
+                    "insight_evidence_consistency": (
+                        analysis_result.evaluation.insight_evidence_consistency
+                    ),
+                    "inconsistent_insight_ids": list(
+                        analysis_result.evaluation.inconsistent_insight_ids
+                    ),
                 },
             )
         try:
