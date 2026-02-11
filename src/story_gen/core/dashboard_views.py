@@ -951,19 +951,27 @@ def _build_graph(
             )
         )
 
-    theme_ids = [theme.theme_id for theme in document.theme_signals]
-    beat_ids = [beat.beat_id for beat in document.story_beats]
-    # TODO(#9): Replace dense theme->beat linking with evidence-driven graph edges.
-    for theme_id in theme_ids:
-        for beat_id in beat_ids:
-            edges.append(
-                GraphEdge(
-                    source=theme_id,
-                    target=beat_id,
-                    relation="expressed_in",
-                    weight=0.5,
+    # Build evidence-driven edges: connect themes to beats based on shared evidence segments.
+    theme_segments: dict[str, set[str]] = {
+        theme.theme_id: set(theme.evidence_segment_ids) for theme in document.theme_signals
+    }
+    beat_segments: dict[str, set[str]] = {
+        beat.beat_id: set(beat.evidence_segment_ids) for beat in document.story_beats
+    }
+    for theme_id, theme_segment_set in theme_segments.items():
+        for beat_id, beat_segment_set in beat_segments.items():
+            overlap = theme_segment_set & beat_segment_set
+            if overlap:
+                # Weight based on normalized overlap: how much of the beat's evidence contains this theme.
+                weight = round(len(overlap) / max(len(beat_segment_set), 1) * 0.9 + 0.1, 2)
+                edges.append(
+                    GraphEdge(
+                        source=theme_id,
+                        target=beat_id,
+                        relation="expressed_in",
+                        weight=weight,
+                    )
                 )
-            )
     return _layout_graph_nodes(nodes), edges
 
 
