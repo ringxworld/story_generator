@@ -8,6 +8,7 @@ import zlib
 from dataclasses import dataclass
 from html import escape
 
+from story_gen.core.dialogue_extraction import DialogueExtractionDetails, extract_dialogue_details
 from story_gen.core.story_schema import (
     Insight,
     StoryDocument,
@@ -122,8 +123,21 @@ def build_dashboard_read_model(
     )
     theme_heatmap = _build_theme_heatmap(document.theme_signals)
     arc_points = _build_arc_points(arcs, conflicts, emotions)
+    extraction_details = extract_dialogue_details(
+        segments=document.raw_segments,
+        known_character_names=[
+            mention.name
+            for mention in document.entity_mentions
+            if mention.entity_type == "character"
+        ],
+    )
     drilldown = _build_drilldown(
-        document.insights, document.theme_signals, arcs, conflicts, emotions
+        document.insights,
+        document.theme_signals,
+        arcs,
+        conflicts,
+        emotions,
+        extraction_details=extraction_details,
     )
     graph_nodes, graph_edges = _build_graph(document, arcs)
     return DashboardReadModel(
@@ -782,6 +796,7 @@ def _build_drilldown(
     arcs: list[ArcSignal],
     conflicts: list[ConflictShift],
     emotions: list[EmotionSignal],
+    extraction_details: DialogueExtractionDetails,
 ) -> dict[str, DrilldownPanelView]:
     output: dict[str, DrilldownPanelView] = {}
     for insight in insights:
@@ -834,6 +849,69 @@ def _build_drilldown(
             content=f"Tone {emotion.tone}; score {emotion.score:.2f}; confidence {emotion.confidence:.2f}.",
             evidence_segment_ids=list(emotion.evidence_segment_ids),
         )
+    _append_extraction_details(output=output, extraction_details=extraction_details)
+    return output
+
+
+def _append_extraction_details(
+    *,
+    output: dict[str, DrilldownPanelView],
+    extraction_details: DialogueExtractionDetails,
+) -> None:
+    if not extraction_details.segment_ids:
+        return
+
+    balance = extraction_details.narrative_balance
+    output["detail:narrative_balance"] = DrilldownPanelView(
+        item_id="detail:narrative_balance",
+        item_type="extraction_detail",
+        title="Narrative Balance",
+        content=(
+            f"Dialogue {balance.dialogue_ratio:.2f}; action {balance.action_ratio:.2f}; "
+            f"exposition {balance.exposition_ratio:.2f}; monologue {balance.monologue_ratio:.2f}."
+        ),
+        evidence_segment_ids=list(extraction_details.segment_ids),
+    )
+
+    speaker_turn_counts: dict[str, int] = {}
+    speaker_segment_ids: dict[str, list[str]] = {}
+    for turn in extraction_details.dialogue_turns:
+        if turn.speaker == "unknown":
+            continue
+        speaker_turn_counts[turn.speaker] = speaker_turn_counts.get(turn.speaker, 0) + 1
+        speaker_segment_ids.setdefault(turn.speaker, []).append(turn.segment_id)
+
+    for speaker in sorted(
+        speaker_turn_counts,
+        key=lambda key: (-speaker_turn_counts[key], key),
+    )[:6]:
+        evidence = _dedupe_preserve_order(speaker_segment_ids.get(speaker, []))
+        output[f"detail:speaker:{speaker}"] = DrilldownPanelView(
+            item_id=f"detail:speaker:{speaker}",
+            item_type="extraction_speaker",
+            title=f"Dialogue Speaker: {speaker}",
+            content=f"Attributed turns: {speaker_turn_counts[speaker]}.",
+            evidence_segment_ids=evidence or list(extraction_details.segment_ids[:1]),
+        )
+
+    for signal in extraction_details.internal_monologues[:8]:
+        output[f"detail:monologue:{signal.segment_id}"] = DrilldownPanelView(
+            item_id=f"detail:monologue:{signal.segment_id}",
+            item_type="extraction_monologue",
+            title=f"Internal Monologue Signal ({signal.segment_id})",
+            content=f"Confidence {signal.confidence:.2f}; excerpt: {signal.excerpt}",
+            evidence_segment_ids=[signal.segment_id],
+        )
+
+
+def _dedupe_preserve_order(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    output: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        output.append(value)
     return output
 
 

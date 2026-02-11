@@ -164,3 +164,25 @@ def test_pipeline_drilldown_includes_theme_arc_conflict_and_emotion() -> None:
     assert "conflict" in item_types
     assert "emotion" in item_types
     assert all(item.evidence_segment_ids for item in drilldown_items)
+
+
+def test_pipeline_drilldown_includes_extraction_detail_items() -> None:
+    source_text = (
+        'Rhea said, "We cannot turn back." '
+        '"Then hold the line," said Rhea. '
+        "I thought we were done, but I kept moving."
+    )
+    result = run_story_analysis(story_id="story-extraction-details", source_text=source_text)
+
+    item_types = {item.item_type for item in result.dashboard.drilldown.values()}
+    assert "extraction_detail" in item_types
+    assert "extraction_monologue" in item_types
+    assert "extraction_speaker" in item_types
+
+    speaker_items = [
+        item
+        for item in result.dashboard.drilldown.values()
+        if item.item_type == "extraction_speaker"
+    ]
+    assert speaker_items
+    assert all(item.evidence_segment_ids for item in speaker_items)
