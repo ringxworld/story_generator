@@ -83,6 +83,7 @@ nav:
       - 0030 OpenAPI Snapshot and Hosted API Reference: adr/0030-openapi-snapshot-and-hosted-api-reference.md
       - 0031 Keycloak OIDC Auth: adr/0031-keycloak-oidc-auth.md
       - 0032 Batch Pipeline Re:Zero Benchmark: adr/0032-batch-pipeline-re-zero-benchmark.md
+      - 0033 Sentence and Dialogue Extraction Details: adr/0033-sentence-and-dialogue-extraction-details.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md
