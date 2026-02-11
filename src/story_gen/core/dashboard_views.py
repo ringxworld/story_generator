@@ -953,8 +953,7 @@ def _build_graph(
 
     # Build evidence-driven edges: connect themes to beats based on shared evidence segments.
     theme_segments: dict[str, set[str]] = {
-        theme.theme_id: set(theme.evidence_segment_ids)
-        for theme in document.theme_signals
+        theme.theme_id: set(theme.evidence_segment_ids) for theme in document.theme_signals
     }
     beat_segments: dict[str, set[str]] = {
         beat.beat_id: set(beat.evidence_segment_ids) for beat in document.story_beats
