@@ -31,3 +31,4 @@ Latest ADR:
 - `0031-keycloak-oidc-auth.md`
 - `0032-batch-pipeline-re-zero-benchmark.md`
 - `0033-sentence-and-dialogue-extraction-details.md`
+- `0034-narrative-essence-extraction-profiles.md`

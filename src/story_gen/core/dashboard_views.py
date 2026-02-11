@@ -9,6 +9,10 @@ from dataclasses import dataclass
 from html import escape
 
 from story_gen.core.dialogue_extraction import DialogueExtractionDetails, extract_dialogue_details
+from story_gen.core.essence_extraction import (
+    EssenceExtractionDetails,
+    extract_essence_from_segments,
+)
 from story_gen.core.story_schema import (
     Insight,
     StoryDocument,
@@ -131,6 +135,11 @@ def build_dashboard_read_model(
             if mention.entity_type == "character"
         ],
     )
+    essence_details = extract_essence_from_segments(
+        segments=document.raw_segments,
+        entities=document.entity_mentions,
+        events=document.extracted_events,
+    )
     drilldown = _build_drilldown(
         document.insights,
         document.theme_signals,
@@ -138,6 +147,7 @@ def build_dashboard_read_model(
         conflicts,
         emotions,
         extraction_details=extraction_details,
+        essence_details=essence_details,
     )
     graph_nodes, graph_edges = _build_graph(document, arcs)
     return DashboardReadModel(
@@ -797,6 +807,7 @@ def _build_drilldown(
     conflicts: list[ConflictShift],
     emotions: list[EmotionSignal],
     extraction_details: DialogueExtractionDetails,
+    essence_details: EssenceExtractionDetails,
 ) -> dict[str, DrilldownPanelView]:
     output: dict[str, DrilldownPanelView] = {}
     for insight in insights:
@@ -850,6 +861,7 @@ def _build_drilldown(
             evidence_segment_ids=list(emotion.evidence_segment_ids),
         )
     _append_extraction_details(output=output, extraction_details=extraction_details)
+    _append_essence_details(output=output, essence_details=essence_details)
     return output
 
 
@@ -913,6 +925,92 @@ def _dedupe_preserve_order(values: list[str]) -> list[str]:
         seen.add(value)
         output.append(value)
     return output
+
+
+def _append_essence_details(
+    *,
+    output: dict[str, DrilldownPanelView],
+    essence_details: EssenceExtractionDetails,
+) -> None:
+    if not essence_details.segment_ids:
+        return
+
+    fragment = essence_details.fragment
+    output["detail:essence:fragment"] = DrilldownPanelView(
+        item_id="detail:essence:fragment",
+        item_type="essence_fragment",
+        title="Fragment Essence Profile",
+        content=(
+            f"Tone tags: {', '.join(fragment.tone_tags)}. Dialogue density {fragment.dialogue_density:.2f}; "
+            f"introspection {fragment.introspection_level:.2f}; mystery {fragment.mystery_level:.2f}."
+        ),
+        evidence_segment_ids=list(essence_details.segment_ids),
+    )
+    output["detail:essence:generation_guidance"] = DrilldownPanelView(
+        item_id="detail:essence:generation_guidance",
+        item_type="essence_guidance",
+        title="Essence Guidance for Generation",
+        content=fragment.generation_guidance,
+        evidence_segment_ids=list(essence_details.segment_ids),
+    )
+
+    world = essence_details.world
+    output["detail:essence:world"] = DrilldownPanelView(
+        item_id="detail:essence:world",
+        item_type="essence_world",
+        title="World Essence Profile",
+        content=(
+            f"Magic {world.magic_level:.2f}; tech {world.tech_level:.2f}; culture {world.culture_density:.2f}; "
+            f"mystery {world.mystery_level:.2f}; descriptors: {', '.join(world.descriptors)}."
+        ),
+        evidence_segment_ids=list(essence_details.segment_ids),
+    )
+    output["detail:essence:event_alignment"] = DrilldownPanelView(
+        item_id="detail:essence:event_alignment",
+        item_type="essence_world_alignment",
+        title="Event-to-World Essence Alignment",
+        content=f"Average alignment score: {essence_details.event_world_alignment:.2f}.",
+        evidence_segment_ids=list(essence_details.segment_ids),
+    )
+
+    for snapshot in essence_details.world_evolution:
+        item_id = f"detail:essence:world:{snapshot.stage}"
+        output[item_id] = DrilldownPanelView(
+            item_id=item_id,
+            item_type="essence_world_stage",
+            title=f"World Essence Evolution: {snapshot.stage}",
+            content=(
+                f"Magic {snapshot.magic_level:.2f}; tech {snapshot.tech_level:.2f}; "
+                f"culture {snapshot.culture_density:.2f}; mystery {snapshot.mystery_level:.2f}; "
+                f"{snapshot.descriptor}."
+            ),
+            evidence_segment_ids=list(essence_details.segment_ids),
+        )
+
+    for profile in essence_details.character_profiles:
+        item_id = f"detail:essence:character:{profile.character_name}"
+        output[item_id] = DrilldownPanelView(
+            item_id=item_id,
+            item_type="essence_character",
+            title=f"Character Essence: {profile.character_name}",
+            content=(
+                f"Traits: {', '.join(profile.essence_traits)}; "
+                f"consistency {profile.consistency_score:.2f}."
+            ),
+            evidence_segment_ids=list(profile.evidence_segment_ids)
+            if profile.evidence_segment_ids
+            else list(essence_details.segment_ids[:1]),
+        )
+
+    for constraint in essence_details.character_constraints:
+        item_id = f"detail:essence:constraint:{constraint.character_name}"
+        output[item_id] = DrilldownPanelView(
+            item_id=item_id,
+            item_type="essence_constraint",
+            title=f"Character Constraint: {constraint.character_name}",
+            content=constraint.constraint_expression,
+            evidence_segment_ids=list(essence_details.segment_ids),
+        )
 
 
 def _build_graph(

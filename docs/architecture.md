@@ -9,7 +9,8 @@ This file defines the stable shape of the repository and import boundaries.
 - `src/story_gen/core/`
   - Internal pure business logic, domain orchestration, and deterministic evaluation/extraction.
   - Story intelligence pipeline stages (`story_schema`, ingestion, translation, extraction,
-    dialogue-detail extraction, beats/themes/timeline/insights, quality gate, dashboard projections).
+    dialogue-detail extraction, essence extraction, beats/themes/timeline/insights, quality gate,
+    dashboard projections).
 - `src/story_gen/adapters/`
   - Side effects: filesystem, network, subprocesses, model loading.
   - Local persistence adapters (for example SQLite story/feature/essay storage).

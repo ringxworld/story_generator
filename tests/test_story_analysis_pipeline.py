@@ -212,3 +212,21 @@ def test_pipeline_drilldown_includes_extraction_detail_items() -> None:
     ]
     assert speaker_items
     assert all(item.evidence_segment_ids for item in speaker_items)
+
+
+def test_pipeline_drilldown_includes_essence_profiles_and_constraints() -> None:
+    source_text = (
+        "Rhea feared the shadowed archive but vowed to continue. "
+        'Rhea said, "I will adapt and persist." '
+        "The council guarded old rituals while a hidden rune surfaced."
+    )
+    result = run_story_analysis(story_id="story-essence", source_text=source_text)
+    item_types = {item.item_type for item in result.dashboard.drilldown.values()}
+
+    assert "essence_fragment" in item_types
+    assert "essence_guidance" in item_types
+    assert "essence_world" in item_types
+    assert "essence_world_stage" in item_types
+    assert "essence_character" in item_types
+    assert "essence_constraint" in item_types
+    assert "essence_world_alignment" in item_types
