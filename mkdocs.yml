@@ -84,6 +84,7 @@ nav:
       - 0031 Keycloak OIDC Auth: adr/0031-keycloak-oidc-auth.md
       - 0032 Batch Pipeline Re:Zero Benchmark: adr/0032-batch-pipeline-re-zero-benchmark.md
       - 0033 Sentence and Dialogue Extraction Details: adr/0033-sentence-and-dialogue-extraction-details.md
+      - 0034 Narrative Essence Extraction Profiles: adr/0034-narrative-essence-extraction-profiles.md
   - Guides:
       - Dependency Charts: dependency_charts.md
       - Reference Pipeline: reference_pipeline.md
