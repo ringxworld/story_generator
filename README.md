@@ -77,12 +77,52 @@ make dev-stack
 make dev-stack-hot
 ```
 
+## Minimal startup commands
+
+One terminal + tmux bringup (recommended on Windows via WSL/Git Bash):
+
+```bash
+make sync
+make bringup-up
+```
+
+This opens windows for:
+
+- ROS2 docker stack (`ros2-stack`)
+- API server (`story-api`)
+- web dashboard (`web` Vite dev server)
+- ROS2 container logs
+
+Non-tmux flow:
+
+```bash
+make sync
+make ros2-stack-up-detached
+make api
+make web-dev
+```
+
+Optional ROS2 auto-launch inside docker:
+
+```bash
+ATITD_ROS2_LAUNCH_COMMAND="ros2 launch <package> <launch_file>.launch.py" make ros2-stack-up
+```
+
 ## Run with Docker
 
 ```bash
 make docker-up
 make docker-down
 make docker-logs
+```
+
+ROS2-only container targets:
+
+```bash
+make ros2-stack-build
+make ros2-stack-up
+make ros2-stack-logs
+make ros2-stack-down
 ```
 
 ## Quality checks
@@ -95,4 +135,14 @@ For command details:
 
 ```bash
 make help
+```
+
+## Python API docs (pdoc)
+
+This repository publishes Python API docs to GitHub Pages under `/pydoc/` from the `Deploy Pages` workflow.
+
+Build locally:
+
+```bash
+make docs-pydoc
 ```

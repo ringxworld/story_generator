@@ -1,5 +1,7 @@
 UV ?= uv
 RUN = $(UV) run
+TMUX_SESSION ?= story-gen-stack
+ROS_DOCKER_SERVICE ?= ros2-stack
 REFERENCE_ARGS ?= --max-episodes 10
 TRANSLATE_URL ?= http://localhost:5000
 STORY_SERIES_CODE ?= n2866cb
@@ -19,7 +21,7 @@ ISSUE_SUMMARY_FILE ?=.github/ISSUE_CLOSE_SUMMARY_TEMPLATE.md
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync hooks-install hooks-run lock-check import-check contracts-check openapi-export openapi-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story pipeline-canary pipeline-batch qa-eval build-site docs-serve story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-up-detached attach docker-down docker-logs docker-ci web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck wiki-sync wiki-sync-push contracts-export project-sync project-audit label-audit issue-close pr-open pr-checks pr-merge pr-auto deploy clean clean-deep
+.PHONY: help sync hooks-install hooks-run lock-check import-check contracts-check openapi-export openapi-check lint fix format format-check typecheck test e2e coverage quality frontend-quality native-quality check story pipeline-canary pipeline-batch qa-eval build-site docs-serve docs-pydoc story-page reference reference-translate collect-story video-story api blueprint features dev-stack dev-stack-hot stack-up stack-up-hot brand-icons docker-build docker-up docker-up-detached attach docker-down docker-logs docker-ci ros2-stack-build ros2-stack-up ros2-stack-up-detached ros2-stack-down ros2-stack-logs ros2-smoke bringup-up bringup-down bringup-attach web-install web-dev web-hot web-typecheck web-test web-coverage web-build cpp-configure cpp-build cpp-test cpp-demo cpp-format cpp-format-check cpp-cppcheck wiki-sync wiki-sync-push contracts-export project-sync project-audit label-audit issue-close pr-open pr-checks pr-merge pr-auto deploy clean clean-deep
 
 help:
 	@echo "story_gen targets:"
@@ -49,6 +51,7 @@ help:
 	@echo "  make qa-eval              - run fixture-driven QA evaluation harness"
 	@echo "  make build-site           - build MkDocs pages site"
 	@echo "  make docs-serve           - serve MkDocs locally"
+	@echo "  make docs-pydoc           - build Python API docs locally via pdoc"
 	@echo "  make story-page           - build standalone story HTML page"
 	@echo "  make reference            - run reference pipeline (override REFERENCE_ARGS)"
 	@echo "  make reference-translate  - run reference pipeline with LibreTranslate"
@@ -69,6 +72,15 @@ help:
 	@echo "  make docker-down          - stop docker compose services"
 	@echo "  make docker-logs          - tail docker compose logs"
 	@echo "  make docker-ci            - run full project checks in CI Docker image"
+	@echo "  make ros2-stack-build     - build ROS2 Docker image/service"
+	@echo "  make ros2-stack-up        - launch ROS2 stack in foreground"
+	@echo "  make ros2-stack-up-detached - launch ROS2 stack in background"
+	@echo "  make ros2-stack-down      - stop ROS2 stack container"
+	@echo "  make ros2-stack-logs      - tail ROS2 stack logs"
+	@echo "  make ros2-smoke           - run ROS2 smoke script"
+	@echo "  make bringup-up           - open tmux multi-window stack launcher"
+	@echo "  make bringup-attach       - attach to existing bringup tmux session"
+	@echo "  make bringup-down         - tear down bringup tmux + ROS2 container"
 	@echo "  make web-install          - install frontend dependencies"
 	@echo "  make web-dev              - run React+TS frontend dev server"
 	@echo "  make web-hot              - run dedicated hot-edit frontend server on :5174"
@@ -174,6 +186,9 @@ docs-serve:
 	$(RUN) python tools/export_openapi_snapshot.py
 	$(RUN) mkdocs serve
 
+docs-pydoc:
+	$(RUN) python tools/build_python_api_docs.py --output-dir pydoc_site
+
 story-page:
 	$(RUN) python -m story_gen.site_builder
 
@@ -234,6 +249,33 @@ docker-logs:
 docker-ci:
 	docker build -f docker/ci.Dockerfile -t story-gen-ci .
 	docker run --rm story-gen-ci
+
+ros2-stack-build:
+	docker compose build $(ROS_DOCKER_SERVICE)
+
+ros2-stack-up:
+	docker compose up --build $(ROS_DOCKER_SERVICE)
+
+ros2-stack-up-detached:
+	docker compose up -d --build $(ROS_DOCKER_SERVICE)
+
+ros2-stack-down:
+	docker compose stop $(ROS_DOCKER_SERVICE)
+
+ros2-stack-logs:
+	docker compose logs -f $(ROS_DOCKER_SERVICE)
+
+ros2-smoke:
+	bash ./scripts/ros2_smoke.sh
+
+bringup-up:
+	ATITD_TMUX_SESSION=$(TMUX_SESSION) bash ./ros2_ws/src/bringup/tmux_up.sh
+
+bringup-attach:
+	tmux attach -t $(TMUX_SESSION)
+
+bringup-down:
+	ATITD_TMUX_SESSION=$(TMUX_SESSION) bash ./ros2_ws/src/bringup/tmux_down.sh
 
 web-install:
 	npm install --prefix web

@@ -1,0 +1,18 @@
+FROM ros:humble-ros-base
+
+SHELL ["/bin/bash", "-lc"]
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        python3-colcon-common-extensions \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ros2_ws /app/ros2_ws
+COPY scripts/ros2_stack.sh /app/scripts/ros2_stack.sh
+COPY scripts/ros2_smoke.sh /app/scripts/ros2_smoke.sh
+
+RUN chmod +x /app/scripts/ros2_stack.sh /app/scripts/ros2_smoke.sh
+
+CMD ["/app/scripts/ros2_stack.sh"]

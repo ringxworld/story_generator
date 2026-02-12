@@ -1,6 +1,17 @@
 name: story_gen_local
 
 services:
+  ros2-stack:
+    build:
+      context: .
+      dockerfile: Dockerfile.ros2
+    environment:
+      ATITD_ROS2_LAUNCH_COMMAND: ${ATITD_ROS2_LAUNCH_COMMAND:-}
+    volumes:
+      - .:/app
+    tty: true
+    stdin_open: true
+
   api:
     build:
       context: .
