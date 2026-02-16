@@ -71,7 +71,7 @@ jobs:
 
       - name: Upload story QA evaluation summary
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: story-qa-evaluation-summary
           path: work/qa/evaluation_summary.json
