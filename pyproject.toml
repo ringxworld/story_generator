@@ -50,7 +50,7 @@ nlp = [
   "spacy>=3.8.0",
 ]
 topic = [
-  "bertopic>=0.16.0",
+  "bertopic>=0.17.4",
   "hdbscan>=0.8.33",
   "umap-learn>=0.5.7",
 ]
