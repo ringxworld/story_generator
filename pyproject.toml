@@ -9,7 +9,7 @@ description = "Story generation toolkit with software engineering guardrails."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-  "beautifulsoup4>=4.12.3",
+  "beautifulsoup4>=4.14.3",
   "fastapi>=0.116.1",
   "httpx>=0.28.1",
   "pyjwt>=2.9.0",
