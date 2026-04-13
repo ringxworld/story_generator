@@ -33,7 +33,7 @@ story-pipeline-batch = "story_gen.cli.pipeline_batch:main"
 
 [dependency-groups]
 dev = [
-  "clang-format>=20.1.0",
+  "clang-format>=22.1.3",
   "pdoc>=15.0.4",
   "pre-commit>=4.1.0",
   "mypy>=1.14.0",
